@@ -1,0 +1,9 @@
+benchmark-*.html
+test/__pycache__/
+.stack-work/
+*~
+log/
+*.prof
+*.hp
+*.ps
+prof.svg

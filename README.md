@@ -22,4 +22,6 @@ varies linearly with input length.
 
 The following optional extensions are provided:
 
-TODO
+- Pipe tables
+- Smart quotes, dashes, and ellipses
+- Strikethrough

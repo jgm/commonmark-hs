@@ -7,7 +7,7 @@ import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.PipeTable
 import           Control.Monad         (when)
 import           Data.Functor.Identity
-import           Data.List             (sort)
+import           Data.List             (sort, groupBy)
 import           Data.Monoid           ((<>))
 import           Data.Text             (Text)
 import qualified Data.Text             as T
@@ -23,31 +23,38 @@ import           Text.Parsec.Pos
 
 main :: IO ()
 main = do
-  spectests <- getSpecTests "test/spec.txt"
-  smarttests <- getSpecTests "test/smart_punct.txt"
-  strikethroughtests <- getSpecTests "test/strikethrough.txt"
-  pipetabletests <- getSpecTests "test/pipe-tables.txt"
+  spectests <- getSpecTestTree "test/spec.txt" defaultSyntaxSpec
+  smarttests <- getSpecTestTree "test/smart_punct.txt"
+                   (defaultSyntaxSpec <> smartPunctuationSpec)
+  strikethroughtests <- getSpecTestTree "test/strikethrough.txt"
+                         (defaultSyntaxSpec <> strikethroughSpec)
+  pipetabletests <- getSpecTestTree "test/pipe-tables.txt"
+                         (defaultSyntaxSpec <> pipeTableSpec)
   defaultMain $ testGroup "Tests"
     [ testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip
-    , testGroup "Spec tests" $
-        map (toSpecTest parseCommonmark) spectests
-    , testGroup "Smart punctuation tests" $
-        map (toSpecTest (runIdentity . parseCommonmarkWith
-                          (defaultSyntaxSpec <> smartPunctuationSpec)))
-                          smarttests
-    , testGroup "Strikethrough tests" $
-        map (toSpecTest (runIdentity . parseCommonmarkWith
-                          (defaultSyntaxSpec <> strikethroughSpec)))
-                          strikethroughtests
-    , testGroup "Pipe table tests" $
-        map (toSpecTest (runIdentity . parseCommonmarkWith
-                          (defaultSyntaxSpec <> pipeTableSpec)))
-                          pipetabletests
+    , spectests
+    , smarttests
+    , strikethroughtests
+    , pipetabletests
     -- we handle these in the benchmarks now
     -- , testGroup "Pathological tests" $
     --    map pathologicalTest pathtests
     ]
 
+getSpecTestTree :: FilePath
+                -> SyntaxSpec Identity (Html ()) (Html ())
+                -> IO TestTree
+getSpecTestTree fp syntaxspec = do
+  spectests <- getSpecTests fp
+  let spectestgroups = groupBy (\t1 t2 -> section t1 == section t2)
+                          spectests
+  let spectestsecs = [(section (head xs), xs) | xs <- spectestgroups]
+  let parser = runIdentity . parseCommonmarkWith syntaxspec
+  return $ testGroup fp $
+    map (\(secname, tests) ->
+           testGroup (T.unpack secname) $
+             map (toSpecTest parser) tests)
+        spectestsecs
 
 getSpecTests :: FilePath -> IO [SpecTest]
 getSpecTests fp = do
@@ -126,7 +133,7 @@ satisfyLine f = token showTok posFromTok testTok
 
 parseSpecTest :: Parsec [(Int, Text)] (Text, Int) SpecTest
 parseSpecTest = do
-  startline <- sourceLine <$> getPosition
+  startpos <- getPosition
   () <$ satisfyLine (== "```````````````````````````````` example")
   markdownText <- T.unlines <$> manyTill (satisfyLine (const True))
                                  (satisfyLine (=="."))
@@ -140,7 +147,7 @@ parseSpecTest = do
      , example = exampleNumber
      , markdown = markdownText
      , end_line = endline
-     , start_line = startline
+     , start_line = sourceLine startpos
      , html = htmlText
    }
 

@@ -7,7 +7,6 @@ import qualified Data.ByteString.Lazy as BL
 import           Data.List            (partition)
 import qualified Data.Map             as M
 import           Data.Monoid
-import qualified Data.Sequence        as Seq
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 import qualified Data.Text.IO         as TIO

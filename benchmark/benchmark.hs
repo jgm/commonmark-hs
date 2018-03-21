@@ -2,9 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 import Criterion.Main
 import Data.Text (Text)
-import qualified Data.Text.Lazy as TL
 import Commonmark
-import Commonmark.Blocks
 import Commonmark.Inlines
 import Lucid (renderText)
 import qualified Data.Text as T
@@ -14,7 +12,6 @@ import qualified CMark as CMark
 import Text.Blaze.Html.Renderer.Text as Blaze
 import qualified Cheapskate as Cheapskate
 import qualified Cheapskate.Html as CheapskateHtml
-import Data.Maybe (fromJust)
 import Lucid
 
 main :: IO ()

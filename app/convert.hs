@@ -13,7 +13,6 @@ import           Lucid
 import           System.Environment
 import           System.Exit
 import           System.IO
-import           Data.Functor.Identity      (runIdentity)
 import           System.Console.GetOpt
 import           Paths_commonmark (version)
 import           Data.Version (showVersion)

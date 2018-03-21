@@ -9,7 +9,6 @@ import           Control.Monad         (when)
 import           Data.Either
 import           Data.Functor.Identity
 import           Data.List             (sort)
-import           Data.Maybe            (fromMaybe)
 import           Data.Monoid           ((<>))
 import           Data.Text             (Text)
 import qualified Data.Text             as T
@@ -118,9 +117,9 @@ satisfyLine :: (Text -> Bool)
             -> Parsec [(Int, Text)] (Text, Int) Text
 satisfyLine f = token showTok posFromTok testTok
   where
-     showTok (pos,t)     = T.unpack t
-     posFromTok (pos,t)  = newPos "" pos 1
-     testTok (pos,t)     = if f t then Just t else Nothing
+     showTok (_,t)       = T.unpack t
+     posFromTok (pos,_)  = newPos "" pos 1
+     testTok (_,t)       = if f t then Just t else Nothing
 
 parseSpecTest :: Parsec [(Int, Text)] (Text, Int) SpecTest
 parseSpecTest = do
@@ -145,7 +144,7 @@ parseSpecTest = do
 normalLine :: Parsec [(Int, Text)] (Text, Int) ()
 normalLine = do
   t <- satisfyLine (/= "```````````````````````````````` example")
-  when ("#" `T.isPrefixOf` t) $ updateState $ \(secname, exampnum) ->
+  when ("#" `T.isPrefixOf` t) $ updateState $ \(_secname, exampnum) ->
            (T.strip $ T.dropWhile (=='#') t, exampnum)
 
 ---

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Commonmark.Extensions.Smart
   ( smartPunctuationSpec )
@@ -8,7 +9,9 @@ import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.Util (symbol)
 import Text.Parsec
+#if !MIN_VERSION_base(4,11,0)
 import Data.Monoid
+#endif
 
 smartPunctuationSpec :: (Monad m, IsBlock il bl, IsInline il)
                      => SyntaxSpec m il bl

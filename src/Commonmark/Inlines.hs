@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
@@ -49,8 +50,10 @@ import           Data.Dynamic               (Dynamic)
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map                   as M
 import           Data.Maybe                 (isJust, mapMaybe)
-import           Data.Monoid
 import qualified Data.Set                   as Set
+#if !MIN_VERSION_base(4,11,0)
+import           Data.Monoid                ((<>))
+#endif
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import           Text.HTML.TagSoup          (innerText, parseTags)

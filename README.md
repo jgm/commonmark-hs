@@ -2,6 +2,9 @@
 
 A pure Haskell library for parsing commonmark.
 
+**Work in progress!  Do not use, but comments on the
+API and implementation are very much welcome.**
+
 The library is **fully commonmark-compliant** and passes the
 test suite.  It is designed to be **customizable and easily
 extensible.**  To customize the output, create an

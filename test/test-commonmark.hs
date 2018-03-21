@@ -6,7 +6,6 @@ import           Commonmark.Extensions.Smart
 import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.PipeTable
 import           Control.Monad         (when)
-import           Data.Either
 import           Data.Functor.Identity
 import           Data.List             (sort)
 import           Data.Monoid           ((<>))
@@ -81,6 +80,10 @@ toSpecTest parser st =
                    fromRight mempty $
                      (parser (tokenize "" (markdown st))
                       :: Either ParseError (Html ()))
+
+fromRight :: b -> Either a b ->  b
+fromRight fallback (Left _) = fallback
+fromRight _ (Right x)       = x
 
 normalizeHTML :: Text -> Text
 normalizeHTML = renderTagsOptions renderOptions{

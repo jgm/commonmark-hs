@@ -75,7 +75,7 @@ main = do
      res <- parser toks
      case res of
           Left e -> errExit e
-          Right r -> BL.putStr . renderBS $ r
+          Right (r :: Html ()) -> BL.putStr . renderBS $ r
 
 errExit :: ParseError -> IO a
 errExit err = do

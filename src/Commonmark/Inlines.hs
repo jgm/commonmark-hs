@@ -41,7 +41,8 @@ import           Commonmark.Util
 import           Commonmark.ReferenceMap
 import           Commonmark.Types
 import           Control.Monad              (guard, mzero)
-import           Control.Monad.State.Strict
+import           Control.Monad.State.Strict (State, evalState, get,
+                                              gets, modify)
 import           Data.Char                  (isAscii, isDigit, isHexDigit,
                                              isLetter)
 import           Data.Dynamic               (Dynamic)

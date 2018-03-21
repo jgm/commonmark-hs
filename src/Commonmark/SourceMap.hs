@@ -10,7 +10,6 @@ module Commonmark.SourceMap
   , runWithSourceMap )
 where
 import           Data.Semigroup       (Semigroup, (<>))
-import           Data.Monoid          (Monoid, mempty, mappend)
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 import qualified Data.Map             as M

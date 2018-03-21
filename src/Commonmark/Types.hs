@@ -23,7 +23,7 @@ module Commonmark.Types
 where
 import           Data.Char            (isSpace)
 import           Data.Data            (Data)
-import           Data.Semigroup
+import           Data.Semigroup       (Semigroup, (<>))
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 import qualified Data.Text.Lazy       as TL

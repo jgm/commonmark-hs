@@ -4,6 +4,7 @@ module Commonmark.ReferenceMap
   , insertReference
   , lookupReference
   ) where
+import Data.Semigroup (Semigroup)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Map as M
@@ -11,7 +12,7 @@ import Data.CaseInsensitive (CI (..), mk)
 
 -- | Lookup table for link references.
 newtype ReferenceMap = ReferenceMap (M.Map (CI Text) (Text, Text))
-  deriving (Show, Monoid)
+  deriving (Show, Semigroup, Monoid)
 
 -- | Insert a link reference into a reference map.
 insertReference :: Text -- ^ Reference label

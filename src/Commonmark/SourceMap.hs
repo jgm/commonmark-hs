@@ -9,7 +9,8 @@ module Commonmark.SourceMap
   , WithSourceMap
   , runWithSourceMap )
 where
-import           Data.Monoid
+import           Data.Semigroup       (Semigroup, (<>))
+import           Data.Monoid          (Monoid, mempty, mappend)
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 import qualified Data.Map             as M
@@ -24,10 +25,13 @@ newtype SourceMap =
   SourceMap { unSourceMap :: M.Map SourcePos (Seq.Seq Text, Seq.Seq Text) }
   deriving (Show)
 
+instance Semigroup SourceMap where
+  (SourceMap m1) <> (SourceMap m2) =
+    SourceMap (M.unionWith combine m1 m2)
+
 instance Monoid SourceMap where
   mempty = SourceMap mempty
-  mappend (SourceMap m1) (SourceMap m2) =
-    SourceMap (M.unionWith combine m1 m2)
+  mappend = (<>)
 
 combine :: (Seq.Seq Text, Seq.Seq Text)
         -> (Seq.Seq Text, Seq.Seq Text)
@@ -40,11 +44,13 @@ newtype WithSourceMap a =
         WithSourceMap (State (Text, SourceMap) a)
         deriving (Functor, Applicative, Monad)
 
+instance (Show a, Semigroup a) => Semigroup (WithSourceMap a) where
+  (WithSourceMap x1) <> (WithSourceMap x2) =
+    WithSourceMap ((<>) <$> x1 <*> x2)
 
-instance (Show a, Monoid a) => Monoid (WithSourceMap a) where
+instance (Show a, Semigroup a, Monoid a) => Monoid (WithSourceMap a) where
   mempty = WithSourceMap (return mempty)
-  mappend (WithSourceMap x1) (WithSourceMap x2) =
-    WithSourceMap (mappend <$> x1 <*> x2)
+  mappend = (<>)
 
 instance (Show a, Monoid a) => Show (WithSourceMap a) where
   show (WithSourceMap x) = show $ evalState x mempty
@@ -60,7 +66,7 @@ addName :: Text -> WithSourceMap ()
 addName name =
   WithSourceMap $ modify (\(_,sm) -> (name,sm))
 
-instance IsInline a => IsInline (WithSourceMap a) where
+instance (IsInline a, Semigroup a) => IsInline (WithSourceMap a) where
   lineBreak = lineBreak <$ addName "lineBreak"
   softBreak = softBreak <$ addName "softBreak"
   str t = str t <$ addName "str"
@@ -73,7 +79,7 @@ instance IsInline a => IsInline (WithSourceMap a) where
   code t = code t <$ addName "code"
   rawInline f t = rawInline f t <$ addName "rawInline"
 
-instance (IsBlock b a, IsInline b, IsInline (WithSourceMap b))
+instance (IsBlock b a, IsInline b, IsInline (WithSourceMap b), Semigroup a)
          => IsBlock (WithSourceMap b) (WithSourceMap a) where
   paragraph x = (paragraph <$> x) <* addName "paragraph"
   plain x = (plain <$> x) <* addName "plain"

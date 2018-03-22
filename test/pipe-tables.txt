@@ -1,19 +1,7 @@
-## Pipe Tables
+## Tables (extension)
 
-Our pipe tables are like GFM pipe tables, and this spec is
-based on the GFM spec, but with a few differences:
-
-- Every row of a table needs to start with `|` and end with
-  (unescaped) `|`; so tables like
-  ```
-  a|b
-  -|-
-  1|2
-  ```
-  are not supported. this is to increase parsing efficiency.
-
-- Tables end when a line that does not start with `|` and end with
-  `|` is encountered.
+GFM enables the `table` extension, where an additional leaf block type is
+available.
 
 A [table](@) is an arrangement of data with rows and columns, consisting of a
 single header row, a [delimiter row] separating the header from the data, and
@@ -21,8 +9,9 @@ zero or more data rows.
 
 Each row consists of cells containing arbitrary text, in which [inlines] are
 parsed, separated by pipes (`|`).  A leading and trailing pipe is also
-required.  Spaces between pipes and cell content are trimmed.
-Block-level elements cannot be inserted in a table.
+recommended for clarity of reading, and if there's otherwise parsing ambiguity.
+Spaces between pipes and cell content are trimmed.  Block-level elements cannot
+be inserted in a table.
 
 The [delimiter row](@) consists of cells whose only content are hyphens (`-`),
 and optionally, a leading or trailing colon (`:`), or both, to indicate left,
@@ -50,12 +39,12 @@ right, or center alignment respectively.
 ````````````````````````````````
 
 Cells in one column don't need to match length, though it's easier to read if
-they are.
+they are. Likewise, use of leading and trailing pipes may be inconsistent:
 
 ```````````````````````````````` example
 | abc | defghi |
-|:-: | -----------:|
-|bar | baz  |
+:-: | -----------:
+bar | baz
 .
 <table>
 <thead>
@@ -73,9 +62,8 @@ they are.
 </table>
 ````````````````````````````````
 
-Include a pipe in a cell's content by escaping it. Note that
-`\|` inside inline code backticks is treated as a literal `|`,
-and thus differently than in code backticks outside of table cells.
+Include a pipe in a cell's content by escaping it, including inside other
+inline spans:
 
 ```````````````````````````````` example
 | f\|oo  |
@@ -100,8 +88,8 @@ and thus differently than in code backticks outside of table cells.
 </table>
 ````````````````````````````````
 
-The table is broken at the line that does not begin and end with a `|`
-character.
+The table is broken at the first line not containing an
+unescaped `|`:
 
 ```````````````````````````````` example
 | abc | def |
@@ -132,7 +120,6 @@ character.
 | abc | def |
 | --- | --- |
 | bar | baz |
-bar
 
 bar
 .
@@ -151,6 +138,28 @@ bar
 </tbody>
 </table>
 <p>bar</p>
+````````````````````````````````
+
+```````````````````````````````` example
+| abc | def |
+| --- | --- |
+| bar | baz |
+bar
+.
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+</tbody>
+</table>
 <p>bar</p>
 ````````````````````````````````
 
@@ -212,3 +221,4 @@ If there are no rows in the body, no `<tbody>` is generated in HTML output:
 </thead>
 </table>
 ````````````````````````````````
+

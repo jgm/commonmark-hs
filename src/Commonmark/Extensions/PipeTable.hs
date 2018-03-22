@@ -85,8 +85,12 @@ instance HasPipeTable RangedHtml RangedHtml where
 
 pCells :: Monad m => ParsecT [Tok] s m [[Tok]]
 pCells = try $ do
-  symbol '|'
-  cells <- many1 (try $ pCell <* symbol '|')
+  hasPipe <- option False $ True <$ symbol '|'
+  pipedCells <- many (try $ pCell <* symbol '|')
+  unpipedCell <- option [] $ (:[]) <$> pCell
+  let cells = pipedCells ++ unpipedCell
+  guard $ not (null cells)
+  guard $ hasPipe || not (null pipedCells) -- need at least one |
   lookAhead blankLine
   return cells
 
@@ -105,10 +109,15 @@ pCell = mconcat <$> many1
 
 pDividers :: Monad m => ParsecT [Tok] s m [ColAlignment]
 pDividers = try $ do
-  symbol '|'
-  aligns <- many1 (try $ pDivider <* symbol '|')
+  hasPipe <- option False $ True <$ symbol '|'
+  pipedAligns <- many (try $ pDivider <* symbol '|')
+  unpipedAlign <- option [] $ (:[]) <$> pDivider
+  let aligns = pipedAligns ++ unpipedAlign
+  guard $ not (null aligns)
+  guard $ hasPipe || not (null pipedAligns) -- need at least one |
   lookAhead blankLine
   return aligns
+
 
 pDivider :: Monad m => ParsecT [Tok] s m ColAlignment
 pDivider = try $ do

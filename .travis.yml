@@ -74,15 +74,13 @@ script:
     cabal)
       cabal update && \
       cd commonmark && \
-      cabal configure --enable-tests --enable-benchmarks --ghc-options="$OPTS" && \
       cabal sdist --output-directory=sourcedist && \
       cd sourcedist && \
       cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS" && \
       cd ../.. \
       cd commonmark-cli && \
-      cabal configure --enable-tests --enable-benchmarks --ghc-options="$OPTS" && \
       cabal sdist --output-directory=sourcedist && \
       cd sourcedist && \
-      cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS"
+      cabal install --enable-tests --ghc-options="$OPTS"
       ;;
   esac

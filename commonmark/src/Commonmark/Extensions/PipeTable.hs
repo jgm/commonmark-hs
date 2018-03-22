@@ -1,3 +1,4 @@
+{-# LANGUAGE IncoherentInstances   #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -31,6 +32,7 @@ import Commonmark.Types
 import Commonmark.Tokens
 import Commonmark.Util
 import Commonmark.Blocks
+import Commonmark.SourceMap
 import Text.Parsec
 import Data.Dynamic
 import Data.Tree
@@ -82,6 +84,12 @@ instance HasPipeTable RangedHtml RangedHtml where
   pipeTable aligns headerCells rows =
     RangedHtml $ pipeTable aligns (map unRangedHtml headerCells)
                    (map (map unRangedHtml) rows)
+
+instance (HasPipeTable i b, Monoid b)
+        => HasPipeTable (WithSourceMap i) (WithSourceMap b) where
+  pipeTable aligns headerCells rows = do
+    (pipeTable aligns <$> sequence headerCells <*> mapM sequence rows)
+     <* addName "pipeTable"
 
 pCells :: Monad m => ParsecT [Tok] s m [[Tok]]
 pCells = try $ do

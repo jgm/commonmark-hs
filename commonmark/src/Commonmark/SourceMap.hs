@@ -6,8 +6,10 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Commonmark.SourceMap
   ( SourceMap(..)
-  , WithSourceMap
-  , runWithSourceMap )
+  , WithSourceMap(..)
+  , runWithSourceMap
+  , addName
+  )
 where
 import           Data.Semigroup       (Semigroup, (<>))
 import           Data.Text            (Text)
@@ -40,7 +42,7 @@ combine (s1,e1) (s2,e2) = (s1 <> s2, e1 <> e2)
 -- | Use this when you want to extract a source map as well
 -- as the parsed content.
 newtype WithSourceMap a =
-        WithSourceMap (State (Text, SourceMap) a)
+        WithSourceMap { unWithSourceMap :: (State (Text, SourceMap) a) }
         deriving (Functor, Applicative, Monad)
 
 instance (Show a, Semigroup a) => Semigroup (WithSourceMap a) where

@@ -8,6 +8,7 @@ where
 import Commonmark.Types
 import Commonmark.Syntax
 import Commonmark.Inlines
+import Commonmark.SourceMap
 import Lucid
 
 strikethroughSpec :: (Monad m, IsBlock il bl, IsInline il, HasStrikethrough il)
@@ -29,3 +30,7 @@ instance HasStrikethrough (Html ()) where
 
 instance HasStrikethrough RangedHtml where
   strikethrough (RangedHtml x) = RangedHtml (del_ x)
+
+instance (HasStrikethrough i, Monoid i)
+        => HasStrikethrough (WithSourceMap i) where
+  strikethrough x = (strikethrough <$> x) <* addName "strikethrough"

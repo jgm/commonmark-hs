@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
@@ -6,7 +7,6 @@ import           Commonmark.Extensions.Smart
 import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.PipeTable
 import           Control.Monad
-import           Data.Monoid
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Text.IO               as TIO
 import           Lucid
@@ -16,6 +16,9 @@ import           System.IO
 import           System.Console.GetOpt
 import           Paths_commonmark (version)
 import           Data.Version (showVersion)
+#if !MIN_VERSION_base(4,11,0)
+import           Data.Monoid
+#endif
 
 data Opt =
        Help

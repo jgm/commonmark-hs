@@ -72,6 +72,7 @@ script:
       stack --no-terminal $ARGS test --haddock --no-haddock-deps --ghc-options="$OPTS"
       ;;
     cabal)
+      cabal update && \
       cd commonmark && \
       cabal configure --enable-tests --enable-benchmarks --ghc-options="$OPTS" && \
       cabal sdist --output-directory=sourcedist && \

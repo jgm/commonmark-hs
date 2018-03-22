@@ -72,18 +72,17 @@ script:
       stack --no-terminal $ARGS test --haddock --no-haddock-deps --ghc-options="$OPTS"
       ;;
     cabal)
-      cabal update && \
       cd commonmark && \
+      cabal update && \
+      cabal configure --enable-tests --enable-benchmarks --ghc-options="$OPTS" && \
+      cabal sdist --output-directory=sourcedist && \
+      cd sourcedist && \
+      cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS" && \
+      cd ../.. \
+      cd commonmark-cli && \
       cabal configure --enable-tests --enable-benchmarks --ghc-options="$OPTS" && \
       cabal sdist --output-directory=sourcedist && \
       cd sourcedist && \
       cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS"
-      #      && \
-      #      cd ../.. \
-      #      cd commonmark-cli && \
-      #      cabal configure --enable-tests --enable-benchmarks --ghc-options="$OPTS" && \
-      #      cabal sdist --output-directory=sourcedist && \
-      #      cd sourcedist && \
-      #      cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS"
       ;;
   esac

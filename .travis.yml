@@ -68,14 +68,12 @@ install:
   case "$BUILD" in
     stack)
       ulimit -n 4096
-      stack --no-terminal $ARGS test --only-dependencies --fast --flag 'aeson:fast' --haddock --no-haddock-deps
+      stack --no-terminal $ARGS install --only-dependencies --fast --flag 'aeson:fast' --haddock --no-haddock-deps
       ;;
     cabal)
       cabal update && \
       cd commonmark && \
-      cabal install --only-dependencies --disable-optimization --enable-tests --run-tests --enable-benchmarks && \
-      cd ../commonmark-cli && \
-      cabal install --only-dependencies --disable-optimization --enable-tests
+      cabal install --only-dependencies --disable-optimization -ffast --enable-tests --enable-benchmarks
       ;;
   esac
 
@@ -95,6 +93,7 @@ script:
       cd ../../commonmark-cli && \
       cabal sdist --output-directory=sourcedist && \
       cd sourcedist && \
+      cabal install --only-dependencies --disable-optimization --enable-tests && \
       cabal install --enable-tests --ghc-options="$OPTS"
       ;;
   esac

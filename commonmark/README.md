@@ -1,7 +1,5 @@
 # commonmark
 
-[![travis build status](https://img.shields.io/travis/jgm/commonmark-hs.svg)](https://travis-ci.org/jgm/commonmark-hs)
-
 A pure Haskell library for parsing commonmark.
 
 :construction: **Work in progress!**  The interface is in flux, and

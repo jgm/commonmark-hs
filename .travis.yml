@@ -64,6 +64,23 @@ before_install:
     curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
   fi
 
+install:
+- |
+  case "$BUILD" in
+    stack)
+      ulimit -n 4096
+stack --no-terminal $ARGS test --only-dependencies --fast --flag 'aeson:fast' --haddock --no-haddock-deps
+      ;;
+    cabal)
+      cabal update && \
+      cd commonmark && \
+      cabal install --only-dependencies --disable-optimization --enable-tests --run-tests --enable-benchmarks && \
+      cd ../.. \
+      cd commonmark-cli && \
+      cabal install --only-dependencies --disable-optimization --enable-tests
+      ;;
+  esac
+
 script:
 - |
   case "$BUILD" in

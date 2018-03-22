@@ -64,35 +64,25 @@ before_install:
     curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
   fi
 
-install:
-- echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
-- if [ -f configure.ac ]; then autoreconf -i; fi
-- |
-  case "$BUILD" in
-    stack)
-      ulimit -n 4096
-      stack --no-terminal --install-ghc $ARGS test --flag 'aeson:fast' --flag 'texmath:executable' --only-dependencies --ghc-options="-O0"
-      ;;
-    cabal)
-      cabal --version
-      travis_retry cabal update
-      cabal install -j --only-dependencies -ffast -fexecutable --enable-tests --enable-benchmarks --force-reinstalls --reorder-goals --ghc-options="-O0" --max-backjumps=-1 $CABALARGS
-      ;;
-  esac
-
 script:
 - |
   case "$BUILD" in
     stack)
       ulimit -n 4096
-      stack --no-terminal $ARGS test --flag 'aeson:fast' --flag 'texmath:executable' --haddock --no-haddock-deps --ghc-options="$OPTS"
+      stack --no-terminal $ARGS test --haddock --no-haddock-deps --ghc-options="$OPTS"
       ;;
     cabal)
+      cd commonmark && \
       cabal configure --enable-tests --enable-benchmarks --ghc-options="$OPTS" && \
       cabal sdist --output-directory=sourcedist && \
       cd sourcedist && \
-      cabal configure --enable-tests --enable-benchmarks --ghc-options="$OPTS" && \
-      cabal build -j2 && \
-      cabal test
+      cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS"
+      #      && \
+      #      cd ../.. \
+      #      cd commonmark-cli && \
+      #      cabal configure --enable-tests --enable-benchmarks --ghc-options="$OPTS" && \
+      #      cabal sdist --output-directory=sourcedist && \
+      #      cd sourcedist && \
+      #      cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS"
       ;;
   esac

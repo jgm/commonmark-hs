@@ -10,7 +10,7 @@ endif
 SOURCEFILES?=$(shell find app src test -name '*.hs')
 
 all:
-	stack install --test --haddock --no-haddock-deps --no-run-tests --bench --no-run-benchmarks
+	stack install --test --haddock --no-haddock-deps --bench --no-run-benchmarks
 
 quick:
 	stack install --test --no-run-tests --fast

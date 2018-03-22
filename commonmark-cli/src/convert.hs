@@ -14,7 +14,7 @@ import           System.Environment
 import           System.Exit
 import           System.IO
 import           System.Console.GetOpt
-import           Paths_commonmark (version)
+import           Paths_commonmark_cli (version)
 import           Data.Version (showVersion)
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid

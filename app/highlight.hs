@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 import           Commonmark
@@ -6,7 +7,6 @@ import           Control.Monad
 import qualified Data.ByteString.Lazy as BL
 import           Data.List            (partition)
 import qualified Data.Map             as M
-import           Data.Monoid
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 import qualified Data.Text.IO         as TIO
@@ -14,6 +14,9 @@ import qualified Lucid                as L
 import           System.Environment
 import           System.Exit
 import           System.IO
+#if !MIN_VERSION_base(4,11,0)
+import           Data.Monoid
+#endif
 
 main :: IO ()
 main = do

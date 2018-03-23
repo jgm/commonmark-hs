@@ -1,7 +1,3 @@
-* TODO better system for sourcemap?
-put addRange into monad
-and then we can just use a state monad.
-simpler!
 * TODO autolinks extension
 * TODO tex math extension
 * TODO mmd-style transclusion

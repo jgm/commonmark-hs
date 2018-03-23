@@ -18,7 +18,6 @@ module Commonmark.Types
   , SourcePos
   , Rangeable(..)
   , RangedHtml(..)
-  , FromRange(..)
   )
 where
 import           Data.Char            (isSpace)
@@ -280,12 +279,3 @@ prettyRange (SourceRange xs@((p,_):_)) =
          if null rest
             then ""
             else ";" ++ go (sourceName p2) rest
-
-class (Monoid a, Eq a) => FromRange a where
-  fromRange :: SourceRange -> a
-
-instance FromRange SourceRange where
-  fromRange r = r
-
-instance FromRange () where
-  fromRange _ = ()

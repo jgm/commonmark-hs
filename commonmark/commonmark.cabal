@@ -39,6 +39,7 @@ extra-source-files:
     test/smart_punct.txt
     test/strikethrough.txt
     test/pipe-tables.txt
+    test/math.txt
     README.md
 
 source-repository head
@@ -74,6 +75,7 @@ library
       Commonmark.Extensions.Smart
       Commonmark.Extensions.Strikethrough
       Commonmark.Extensions.PipeTable
+      Commonmark.Extensions.Math
   other-modules:
       Commonmark.HTML
       Paths_commonmark

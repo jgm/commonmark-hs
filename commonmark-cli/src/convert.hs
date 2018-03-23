@@ -8,6 +8,7 @@ import           Commonmark.SourceMap
 import           Commonmark.Extensions.Smart
 import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.PipeTable
+import           Commonmark.Extensions.Math
 import           Control.Monad
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Text.IO               as TIO
@@ -70,6 +71,7 @@ main = do
        let extFromName "pipe_table" = return pipeTableSpec
            extFromName "strikethrough" = return strikethroughSpec
            extFromName "smart" = return smartPunctuationSpec
+           extFromName "math" = return mathSpec
            extFromName extname = do
              hPutStrLn stderr $ "Unknown extension " ++ extname
              exitWith (ExitFailure 1)

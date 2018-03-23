@@ -1,5 +1,5 @@
 * TODO autolinks extension
-* TODO tex math extension
+* DONE tex math extension
 * TODO mmd-style transclusion
 https://fletcher.github.io/MultiMarkdown-5/transclusion.html
 {{file.md}}

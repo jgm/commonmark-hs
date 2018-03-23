@@ -35,7 +35,7 @@ bench: $(LOGS)
 	    | tee $(LOGS)/benchmark-$(DATE).out && mv benchmark-latest.html $(LOGS)/benchmark-$(DATE).html
 
 ghci:
-	stack ghci --ghci-options "-XOverloadedStrings"
+	stack ghci --ghci-options "-XOverloadedStrings" commonmark
 #	stack ghci --ghci-options "-interactive-print=Text.Pretty.Simple.pPrint -XOverloadedStrings" --package pretty-simple
 
 reformat:

@@ -81,9 +81,16 @@ main = do
       case runWithSourceMap <$> res of
            Left e -> errExit e
            Right ((_ :: Html ()), sm) -> do
-             BL.putStr $ renderBS styles
-             BL.putStr $ renderBS $ highlightWith sm toks
-             BL.putStr "\n"
+             BL.putStr $ renderBS $ do
+               doctypehtml_ $ do
+                 head_ $ do
+                   title_ $ case files of
+                                 (x:_) -> toHtml x
+                                 _     -> toHtml ("stdin" :: Text)
+                   styles
+                 body_ $ do
+                   highlightWith sm toks
+               "\n"
   else
     if SourcePos `elem` opts then do
        res <- parser toks

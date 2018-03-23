@@ -6,6 +6,7 @@ import           Commonmark.Extensions.Smart
 import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.PipeTable
 import           Commonmark.Extensions.Math
+import           Commonmark.Extensions.Autolink
 import           Control.Monad         (when)
 import           Data.Functor.Identity
 import           Data.List             (sort, groupBy)
@@ -33,6 +34,8 @@ main = do
                          (defaultSyntaxSpec <> pipeTableSpec)
   mathtests <- getSpecTestTree "test/math.txt"
                          (defaultSyntaxSpec <> mathSpec)
+  autolinktests <- getSpecTestTree "test/autolinks.txt"
+                         (defaultSyntaxSpec <> autolinkSpec)
   defaultMain $ testGroup "Tests"
     [ testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip
     , spectests
@@ -40,6 +43,7 @@ main = do
     , strikethroughtests
     , pipetabletests
     , mathtests
+    , autolinktests
     -- we handle these in the benchmarks now
     -- , testGroup "Pathological tests" $
     --    map pathologicalTest pathtests

@@ -32,7 +32,9 @@ executable commonmark
     , containers
     , pretty-simple
     , bytestring
+    , mtl
     , text
+    , ansi-terminal >= 0.7
   other-modules:
       Paths_commonmark_cli
   default-language: Haskell2010

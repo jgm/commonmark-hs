@@ -1,9 +1,12 @@
-* TODO autolinks extension
-* DONE tex math extension
-* TODO mmd-style transclusion
-https://fletcher.github.io/MultiMarkdown-5/transclusion.html
-{{file.md}}
-or in a code block by itself
+* TODO cli - add syntax highlighting with Skylighting (makes it GPL)
+* TODO Inlines - try to add back some efficiency lost with getWords?
+* TODO code block includes
+example of modifying an existing one...
+``` haskell source="myfile.hs" lines=3-6
+```
+Modify the blockConstructor in the fencedCodeSpec.
+Runs in IO.
+* TODO fenced divs
 * TODO fix two cases in CommonMark spec marked IGNORE
 these are spec bugs.  Also fix reference implementation.
 * TODO add this to CommonMark test suite:

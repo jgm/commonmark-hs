@@ -1,8 +1,0 @@
-* TODO fix two cases in CommonMark spec marked IGNORE
-these are spec bugs.  Also fix reference implementation.
-* TODO add this to CommonMark test suite:
-hi
-    there
-* NOTES on performance:
-_ changing Token to (Int, Int) didn't help
-_ remove processBrackets and processEmphasis entirely didn't affect timing or memory

@@ -39,10 +39,12 @@ wwwAutolink = try $ do
   return "http://"
 
 validDomain :: Monad m => InlineParser m ()
-validDomain = () <$ sepBy1 domainPart (symbol '.')
-  where domainPart = many1 $ satisfyTok (hasType WordChars)
+validDomain = do
+  let domainPart = many1 $ satisfyTok (hasType WordChars)
                            <|> symbol '-'
                            <|> symbol '_'
+  domainPart
+  skipMany1 $ try (symbol '.' >> domainPart)
 
 linkSuffix :: Monad m => InlineParser m ()
 linkSuffix = try $ do
@@ -70,8 +72,11 @@ urlAutolink = try $ do
 
 emailAutolink :: Monad m => InlineParser m Text
 emailAutolink = try $ do
-  satisfyTok (hasType WordChars) <|> symbol '.' <|>
-    symbol '-' <|> symbol '_' <|> symbol '+'
+  let emailNameTok (Tok WordChars _ _) = True
+      emailNameTok (Tok (Symbol c) _ _) =
+         c == '.' || c == '-' || c == '_' || c == '+'
+      emailNameTok _ = False
+  skipMany1 $ satisfyTok emailNameTok
   symbol '@'
   validDomain
   return "mailto:"

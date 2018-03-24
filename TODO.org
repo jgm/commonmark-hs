@@ -1,3 +1,6 @@
+* TODO free monad?
+this would give more flexibility e.g. to combine words in inline
+parsing.  maybe also simplify.
 * TODO cli - add syntax highlighting with Skylighting (makes it GPL)
 * TODO Inlines - try to add back some efficiency lost with getWords?
 * TODO code block includes

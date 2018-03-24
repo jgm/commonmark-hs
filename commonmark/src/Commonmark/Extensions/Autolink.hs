@@ -70,5 +70,8 @@ urlAutolink = try $ do
 
 emailAutolink :: Monad m => InlineParser m Text
 emailAutolink = try $ do
-  fail "TODO"
+  satisfyTok (hasType WordChars) <|> symbol '.' <|>
+    symbol '-' <|> symbol '_' <|> symbol '+'
+  symbol '@'
+  validDomain
   return "mailto:"

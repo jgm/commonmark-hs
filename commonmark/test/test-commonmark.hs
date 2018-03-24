@@ -27,15 +27,15 @@ main :: IO ()
 main = do
   spectests <- getSpecTestTree "test/spec.txt" defaultSyntaxSpec
   smarttests <- getSpecTestTree "test/smart_punct.txt"
-                   (defaultSyntaxSpec <> smartPunctuationSpec)
+                   (smartPunctuationSpec <> defaultSyntaxSpec)
   strikethroughtests <- getSpecTestTree "test/strikethrough.txt"
-                         (defaultSyntaxSpec <> strikethroughSpec)
+                         (strikethroughSpec <> defaultSyntaxSpec)
   pipetabletests <- getSpecTestTree "test/pipe-tables.txt"
-                         (defaultSyntaxSpec <> pipeTableSpec)
+                         (pipeTableSpec <> defaultSyntaxSpec)
   mathtests <- getSpecTestTree "test/math.txt"
-                         (defaultSyntaxSpec <> mathSpec)
+                         (mathSpec <> defaultSyntaxSpec)
   autolinktests <- getSpecTestTree "test/autolinks.txt"
-                         (defaultSyntaxSpec <> autolinkSpec)
+                         (autolinkSpec <> defaultSyntaxSpec)
   defaultMain $ testGroup "Tests"
     [ testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip
     , spectests

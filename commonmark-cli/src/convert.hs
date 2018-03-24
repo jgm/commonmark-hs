@@ -79,7 +79,7 @@ main = do
              exitWith (ExitFailure 1)
        let extensions' = [x | Extension x <- opts]
        extensions <- mconcat <$> mapM extFromName extensions'
-       parseCommonmarkWith (defaultSyntaxSpec <> extensions) xs
+       parseCommonmarkWith (extensions <> defaultSyntaxSpec) xs
   if Highlight `elem` opts then do
       res <- parser toks
       case runWithSourceMap <$> res of

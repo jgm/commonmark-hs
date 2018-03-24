@@ -509,23 +509,17 @@ pSoftbreak = softBreak <$ satisfyTok (hasType LineEnd)
 pWords :: (IsInline a, Monad m) => InlineParser m a
 pWords = do
   t <- satisfyTok (hasType WordChars)
-  toks <- getInput
-  let ts = getWord toks
-  let rest = drop (length ts) toks
-  case rest of
-      [] -> skipMany anyTok
-      (Tok _ endpos _ : _) -> do
-         setInput rest
-         setPosition endpos
-  return $ str (mconcat (map tokContents (t:ts)))
+  return $ str (tokContents t)
 
+{-
 getWord :: [Tok] -> [Tok]
 getWord (t1@Tok{ tokType = Spaces } : t2@Tok{ tokType = WordChars } : rest) =
   t1:t2:getWord rest
 getWord (t1@Tok{ tokType = WordChars } : rest) =
   t1:getWord rest
 getWord _ = []
-
+-}
+  
 pSymbol :: (IsInline a, Monad m) => InlineParser m a
 pSymbol = str . tokContents <$> pNonDelimTok
 

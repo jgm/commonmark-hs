@@ -10,6 +10,7 @@ import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.Util
+import Control.Monad (guard)
 import Data.List (dropWhileEnd)
 import Text.Parsec
 import Data.Text (Text)
@@ -40,9 +41,13 @@ wwwAutolink = try $ do
 
 validDomain :: Monad m => InlineParser m ()
 validDomain = do
-  let domainPart = many1 $ satisfyTok (hasType WordChars)
+  let domainPart = do
+        ds <- many1 $ satisfyTok (hasType WordChars)
                            <|> symbol '-'
                            <|> symbol '_'
+        guard $ case reverse ds of
+                     (Tok WordChars _ _ : _) -> True
+                     _ -> False
   domainPart
   skipMany1 $ try (symbol '.' >> domainPart)
 
@@ -56,7 +61,17 @@ linkSuffix = try $ do
          c `elem` ['?','!','.',',',':','*','_','~']
       isDroppable _ = False
   let chunk' = dropWhileEnd isDroppable $ takeWhile possibleSuffixTok toks
-  let numToks = length chunk'
+  let chunk'' = case reverse chunk' of
+                     (Tok (Symbol ')') _ _ : xs)
+                       | length [t | t@(Tok (Symbol '(') _ _) <- chunk'] <
+                         length [t | t@(Tok (Symbol ')') _ _) <- chunk']
+                       -> reverse xs
+                     (Tok (Symbol ';') _ _
+                        : Tok WordChars _ _
+                        : Tok (Symbol '&') _ _
+                        : xs) -> reverse xs
+                     _ -> chunk'
+  let numToks = length chunk''
   count numToks anyTok
   return ()
 

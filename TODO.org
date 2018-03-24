@@ -1,15 +1,3 @@
-* TODO free monad?
-this would give more flexibility e.g. to combine words in inline
-parsing.  maybe also simplify.
-* TODO cli - add syntax highlighting with Skylighting (makes it GPL)
-* TODO Inlines - try to add back some efficiency lost with getWords?
-* TODO code block includes
-example of modifying an existing one...
-``` haskell source="myfile.hs" lines=3-6
-```
-Modify the blockConstructor in the fencedCodeSpec.
-Runs in IO.
-* TODO fenced divs
 * TODO fix two cases in CommonMark spec marked IGNORE
 these are spec bugs.  Also fix reference implementation.
 * TODO add this to CommonMark test suite:

@@ -860,7 +860,7 @@ pLinkDestination = pAngleDest <|> pNormalDest
     pAngleDest = try $ do
       _ <- symbol '<'
       res <- many (noneOfToks [Symbol '<', Symbol '>', Symbol '\\',
-                                Spaces, LineEnd] <|> pEscaped)
+                                LineEnd] <|> pEscaped)
       _ <- symbol '>'
       return res
     pNormalDest = try $ do

@@ -373,7 +373,7 @@ pEscapedChar = do
 pEntity :: (IsInline a, Monad m) => InlineParser m a
 pEntity = try $ do
   symbol '&'
-  ent <- try numEntity <|> charEntity
+  ent <- numEntity <|> charEntity
   return (entity ("&" <> untokenize ent))
 
 charEntity :: Monad m => InlineParser m [Tok]
@@ -387,11 +387,15 @@ numEntity :: Monad m => InlineParser m [Tok]
 numEntity = do
   octo <- symbol '#'
   wc@(Tok WordChars _ t) <- satisfyTok (hasType WordChars)
-  guard $ T.all isDigit t ||
+  guard $
     case T.uncons t of
          Just (x, rest)
           | x == 'x' || x == 'X' ->
-            T.all isHexDigit rest && not (T.null rest)
+            T.all isHexDigit rest &&
+            not (T.null rest) &&
+            T.length rest <= 6
+          | otherwise -> T.all isDigit t &&
+            T.length t <= 7
          _ -> False
   semi <- symbol ';'
   return [octo, wc, semi]

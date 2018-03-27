@@ -11,10 +11,6 @@ import qualified Data.Text.IO as T
 #if !MIN_VERSION_base(4,11,0)
 import Data.Monoid
 #endif
-import qualified CMark as CMark
-import Text.Blaze.Html.Renderer.Text as Blaze
-import qualified Cheapskate as Cheapskate
-import qualified Cheapskate.Html as CheapskateHtml
 import Lucid
 
 main :: IO ()
@@ -27,8 +23,7 @@ main = do
       [ benchChunks ("sample.md", sample) ]
     , bgroup "parse sample.md"
       [ benchCommonmark ("commonmark", sample)
-      , benchCMark ("cmark", sample)
-      , benchCheapskate ("cheapskate", sample) ]
+      ]
     , bgroup "pathological"
       (map toPathBench pathtests)
     ]
@@ -38,12 +33,6 @@ toPathBench (name, ptest) =
   bgroup name
   [ bgroup "commonmark"
     (map (\n -> benchCommonmark (show n, ptest n)) [800, 1200, 1600, 2000])
-  -- , bgroup "cmark"
-  --  (map (\n -> benchCMark (show n, ptest n)) [400, 800, 1200, 1600, 2000])
-  -- , bgroup "cheapskate"
-  --  (map (\n -> benchCheapskate (show n, ptest n)) [300, 600, 900])
-  -- , bgroup "comark"
-  -- (map (\n -> benchComark (show n, ptest n)) [800, 1200, 1600, 2000])
   ]
 
 pathtests :: [(String, Int -> T.Text)]
@@ -83,23 +72,6 @@ pathtests =
     let num = floor (sqrt (9 + (8 * (fromIntegral n :: Double))) / 2) in
      mconcat $ map (\x -> "e" <> mconcat (replicate x "`")) [1..num])
   ]
-
-benchCMark :: (String, Text) -> Benchmark
-benchCMark (name, contents) =
-  bench name $
-    nf (T.length . CMark.commonmarkToHtml []) contents
-
--- benchComark :: (String, Text) -> Benchmark
--- benchComark (name, contents) =
---   bench name $
---     nf (T.length . Comark.render . Comark.parse [])
---     contents
-
-benchCheapskate :: (String, Text) -> Benchmark
-benchCheapskate (name, contents) =
-  bench name $
-    nf (Blaze.renderHtml . CheapskateHtml.renderDoc
-                   . Cheapskate.markdown Cheapskate.def) contents
 
 benchCommonmark :: (String, Text) -> Benchmark
 benchCommonmark (name, contents) =

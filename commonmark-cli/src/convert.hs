@@ -11,6 +11,7 @@ import           Commonmark.Extensions.PipeTable
 import           Commonmark.Extensions.Math
 import           Commonmark.Extensions.Autolink
 import           Control.Monad
+import           Control.Monad.Identity
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Text.IO               as TIO
 import qualified Data.Map                   as M
@@ -68,21 +69,19 @@ main = do
   when (Tokenize `elem` opts) $ do
     print toks
     exitSuccess
-  let parser xs = do
-       let extFromName "pipe_table" = return pipeTableSpec
-           extFromName "strikethrough" = return strikethroughSpec
-           extFromName "smart" = return smartPunctuationSpec
-           extFromName "math" = return mathSpec
-           extFromName "autolink" = return autolinkSpec
-           extFromName extname = do
-             hPutStrLn stderr $ "Unknown extension " ++ extname
-             exitWith (ExitFailure 1)
-       let extensions' = [x | Extension x <- opts]
-       extensions <- mconcat <$> mapM extFromName extensions'
-       parseCommonmarkWith (extensions <> defaultSyntaxSpec) xs
+  let extFromName "pipe_table" = return pipeTableSpec
+      extFromName "strikethrough" = return strikethroughSpec
+      extFromName "smart" = return smartPunctuationSpec
+      extFromName "math" = return mathSpec
+      extFromName "autolink" = return autolinkSpec
+      extFromName extname = do
+        hPutStrLn stderr $ "Unknown extension " ++ extname
+        exitWith (ExitFailure 1)
   if Highlight `elem` opts then do
-      res <- parser toks
-      case runWithSourceMap <$> res of
+      extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]
+      let spec = extensions <> defaultSyntaxSpec
+      case runWithSourceMap <$>
+              runIdentity (parseCommonmarkWith spec toks) of
            Left e -> errExit e
            Right ((_ :: Html ()), sm) -> do
              BL.putStr $ renderBS $ do
@@ -97,13 +96,15 @@ main = do
                "\n"
   else
     if SourcePos `elem` opts then do
-       res <- parser toks
-       case res of
+       extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]
+       let spec = extensions <> defaultSyntaxSpec
+       case runIdentity (parseCommonmarkWith spec toks) of
             Left e -> errExit e
             Right r -> BL.putStr . renderBS . unRangedHtml $ r
     else do
-       res <- parser toks
-       case res of
+       extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]
+       let spec = extensions <> defaultSyntaxSpec
+       case runIdentity (parseCommonmarkWith spec toks) of
             Left e -> errExit e
             Right (r :: Html ()) -> BL.putStr . renderBS $ r
 

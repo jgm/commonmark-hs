@@ -31,6 +31,7 @@ executable commonmark
     , lucid
     , containers
     , pretty-simple
+    , mtl
     , bytestring
     , text
   other-modules:

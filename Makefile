@@ -2,10 +2,10 @@ DATE=$(shell date +%Y-%m-%d-%H%M)
 LOGS=log
 ifdef PATTERN
   TESTARGS?='-p "$(PATTERN)" --hide-successes'
-  BENCHARGS?='--output benchmark-latest.html --time-limit=2 --match=pattern "$(PATTERN)"'
+  BENCHARGS?='--output $(LOGS)/benchmark-$(DATE).html --time-limit=2 --match=pattern "$(PATTERN)"'
 else
   TESTARGS?="--hide-successes"
-  BENCHARGS?="--output benchmark-latest.html --time-limit=2"
+  BENCHARGS?="--output $(LOGS)/benchmark-$(DATE).html --time-limit=2"
 endif
 SOURCEFILES?=$(shell find app src test -name '*.hs')
 
@@ -32,7 +32,7 @@ $(LOGS):
 
 bench: $(LOGS)
 	stack bench --benchmark-arguments=$(BENCHARGS) commonmark 2>&1 \
-	    | tee $(LOGS)/benchmark-$(DATE).out && mv benchmark-latest.html $(LOGS)/benchmark-$(DATE).html
+	    | tee $(LOGS)/benchmark-$(DATE).out
 
 ghci:
 	stack ghci --ghci-options "-XOverloadedStrings" commonmark

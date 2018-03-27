@@ -27,9 +27,9 @@ main = do
       [ benchChunks ("sample.md", sample) ]
     , bgroup "parse sample.md"
       [ benchCommonmark defaultSyntaxSpec ("commonmark default", sample)
-      , benchCommonmark (defaultSyntaxSpec <> smartPunctuationSpec)
+      , benchCommonmark (smartPunctuationSpec <> defaultSyntaxSpec)
           ("commonmark +smart", sample)
-      , benchCommonmark (defaultSyntaxSpec <> autolinkSpec)
+      , benchCommonmark (autolinkSpec <> defaultSyntaxSpec)
           ("commonmark +autolink", sample)
       , benchCommonmark (defaultSyntaxSpec <> pipeTableSpec)
           ("commonmark +pipe_table", sample)

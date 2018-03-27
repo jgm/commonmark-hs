@@ -23,8 +23,8 @@ haddock:
 
 prof:
 	stack install --profile
-	commonmark-hs +RTS -pj -RTS ../pandoc/MANUAL.txt >/dev/null
-	cat commonmark-hs.prof | ghc-prof-aeson-flamegraph | flamegraph.pl > prof.svg
+	commonmark +RTS -pj -RTS ../pandoc/MANUAL.txt >/dev/null
+	cat commonmark.prof | ghc-prof-aeson-flamegraph | flamegraph.pl > prof.svg
 	open -a Safari prof.svg
 
 $(LOGS):

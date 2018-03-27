@@ -31,7 +31,7 @@ $(LOGS):
 	mkdir -p $(LOGS)
 
 bench: $(LOGS)
-	stack bench --benchmark-arguments=$(BENCHARGS) 2>&1 \
+	stack bench --benchmark-arguments=$(BENCHARGS) commonmark 2>&1 \
 	    | tee $(LOGS)/benchmark-$(DATE).out && mv benchmark-latest.html $(LOGS)/benchmark-$(DATE).html
 
 ghci:

@@ -3,8 +3,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 import Criterion.Main
 import Data.Text (Text)
+import Control.Monad.Identity
 import Commonmark
 import Commonmark.Inlines
+import Commonmark.Extensions.Smart
+import Commonmark.Extensions.Autolink
+import Commonmark.Extensions.PipeTable
 import Lucid (renderText)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -22,7 +26,13 @@ main = do
     , bgroup "parseChunks"
       [ benchChunks ("sample.md", sample) ]
     , bgroup "parse sample.md"
-      [ benchCommonmark ("commonmark", sample)
+      [ benchCommonmark defaultSyntaxSpec ("commonmark default", sample)
+      , benchCommonmark (defaultSyntaxSpec <> smartPunctuationSpec)
+          ("commonmark +smart", sample)
+      , benchCommonmark (defaultSyntaxSpec <> autolinkSpec)
+          ("commonmark +autolink", sample)
+      , benchCommonmark (defaultSyntaxSpec <> pipeTableSpec)
+          ("commonmark +pipe_table", sample)
       ]
     , bgroup "pathological"
       (map toPathBench pathtests)
@@ -32,7 +42,8 @@ toPathBench :: (String, Int -> T.Text) -> Benchmark
 toPathBench (name, ptest) =
   bgroup name
   [ bgroup "commonmark"
-    (map (\n -> benchCommonmark (show n, ptest n)) [800, 1200, 1600, 2000])
+    (map (\n -> benchCommonmark defaultSyntaxSpec (show n, ptest n))
+      [800, 1200, 1600, 2000])
   ]
 
 pathtests :: [(String, Int -> T.Text)]
@@ -73,11 +84,13 @@ pathtests =
      mconcat $ map (\x -> "e" <> mconcat (replicate x "`")) [1..num])
   ]
 
-benchCommonmark :: (String, Text) -> Benchmark
-benchCommonmark (name, contents) =
+benchCommonmark :: SyntaxSpec Identity (Html ()) (Html ())
+                -> (String, Text)
+                -> Benchmark
+benchCommonmark spec (name, contents) =
   bench name $
     nf (either (error . show) renderText
-        . parseCommonmark . tokenize name)
+        . runIdentity . parseCommonmarkWith spec . tokenize name)
     contents
 
 benchTokenize :: (String, Text) -> Benchmark

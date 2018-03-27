@@ -113,6 +113,7 @@ benchmark benchmark-commonmark
        commonmark
      , base >= 4.2 && < 5
      , text
+     , mtl
      , containers
      , bytestring
      , lucid

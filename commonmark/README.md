@@ -29,3 +29,5 @@ The following optional extensions are provided:
 - Pipe tables
 - Smart quotes, dashes, and ellipses
 - Strikethrough
+- LaTeX math
+- Autolink bare URLs and email addresses

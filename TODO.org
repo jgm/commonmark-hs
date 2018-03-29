@@ -1,0 +1,8 @@
+* TODO Finish Haddocks
+Document BlockSpec
+BracketedSpec
+FormattingSpec
+* TODO Change fields in FormattingSpec to follow naming pattern of
+  BracketedSpec
+
+* TODO don't export Chunk and parseChunks

@@ -1,10 +1,11 @@
 module Commonmark
     ( parseCommonmark
     , parseCommonmarkWith
-    , ParseError
     , module Commonmark.Tokens
     , module Commonmark.Types
     , module Commonmark.Syntax
+    -- * Exported from "Text.Parsec.Error"
+    , ParseError
     ) where
 
 import           Commonmark.Blocks
@@ -12,7 +13,7 @@ import           Commonmark.Inlines
 import           Commonmark.Tokens
 import           Commonmark.Types
 import           Commonmark.Syntax (SyntaxSpec(..), defaultSyntaxSpec)
-import           Text.Parsec (ParseError)
+import           Text.Parsec.Error (ParseError)
 import           Data.Functor.Identity   (runIdentity)
 
 -- | Parse a tokenized commonmark document using the core syntax
@@ -22,15 +23,15 @@ import           Data.Functor.Identity   (runIdentity)
 --
 -- @
 -- import Commonmark
--- import Lucid
+-- import Lucid as Lucid
 -- import Data.Text.IO as TIO
 -- import Data.Text.Lazy.IO as TLIO
 --
 -- main = do
---     inp <- TIO.getContents
---       case parseCommonmark (tokenize "stdin" inp) of
---            Left e     -> error (show e)
---            Right html -> TLIO.putStr (renderText html)
+--   inp <- TIO.getContents
+--   case parseCommonmark (tokenize "stdin" inp) of
+--        Left e     -> error (show e)
+--        Right html -> TLIO.putStr (Lucid.renderText html)
 -- @
 parseCommonmark :: IsBlock il bl
                 => [Tok] -- ^ Tokenized commonmark input

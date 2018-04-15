@@ -50,38 +50,41 @@ pathtests :: [(String, Int -> T.Text)]
 pathtests =
   [ ("nested strong emph", \n ->
      let num = n `div` 14 in
-     mconcat (replicate num "*a **a ") <> "b" <>
-     mconcat (replicate num " a** a*"))
+     T.replicate num "*a **a " <> "b" <>
+     T.replicate num " a** a*")
   , ("many emph closers with no openers", \n ->
      let num = n `div` 3 in
-     mconcat (replicate num "a_ "))
+     T.replicate num "a_ ")
   , ("many emph openers with no closers", \n ->
      let num = n `div` 3 in
-     mconcat (replicate num "_a "))
+     T.replicate num "_a ")
   , ("many link closers with no openers", \n ->
     let num = n `div` 2 in
-     mconcat (replicate num "a]"))
+     T.replicate num "a]")
   , ("many link openers with no closers", \n ->
     let num = n `div` 2 in
-     mconcat (replicate num "[a"))
+     T.replicate num "[a")
   , ("mismatched openers and closers", \n ->
     let num = n `div` 3 in
-     mconcat (replicate num "*a_ "))
+     T.replicate num "*a_ ")
   , ("openers and closers multiple of 3", \n ->
     let num = n `div` 7 in
-     mconcat (replicate num "a**b") <> mconcat (replicate num "c* "))
+     T.replicate num "a**b" <> T.replicate num "c* ")
   , ("link openers and emph closers", \n ->
     let num = n `div` 4 in
      mconcat (replicate num "[ a_"))
   , ("nested brackets", \n ->
     let num = n `div` 2 in
-     mconcat (replicate num "[") <> "a" <> mconcat (replicate num "]"))
+     T.replicate num "[" <> "a" <> T.replicate num "]")
   , ("nested block quotes", \n ->
     let num = n `div` 2 in
-     mconcat (replicate num "> ") <> "a")
+     T.replicate num "> " <> "a")
+  , ("nested list", \n ->
+    let num = floor (sqrt (fromIntegral n)) in
+     mconcat (map (\ind -> T.replicate ind " " <> "- a\n") [0..(num - 1)]))
   , ("backticks", \n ->
     let num = floor (sqrt (9 + (8 * (fromIntegral n :: Double))) / 2) in
-     mconcat $ map (\x -> "e" <> mconcat (replicate x "`")) [1..num])
+     mconcat $ map (\x -> "e" <> T.replicate x "`") [1..num])
   ]
 
 benchCommonmark :: SyntaxSpec Identity (Html ()) (Html ())

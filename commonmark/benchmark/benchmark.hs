@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 import Criterion.Main
 import Data.Text (Text)
-import Control.Monad.Identity
+import Data.Functor.Identity  -- base >= 4.8
 import Commonmark
 import Commonmark.Inlines
 import Commonmark.Extensions.Smart

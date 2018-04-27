@@ -1,0 +1,97 @@
+name:           commonmark
+version:        0.1.0.0
+synopsis:       Pure Haskell commonmark parser.
+description:
+   The library is fully commonmark-compliant and passes the
+   test suite.  It is designed to be customizable and
+   easily extensible.  To customize the output, create an
+   AST, or support a new output format, one need only define some
+   new typeclass instances.  It is also easy to add new syntax
+   elements or modify existing ones.
+   .
+   Accurate information about source positions is available
+   for all block and inline elements.  Thus the library can be
+   used to create an accurate syntax highlighter or
+   an editor with live preview.
+   .
+   Finally, the library has been designed for robust performance
+   even in pathological cases. The parser behaves well on
+   pathological cases that tend to cause stack overflows or
+   exponential slowdowns in other parsers, with parsing speed that
+   varies linearly with input length.
+   .
+   A number of optional syntax extensions are provided.
+
+homepage:       https://github.com/jgm/commonmark-hs
+bug-reports:    https://github.com/jgm/commonmark-hs/issues
+author:         John MacFarlane
+maintainer:     jgm@berkeley.edu
+copyright:      2018 John MacFarlane
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+
+extra-source-files:
+    changelog.md
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/jgm/commonmark-hs
+
+library
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , text
+    , containers
+    , case-insensitive
+    , transformers
+    , parsec
+    , tagsoup
+    , network-uri
+  if !impl(ghc >= 8.0)
+    build-depends: semigroups == 0.18.*
+  exposed-modules:
+      Commonmark.Parser
+      Commonmark.Types
+      Commonmark.Syntax
+      Commonmark.ReferenceMap
+      Commonmark.Tokens
+      Commonmark.Inlines
+      Commonmark.Blocks
+      Commonmark.Util
+      Commonmark.SourceMap
+      Commonmark.Extensions.Smart
+      Commonmark.Extensions.Strikethrough
+      Commonmark.Extensions.PipeTable
+      Commonmark.Extensions.Math
+      Commonmark.Extensions.Autolink
+  other-modules:
+      Commonmark.HTML
+      Paths_commonmark
+  ghc-options: -Wall -fno-warn-unused-do-bind
+  default-language: Haskell2010
+
+test-suite test-commonmark
+  type: exitcode-stdio-1.0
+  main-is: test-commonmark.hs
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -with-rtsopts=-K5K
+  build-depends:
+      base >=4.7 && <5
+    , commonmark
+    , text
+    , tasty
+    , tasty-quickcheck
+    , tasty-hunit
+    , QuickCheck
+    , parsec
+    , tagsoup
+  other-modules:
+      Paths_commonmark
+  default-language: Haskell2010
+

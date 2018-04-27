@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-import           Commonmark
+import           Commonmark.Parser
 import           Commonmark.Extensions.Smart
 import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.PipeTable

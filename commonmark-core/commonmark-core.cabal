@@ -1,9 +1,10 @@
-name:           commonmark
+name:           commonmark-core
 version:        0.1.0.0
 synopsis:       Pure Haskell commonmark parser.
 description:
-   The library is fully commonmark-compliant and passes the
-   test suite.  It is designed to be customizable and
+   This library provides the core data types and functions
+   for parsing commonmark.  The parser is fully commonmark-compliant
+   and passes the test suite.  It is designed to be customizable and
    easily extensible.  To customize the output, create an
    AST, or support a new output format, one need only define some
    new typeclass instances.  It is also easy to add new syntax

@@ -20,8 +20,8 @@
 -- [ ] Spec this out and adjust test/pipe_table.txt.
 
 module Commonmark.Extensions.PipeTable
- ( HasPipeTable
- , ColAlignment
+ ( HasPipeTable(..)
+ , ColAlignment(..)
  , pipeTableSpec
  )
 where

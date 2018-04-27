@@ -29,25 +29,26 @@ newtype Html5 = Html5 {unHtml5 :: Html ()}
   deriving (Show, Semigroup, Monoid)
 
 instance IsInline Html5 where
-  lineBreak = br_ [] <> "\n"
-  softBreak = "\n"
-  str t = toHtml t
+  lineBreak = Html5 $ br_ [] <> "\n"
+  softBreak = Html5 $ "\n"
+  str t = Html5 $ toHtml t
   entity t
-    | illegalCodePoint t = toHtml ("\xFFFD" :: Text)
-    | otherwise = toHtmlRaw t
-  escapedChar c = toHtml (T.singleton c)
-  emph ils = em_ ils
-  strong ils = strong_ ils
-  link target title ils = a_ (href_ (escapeURI target) :
-                              [title_ title | not (T.null title)])
-                              ils
-  image target title ils = img_ ([src_ (escapeURI target),
-                                  alt_ (renderAlt ils)] ++
-                                 [title_ title | not (T.null title)])
-  code t = code_ (toHtml t)
+    | illegalCodePoint t = Html5 $ toHtml ("\xFFFD" :: Text)
+    | otherwise = Html5 $ toHtmlRaw t
+  escapedChar c = Html5 $ toHtml (T.singleton c)
+  emph ils = Html5 $ em_ $ unHtml5 ils
+  strong ils = Html5 $ strong_ $ unHtml5 ils
+  link target title ils = Html5 $
+    a_ (href_ (escapeURI target) : [title_ title | not (T.null title)])
+    $ unHtml5 ils
+  image target title ils = Html5 $
+    img_ ([src_ (escapeURI target),
+           alt_ (renderAlt $ unHtml5 ils)] ++
+          [title_ title | not (T.null title)])
+  code t = Html5 $ code_ (toHtml t)
   rawInline f t
-    | f == Format "html" = toHtmlRaw t
-    | otherwise          = mempty
+    | f == Format "html" = Html5 $ toHtmlRaw t
+    | otherwise          = Html5 $ mempty
 
 escapeURI :: Text -> Text
 escapeURI = T.pack . escapeURIString
@@ -76,14 +77,14 @@ illegalCodePoint t =
            -> either (const True) badvalue (TR.decimal t')
 
 instance IsBlock Html5 Html5 where
-  paragraph ils = p_ ils <> nl
-  plain ils = ils <> nl
-  thematicBreak = hr_ [] <> nl
-  blockQuote bs = blockquote_ (nl <> bs) <> nl
-  codeBlock info t = pre_ (with code_ attr (toHtml t)) <> nl
+  paragraph ils = Html5 $ p_ (unHtml5 ils) <> nl
+  plain ils = Html5 $ unHtml5 ils <> nl
+  thematicBreak = Html5 $ hr_ [] <> nl
+  blockQuote bs = Html5 $ blockquote_ (nl <> unHtml5 bs) <> nl
+  codeBlock info t = Html5 $ pre_ (with code_ attr (toHtml t)) <> nl
     where attr = [class_ ("language-" <> lang) | not (T.null info)]
           lang = T.takeWhile (not . isSpace) info
-  header level ils = h ils <> nl
+  header level ils = Html5 $ h (unHtml5 ils) <> nl
     where h = case level of
                    1 -> h1_
                    2 -> h2_
@@ -93,16 +94,16 @@ instance IsBlock Html5 Html5 where
                    6 -> h6_
                    _ -> p_
   rawBlock f t
-    | f == Format "html" = toHtmlRaw t
-    | otherwise          = mempty
-  referenceLinkDefinition _ _ = mempty
-  list (BulletList _) lSpacing items = ul_
-    (nl <> mconcat (map li items)) <> nl
+    | f == Format "html" = Html5 $ toHtmlRaw t
+    | otherwise          = Html5 $ mempty
+  referenceLinkDefinition _ _ = Html5 $ mempty
+  list (BulletList _) lSpacing items = Html5 $ ul_
+    (nl <> mconcat (map (li . unHtml5) items)) <> nl
    where li x = if lSpacing == TightList
                    then li_ x <> nl
                    else li_ (nl <> x) <> nl
-  list (OrderedList startnum _) lSpacing items = with ol_ attr
-    (nl <> mconcat (map li items)) <> nl
+  list (OrderedList startnum _) lSpacing items = Html5 $ with ol_ attr
+    (nl <> mconcat (map (li . unHtml5) items)) <> nl
    where li x = if lSpacing == TightList
                    then li_ x <> nl
                     else li_ (nl <> x) <> nl
@@ -172,27 +173,28 @@ instance Rangeable RangedHtml5 where
   ranged r (RangedHtml5 x) =
     RangedHtml5 $ with x [data_ "sourcepos" (T.pack (show r))]
 
-instance Rangeable (Html ()) where
+instance Rangeable Html5 where
   ranged _ x = x
 
 
-instance HasMath (Html ()) where
-  inlineMath t = span_ [class_ ("math inline")] ("\\(" <> toHtml t <> "\\)")
-  displayMath t = span_ [class_ ("math display")] ("\\[" <> toHtml t <> "\\]")
+instance HasMath Html5 where
+  inlineMath t = Html5 $
+    span_ [class_ ("math inline")] ("\\(" <> toHtml t <> "\\)")
+  displayMath t = Html5 $
+    span_ [class_ ("math display")] ("\\[" <> toHtml t <> "\\]")
 
 instance HasMath RangedHtml5 where
   inlineMath t = RangedHtml5 (inlineMath t)
   displayMath t = RangedHtml5 (displayMath t)
 
-
-instance HasPipeTable (Html ()) (Html ()) where
-  pipeTable aligns headerCells rows = do
+instance HasPipeTable Html5 Html5 where
+  pipeTable aligns headerCells rows = Html5 $ do
     let alignToAttr LeftAlignedCol    = [style_ "text-align: left;"]
         alignToAttr CenterAlignedCol  = [style_ "text-align: center;"]
         alignToAttr RightAlignedCol   = [style_ "text-align: right;"]
         alignToAttr DefaultAlignedCol = []
     let toCell constructor align cell = do
-          with constructor (alignToAttr align) cell
+          with constructor (alignToAttr align) (unHtml5 cell)
           "\n"
     table_ $ do
       "\n"
@@ -216,9 +218,9 @@ instance HasPipeTable RangedHtml5 RangedHtml5 where
     RangedHtml5 $ pipeTable aligns (map unRangedHtml5 headerCells)
                    (map (map unRangedHtml5) rows)
 
-instance HasStrikethrough (Html ()) where
-  strikethrough x = del_ x
+instance HasStrikethrough Html5 where
+  strikethrough x = Html5 $ del_ (unHtml5 x)
 
 instance HasStrikethrough RangedHtml5 where
-  strikethrough (RangedHtml5 x) = RangedHtml5 (del_ x)
+  strikethrough (RangedHtml5 x) = RangedHtml5 $ del_ (unHtml5 x)
 

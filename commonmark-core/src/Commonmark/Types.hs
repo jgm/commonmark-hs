@@ -17,19 +17,12 @@ module Commonmark.Types
   , SourceRange(..)
   , SourcePos
   , Rangeable(..)
-  , RangedHtml(..)
   )
 where
-import           Data.Char            (isSpace)
 import           Data.Data            (Data)
-import           Data.Semigroup       (Semigroup, (<>))
 import           Data.Text            (Text)
-import qualified Data.Text            as T
-import qualified Data.Text.Lazy       as TL
-import qualified Data.Text.Read       as TR
+import           Data.Semigroup       (Semigroup, (<>))
 import           Data.Typeable        (Typeable)
-import           Network.URI          (escapeURIString, isAllowedInURI)
-import           Text.HTML.TagSoup    (Tag (..), fromAttrib, parseTags)
 import           Text.Parsec.Pos      (SourcePos, sourceColumn, sourceLine,
                                        sourceName)
 import           Data.CaseInsensitive (mk)

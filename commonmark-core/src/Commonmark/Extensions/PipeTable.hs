@@ -26,7 +26,7 @@ module Commonmark.Extensions.PipeTable
  )
 where
 
-import Control.Monad (guard, zipWithM_, unless)
+import Control.Monad (guard)
 import Commonmark.Syntax
 import Commonmark.Types
 import Commonmark.Tokens

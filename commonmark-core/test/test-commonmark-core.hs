@@ -15,7 +15,6 @@ import           Data.Text             (Text)
 import qualified Data.Text             as T
 import qualified Data.Text.IO          as T
 import qualified Data.Text.Lazy        as TL
-import           Lucid
 import           Test.Tasty
 import           Test.Tasty.HUnit
 import           Test.Tasty.QuickCheck

@@ -14,9 +14,6 @@ import Commonmark.SourceMap
 import Commonmark.Util
 import Text.Parsec
 import Data.Text (Text)
-#if !MIN_VERSION_base(4,11,0)
-import Data.Monoid
-#endif
 
 mathSpec :: (Monad m, IsBlock il bl, IsInline il, HasMath il)
          => SyntaxSpec m il bl

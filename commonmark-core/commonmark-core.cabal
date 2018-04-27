@@ -76,9 +76,9 @@ library
   ghc-options: -Wall -fno-warn-unused-do-bind
   default-language: Haskell2010
 
-test-suite test-commonmark
+test-suite test-commonmark-core
   type: exitcode-stdio-1.0
-  main-is: test-commonmark.hs
+  main-is: test-commonmark-core.hs
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -with-rtsopts=-K5K
@@ -92,7 +92,5 @@ test-suite test-commonmark
     , QuickCheck
     , parsec
     , tagsoup
-  other-modules:
-      Paths_commonmark
   default-language: Haskell2010
 

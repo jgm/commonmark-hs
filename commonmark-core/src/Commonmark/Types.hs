@@ -17,18 +17,18 @@ module Commonmark.Types
 where
 import           Data.Data            (Data)
 import           Data.Text            (Text)
+import qualified Data.Text            as T
 import           Data.Semigroup       (Semigroup, (<>))
 import           Data.Typeable        (Typeable)
 import           Text.Parsec.Pos      (SourcePos, sourceColumn, sourceLine,
                                        sourceName)
-import           Data.CaseInsensitive (mk)
 
 
 newtype Format = Format Text
   deriving (Show, Data, Typeable)
 
 instance Eq Format where
-  (Format t1) == (Format t2) = mk t1 == mk t2
+  (Format t1) == (Format t2) = T.toCaseFold t1 == T.toCaseFold t2
 
 data ListSpacing =
        TightList

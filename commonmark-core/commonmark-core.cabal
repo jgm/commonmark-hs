@@ -48,7 +48,6 @@ library
       base >=4.7 && <5
     , text
     , containers
-    , case-insensitive
     , transformers
     , parsec
   if !impl(ghc >= 8.0)

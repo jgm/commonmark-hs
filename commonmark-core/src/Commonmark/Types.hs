@@ -1,12 +1,8 @@
 {-# LANGUAGE DeriveDataTypeable         #-}
-{-# LANGUAGE ExtendedDefaultRules       #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE TypeSynonymInstances       #-}
 
 module Commonmark.Types
   ( Format(..)
@@ -63,55 +59,6 @@ class (Monoid a, Show a, Rangeable a) => IsInline a where
   code :: Text -> a
   rawInline :: Format -> Text -> a
 
-{-
-instance IsInline (Html ()) where
-  lineBreak = br_ [] <> "\n"
-  softBreak = "\n"
-  str t = toHtml t
-  entity t
-    | illegalCodePoint t = toHtml ("\xFFFD" :: Text)
-    | otherwise = toHtmlRaw t
-  escapedChar c = toHtml (T.singleton c)
-  emph ils = em_ ils
-  strong ils = strong_ ils
-  link target title ils = a_ (href_ (escapeURI target) :
-                              [title_ title | not (T.null title)])
-                              ils
-  image target title ils = img_ ([src_ (escapeURI target),
-                                  alt_ (renderAlt ils)] ++
-                                 [title_ title | not (T.null title)])
-  code t = code_ (toHtml t)
-  rawInline f t
-    | f == Format "html" = toHtmlRaw t
-    | otherwise          = mempty
-
-escapeURI :: Text -> Text
-escapeURI = T.pack . escapeURIString
-  (\c -> isAllowedInURI c && c /= '[' && c /= ']') . T.unpack
-
-renderAlt :: Html () -> Text
-renderAlt = mconcat . map textOrAlt . parseTags . TL.toStrict . renderText
-  where textOrAlt (TagText t)           = t
-        textOrAlt tag@(TagOpen "img" _) = fromAttrib "alt" tag
-        textOrAlt _                     = mempty
-
-illegalCodePoint :: Text -> Bool
-illegalCodePoint t =
-  "&#" `T.isPrefixOf` t &&
-  let t' = T.drop 2 $ T.filter (/=';') t
-      badvalue (n, r) = not (T.null r) ||
-                        n < 1 ||
-                        n > (0x10FFFF :: Integer)
-  in
-  case T.uncons t' of
-       Nothing -> True
-       Just (x, rest)
-         | x == 'x' || x == 'X'
-           -> either (const True) badvalue (TR.hexadecimal rest)
-         | otherwise
-           -> either (const True) badvalue (TR.decimal t')
--}
-
 class (Monoid b, Show b, Rangeable b, IsInline il)
       => IsBlock il b | b -> il where
   paragraph :: il -> b
@@ -127,108 +74,6 @@ class (Monoid b, Show b, Rangeable b, IsInline il)
                           -> (Text, Text) -- ^ Destination, title
                           -> b
   list :: ListType -> ListSpacing -> [b] -> b
-
-{-
-instance IsBlock (Html ()) (Html ()) where
-  paragraph ils = p_ ils <> nl
-  plain ils = ils <> nl
-  thematicBreak = hr_ [] <> nl
-  blockQuote bs = blockquote_ (nl <> bs) <> nl
-  codeBlock info t = pre_ (with code_ attr (toHtml t)) <> nl
-    where attr = [class_ ("language-" <> lang) | not (T.null info)]
-          lang = T.takeWhile (not . isSpace) info
-  header level ils = h ils <> nl
-    where h = case level of
-                   1 -> h1_
-                   2 -> h2_
-                   3 -> h3_
-                   4 -> h4_
-                   5 -> h5_
-                   6 -> h6_
-                   _ -> p_
-  rawBlock f t
-    | f == Format "html" = toHtmlRaw t
-    | otherwise          = mempty
-  referenceLinkDefinition _ _ = mempty
-  list (BulletList _) lSpacing items = ul_
-    (nl <> mconcat (map li items)) <> nl
-   where li x = if lSpacing == TightList
-                   then li_ x <> nl
-                   else li_ (nl <> x) <> nl
-  list (OrderedList startnum _) lSpacing items = with ol_ attr
-    (nl <> mconcat (map li items)) <> nl
-   where li x = if lSpacing == TightList
-                   then li_ x <> nl
-                    else li_ (nl <> x) <> nl
-         attr = [start_ (T.pack (show startnum)) | startnum /= 1]
-
-nl :: Html ()
-nl = toHtmlRaw ("\n" :: Text)
-
-newtype RangedHtml = RangedHtml {unRangedHtml :: Html ()}
-  deriving (Show, Semigroup, Monoid)
-
-instance IsInline RangedHtml where
-  lineBreak = RangedHtml $ br_ [] <> "\n"
-  softBreak = RangedHtml "\n"
-  str t = RangedHtml $ span_ $ toHtml t
-  entity t
-    | illegalCodePoint t = RangedHtml $ span_ $ toHtml ("\xFFFD" :: Text)
-    | otherwise = RangedHtml $ span_ $ toHtmlRaw t
-  escapedChar c = RangedHtml $ span_ $ toHtml (T.singleton c)
-  emph ils = RangedHtml $ em_ $ unRangedHtml ils
-  strong ils = RangedHtml $ strong_ $ unRangedHtml ils
-  link target title ils = RangedHtml $
-    a_ (href_ (escapeURI target) : [title_ title | not (T.null title)])
-    $ unRangedHtml ils
-  image target title ils = RangedHtml $
-    img_ ([src_ (escapeURI target), alt_ (renderAlt $ unRangedHtml ils)] ++
-                                   [title_ title | not (T.null title)])
-  code t = RangedHtml $ code_ (toHtml t)
-  rawInline f t
-    | f == Format "html" = RangedHtml $ span_ $ toHtmlRaw t
-    | otherwise          = mempty
-
-instance IsBlock RangedHtml RangedHtml where
-  paragraph ils = RangedHtml $ p_ (unRangedHtml ils) <> nl
-  plain ils = RangedHtml $ unRangedHtml ils <> nl
-  thematicBreak = RangedHtml $ hr_ [] <> nl
-  blockQuote bs = RangedHtml $ blockquote_ (nl <> unRangedHtml bs) <> nl
-  codeBlock info t = RangedHtml $ pre_ (with code_ attr (toHtml t)) <> nl
-    where attr = [class_ ("language-" <> lang) | not (T.null info)]
-          lang = T.takeWhile (not . isSpace) info
-  header level ils = RangedHtml $ h (unRangedHtml ils) <> nl
-    where h = case level of
-                   1 -> h1_
-                   2 -> h2_
-                   3 -> h3_
-                   4 -> h4_
-                   5 -> h5_
-                   6 -> h6_
-                   _ -> p_
-  rawBlock f t
-    | f == Format "html" = RangedHtml $ toHtmlRaw t
-    | otherwise          = mempty
-  referenceLinkDefinition _ _ = mempty
-  list (BulletList _) lSpacing items = RangedHtml $ ul_
-    (nl <> mconcat (map (li . unRangedHtml) items)) <> nl
-   where li x = if lSpacing == TightList
-                   then li_ x <> nl
-                   else li_ (nl <> x) <> nl
-  list (OrderedList startnum _) lSpacing items = RangedHtml $ with ol_ attr
-    (nl <> mconcat (map (li . unRangedHtml) items)) <> nl
-   where li x = if lSpacing == TightList
-                   then li_ x <> nl
-                    else li_ (nl <> x) <> nl
-         attr = [start_ (T.pack (show startnum)) | startnum /= 1]
-
-instance Rangeable RangedHtml where
-  ranged r (RangedHtml x) =
-    RangedHtml $ with x [data_ "sourcepos" (T.pack (show r))]
-
-instance Rangeable (Html ()) where
-  ranged _ x = x
--}
 
 newtype SourceRange = SourceRange
         { unSourceRange :: [(SourcePos, SourcePos)] }

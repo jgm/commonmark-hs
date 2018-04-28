@@ -4,12 +4,6 @@
 module Main where
 
 import           Commonmark
-import           Commonmark.SourceMap
-import           Commonmark.Extensions.Smart
-import           Commonmark.Extensions.Strikethrough
-import           Commonmark.Extensions.PipeTable
-import           Commonmark.Extensions.Math
-import           Commonmark.Extensions.Autolink
 import           Control.Monad
 import           Control.Monad.Identity
 import qualified Data.ByteString.Lazy.Char8 as BL
@@ -83,7 +77,7 @@ main = do
       case runWithSourceMap <$>
               runIdentity (parseCommonmarkWith spec toks) of
            Left e -> errExit e
-           Right ((_ :: Html ()), sm) -> do
+           Right ((_ :: Html5), sm) -> do
              BL.putStr $ renderBS $ do
                doctypehtml_ $ do
                  head_ $ do
@@ -100,13 +94,13 @@ main = do
        let spec = extensions <> defaultSyntaxSpec
        case runIdentity (parseCommonmarkWith spec toks) of
             Left e -> errExit e
-            Right r -> BL.putStr . renderBS . unRangedHtml $ r
+            Right r -> BL.putStr . renderBS . unRangedHtml5 $ r
     else do
        extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]
        let spec = extensions <> defaultSyntaxSpec
        case runIdentity (parseCommonmarkWith spec toks) of
             Left e -> errExit e
-            Right (r :: Html ()) -> BL.putStr . renderBS $ r
+            Right (r :: Html5) -> BL.putStr . renderBS . unHtml5 $ r
 
 
 errExit :: ParseError -> IO a

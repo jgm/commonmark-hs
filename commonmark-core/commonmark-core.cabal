@@ -52,7 +52,6 @@ library
     , transformers
     , parsec
     , tagsoup
-    , network-uri
   if !impl(ghc >= 8.0)
     build-depends: semigroups == 0.18.*
   exposed-modules:

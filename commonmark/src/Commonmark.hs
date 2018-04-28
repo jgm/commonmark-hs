@@ -4,6 +4,7 @@ module Commonmark
     , module Commonmark.Syntax
     , module Commonmark.Lucid
     , module Commonmark.Parser
+    , module Commonmark.SourceMap
     , module Commonmark.Extensions.Smart
     , module Commonmark.Extensions.Strikethrough
     , module Commonmark.Extensions.PipeTable
@@ -16,6 +17,7 @@ import           Commonmark.Types
 import           Commonmark.Parser
 import           Commonmark.Lucid
 import           Commonmark.Syntax
+import           Commonmark.SourceMap
 import           Commonmark.Extensions.Smart
 import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.PipeTable

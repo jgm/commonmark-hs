@@ -72,7 +72,16 @@ install:
       ;;
     cabal)
       cabal update && \
+      pushd commonmark-core && \
+      cabal install --only-dependencies --disable-optimization -ffast --enable-tests --enable-benchmarks && \
+      popd && \
+      pushd commonmark-lucid && \
+      cabal install --only-dependencies --disable-optimization -ffast --enable-tests --enable-benchmarks && \
+      popd && \
       pushd commonmark && \
+      cabal install --only-dependencies --disable-optimization -ffast --enable-tests --enable-benchmarks && \
+      popd
+      pushd com && \monmark-cli && \
       cabal install --only-dependencies --disable-optimization -ffast --enable-tests --enable-benchmarks && \
       popd
       ;;

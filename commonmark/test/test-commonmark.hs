@@ -2,11 +2,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import           Commonmark
-import           Commonmark.Extensions.Smart
-import           Commonmark.Extensions.Strikethrough
-import           Commonmark.Extensions.PipeTable
-import           Commonmark.Extensions.Math
-import           Commonmark.Extensions.Autolink
 import           Control.Monad         (when)
 import           Data.Functor.Identity
 import           Data.List             (sort, groupBy)
@@ -50,7 +45,7 @@ main = do
     ]
 
 getSpecTestTree :: FilePath
-                -> SyntaxSpec Identity (Html ()) (Html ())
+                -> SyntaxSpec Identity Html5 Html5
                 -> IO TestTree
 getSpecTestTree fp syntaxspec = do
   spectests <- getSpecTests fp
@@ -82,7 +77,7 @@ data SpecTest = SpecTest
      , html       :: Text }
   deriving (Show)
 
-toSpecTest :: ([Tok] -> Either ParseError (Html ()))
+toSpecTest :: ([Tok] -> Either ParseError Html5)
            -> SpecTest -> TestTree
 toSpecTest parser st =
   testCase name (actual @?= expected)
@@ -91,10 +86,10 @@ toSpecTest parser st =
                  show (end_line st) ++ ")"
           expected = normalizeHTML $ html st
           actual = normalizeHTML $
-                   TL.toStrict . renderText .
+                   TL.toStrict . renderText . unHtml5 .
                    fromRight mempty $
                      (parser (tokenize "" (markdown st))
-                      :: Either ParseError (Html ()))
+                      :: Either ParseError Html5)
 
 fromRight :: b -> Either a b ->  b
 fromRight fallback (Left _) = fallback

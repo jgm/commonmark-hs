@@ -8,7 +8,12 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
 
-module Commonmark.Lucid where
+module Commonmark.Lucid
+  ( Html5(..)
+  , RangedHtml5(..)
+  )
+
+where
 
 import Lucid
 import qualified Data.Text as T

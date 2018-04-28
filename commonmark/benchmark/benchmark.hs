@@ -6,9 +6,6 @@ import Data.Text (Text)
 import Data.Functor.Identity  -- base >= 4.8
 import Commonmark
 import Commonmark.Inlines
-import Commonmark.Extensions.Smart
-import Commonmark.Extensions.Autolink
-import Commonmark.Extensions.PipeTable
 import Lucid (renderText)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -87,12 +84,12 @@ pathtests =
      mconcat $ map (\x -> "e" <> T.replicate x "`") [1..num])
   ]
 
-benchCommonmark :: SyntaxSpec Identity (Html ()) (Html ())
+benchCommonmark :: SyntaxSpec Identity Html5 Html5
                 -> (String, Text)
                 -> Benchmark
 benchCommonmark spec (name, contents) =
   bench name $
-    nf (either (error . show) renderText
+    nf (either (error . show) (renderText . unHtml5)
         . runIdentity . parseCommonmarkWith spec . tokenize name)
     contents
 
@@ -107,4 +104,4 @@ benchChunks (name, contents) =
              defaultInlineParsers (tokenize name contents)
     case res of
          Left e -> error (show e)
-         Right (cs :: [Chunk (Html ())]) -> return $ length cs
+         Right (cs :: [Chunk Html5]) -> return $ length cs

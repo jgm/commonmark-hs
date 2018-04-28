@@ -919,7 +919,7 @@ pReferenceLink rm key = do
 unEntity :: [Tok] -> Text
 unEntity ts = untokenize $
   case parse (many (pEntity' <|> anyTok)) "" ts of
-        Left err  -> ts
+        Left _    -> ts
         Right ts' -> ts'
   where pEntity' :: ParsecT [Tok] () Identity Tok
         pEntity' = try $ do

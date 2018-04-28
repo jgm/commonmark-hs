@@ -47,6 +47,7 @@ import           Control.Monad.Trans.State.Strict (State, evalState,
 import           Data.Char                  (isAscii, isDigit, isHexDigit,
                                              isLetter)
 import           Data.Dynamic               (Dynamic)
+import           Data.Functor.Identity      (Identity)
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map                   as M
 import           Data.Maybe                 (isJust, mapMaybe)
@@ -56,8 +57,7 @@ import           Data.Monoid                ((<>))
 #endif
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
-import           Text.HTML.TagSoup          (innerText, parseTags)
-import           Text.HTML.TagSoup.Entity   (lookupNamedEntity)
+import           Commonmark.Entity          (lookupEntity)
 import           Text.Parsec                hiding (State, space)
 import           Text.Parsec.Pos
 
@@ -376,14 +376,14 @@ pEntity = try $ do
   ent <- numEntity <|> charEntity
   return (entity ("&" <> untokenize ent))
 
-charEntity :: Monad m => InlineParser m [Tok]
+charEntity :: Monad m => ParsecT [Tok] s m [Tok]
 charEntity = do
   wc@(Tok WordChars _ ts) <- satisfyTok (hasType WordChars)
   semi <- symbol ';'
-  guard $ isJust $ lookupNamedEntity (T.unpack (ts <> ";"))
+  guard $ isJust $ lookupEntity (T.unpack (ts <> ";"))
   return [wc, semi]
 
-numEntity :: Monad m => InlineParser m [Tok]
+numEntity :: Monad m => ParsecT [Tok] s m [Tok]
 numEntity = do
   octo <- symbol '#'
   wc@(Tok WordChars _ t) <- satisfyTok (hasType WordChars)
@@ -851,10 +851,10 @@ pInlineLink :: Parsec [Tok] s (Text, Text)
 pInlineLink = try $ do
   _ <- symbol '('
   optional whitespace
-  target <- unEntity . untokenize <$> pLinkDestination
+  target <- unEntity <$> pLinkDestination
   optional whitespace
   title <- option "" $
-             unEntity . untokenize <$> (pLinkTitle <* optional whitespace)
+             unEntity <$> (pLinkTitle <* optional whitespace)
   _ <- symbol ')'
   return (target, title)
 
@@ -916,5 +916,16 @@ pReferenceLink rm key = do
                 else lab
   maybe mzero return $ lookupReference key' rm
 
-unEntity :: Text -> Text
-unEntity = innerText . parseTags
+unEntity :: [Tok] -> Text
+unEntity ts = untokenize $
+  case parse (many (pEntity' <|> anyTok)) "" ts of
+        Left err  -> ts
+        Right ts' -> ts'
+  where pEntity' :: ParsecT [Tok] () Identity Tok
+        pEntity' = try $ do
+          pos <- getPosition
+          symbol '&'
+          ent <- untokenize <$> (numEntity <|> charEntity)
+          case lookupEntity (T.unpack ent) of
+                Just s  -> return $ Tok WordChars pos (T.pack s)
+                Nothing -> mzero

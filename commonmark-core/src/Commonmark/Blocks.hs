@@ -430,7 +430,7 @@ linkReferenceDef = try $ do
   endpos <- getPosition
   void lineEnd <|> eof
   return ((SourceRange [(startpos, endpos)], lab),
-          (unEntity $ untokenize dest, unEntity $ untokenize title))
+          (unEntity dest, unEntity title))
 
 atxHeaderSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
@@ -756,7 +756,7 @@ fencedCodeSpec = BlockSpec
              let fencelength = length ticks
              guard $ fencelength >= 3
              skipWhile (hasType Spaces)
-             info <- unEntity . untokenize <$>
+             info <- unEntity <$>
                       many (pEscaped <|> noneOfToks [LineEnd, Symbol '`'])
              lookAhead $ void lineEnd <|> eof
              addNodeToStack $

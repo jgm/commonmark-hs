@@ -51,7 +51,6 @@ library
     , case-insensitive
     , transformers
     , parsec
-    , tagsoup
   if !impl(ghc >= 8.0)
     build-depends: semigroups == 0.18.*
   exposed-modules:

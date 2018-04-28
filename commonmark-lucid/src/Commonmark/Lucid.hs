@@ -176,7 +176,6 @@ instance Rangeable RangedHtml5 where
 instance Rangeable Html5 where
   ranged _ x = x
 
-
 instance HasMath Html5 where
   inlineMath t = Html5 $
     span_ [class_ ("math inline")] ("\\(" <> toHtml t <> "\\)")
@@ -184,8 +183,8 @@ instance HasMath Html5 where
     span_ [class_ ("math display")] ("\\[" <> toHtml t <> "\\]")
 
 instance HasMath RangedHtml5 where
-  inlineMath t = RangedHtml5 (inlineMath t)
-  displayMath t = RangedHtml5 (displayMath t)
+  inlineMath t = RangedHtml5 (unHtml5 $ inlineMath t)
+  displayMath t = RangedHtml5 (unHtml5 $ displayMath t)
 
 instance HasPipeTable Html5 Html5 where
   pipeTable aligns headerCells rows = Html5 $ do
@@ -215,12 +214,13 @@ instance HasPipeTable Html5 Html5 where
 
 instance HasPipeTable RangedHtml5 RangedHtml5 where
   pipeTable aligns headerCells rows =
-    RangedHtml5 $ pipeTable aligns (map unRangedHtml5 headerCells)
-                   (map (map unRangedHtml5) rows)
+    RangedHtml5 $ unHtml5 $ pipeTable aligns
+      (map (Html5 . unRangedHtml5) headerCells)
+      (map (map (Html5 . unRangedHtml5)) rows)
 
 instance HasStrikethrough Html5 where
-  strikethrough x = Html5 $ del_ (unHtml5 x)
+  strikethrough ils = Html5 $ del_ (unHtml5 ils)
 
 instance HasStrikethrough RangedHtml5 where
-  strikethrough (RangedHtml5 x) = RangedHtml5 $ del_ (unHtml5 x)
+  strikethrough (RangedHtml5 ils) = RangedHtml5 $ del_ ils
 

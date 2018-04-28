@@ -51,6 +51,7 @@ test-suite test-commonmark-lucid
       base >=4.7 && <5
     , commonmark-core
     , commonmark-lucid
+    , lucid
     , text
     , tasty
     , tasty-quickcheck

@@ -8,10 +8,12 @@ import           Control.Monad
 import           Control.Monad.Identity
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Text.IO               as TIO
+import qualified Data.Text.Lazy.IO          as TLIO
 import qualified Data.Map                   as M
 import qualified Data.Text                  as T
 import           Data.Text                  (Text)
-import           Lucid
+import           Data.Text.Lazy.Builder     (Builder, toLazyText,
+                                             fromText, fromString)
 import           System.Environment
 import           System.Exit
 import           System.IO
@@ -77,30 +79,30 @@ main = do
       case runWithSourceMap <$>
               runIdentity (parseCommonmarkWith spec toks) of
            Left e -> errExit e
-           Right ((_ :: Html5), sm) -> do
-             BL.putStr $ renderBS $ do
-               doctypehtml_ $ do
-                 head_ $ do
-                   title_ $ case files of
-                                 (x:_) -> toHtml x
-                                 _     -> toHtml ("stdin" :: Text)
-                   styles
-                 body_ $ do
-                   highlightWith sm toks
-               "\n"
+           Right ((_ :: Builder), sm) -> do
+             TLIO.putStr $ toLazyText $
+               "<!DOCTYPE html>\n<head>\n" <>
+               "<title>" <> (case files of
+                                 (x:_) -> fromString x
+                                 _     -> "stdin") <> "</title>\n" <>
+               styles <>
+               "</head>\n" <>
+               "<body>\n" <>
+               highlightWith sm toks <>
+               "</body>\n"
   else
     if SourcePos `elem` opts then do
        extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]
        let spec = extensions <> defaultSyntaxSpec
        case runIdentity (parseCommonmarkWith spec toks) of
             Left e -> errExit e
-            Right r -> BL.putStr . renderBS . unRangedHtml5 $ r
+            Right r -> TLIO.putStr . toLazyText $ r
     else do
        extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]
        let spec = extensions <> defaultSyntaxSpec
        case runIdentity (parseCommonmarkWith spec toks) of
             Left e -> errExit e
-            Right (r :: Html5) -> BL.putStr . renderBS . unHtml5 $ r
+            Right (r :: Builder) -> TLIO.putStr . toLazyText $ r
 
 
 errExit :: ParseError -> IO a
@@ -108,23 +110,24 @@ errExit err = do
   hPrint stderr err
   exitWith (ExitFailure 1)
 
-highlightWith :: SourceMap -> [Tok] -> Html ()
-highlightWith sm = pre_ . mconcat  . map (renderTok sm)
+highlightWith :: SourceMap -> [Tok] -> Builder
+highlightWith sm ts = "<pre>" <>  mconcat (map (renderTok sm) ts) <> "</pre>"
 
-renderTok :: SourceMap -> Tok -> Html ()
+renderTok :: SourceMap -> Tok -> Builder
 renderTok (SourceMap sm) (Tok _ pos t) =
   case M.lookup pos sm of
-       Nothing -> toHtml t
+       Nothing -> fromText t
        Just (starts, ends) ->
-         foldMap toEnd ends <> foldMap toStart starts <> toHtml t
-    where toStart x = toHtmlRaw ("<span class=\"" <> x <> "\"" <>
-                                    (if x /= "str"
-                                        then "title=\"" <> x <> "\""
-                                        else "") <> ">" :: Text)
-          toEnd   _ = toHtmlRaw ("</span>" :: Text)
+         foldMap toEnd ends <> foldMap toStart starts <> fromText t
+    where toStart x = "<span class=\"" <> fromText x <> "\"" <>
+                          (if x /= "str"
+                              then "title=\"" <> fromText x <> "\""
+                              else "") <>
+                          ">"
+          toEnd   _ = "</span>"
 
-styles :: Html ()
-styles = style_ $ T.unlines
+styles :: Builder
+styles = "<style>\n" <> fromText (T.unlines
   [ "pre { color: silver; }"
   , "span.str { color: black; }"
   , "span.code { color: teal; }"
@@ -142,4 +145,4 @@ styles = style_ $ T.unlines
   , "span.rawBlock { color: gray; }"
   , "span.escapedChar { color: gray; }"
   , "span.entity { color: gray; }"
-  ]
+  ]) <> "</style>\n"

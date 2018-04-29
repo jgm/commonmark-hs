@@ -25,7 +25,7 @@ library
       src
   build-depends:
       base >=4.7 && <5
-    , commonmark-core
+    , commonmark
     , lucid
     , text
     , containers

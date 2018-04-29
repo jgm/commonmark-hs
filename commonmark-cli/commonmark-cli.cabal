@@ -28,7 +28,6 @@ executable commonmark
   build-depends:
       base >=4.7 && <5
     , commonmark
-    , lucid
     , containers
     , pretty-simple
     , mtl

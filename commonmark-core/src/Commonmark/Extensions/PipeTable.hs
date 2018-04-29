@@ -38,7 +38,7 @@ import Data.Dynamic
 import Data.Tree
 import Data.Data
 import Data.Semigroup (Semigroup(..))
-import Data.Text.Lazy.Builder (Builder)
+import Data.Text.Lazy.Builder (Builder, fromText)
 
 data ColAlignment = LeftAlignedCol
                   | CenterAlignedCol
@@ -56,33 +56,29 @@ class HasPipeTable il bl where
   pipeTable :: [ColAlignment] -> [il] -> [[il]] -> bl
 
 instance HasPipeTable Builder Builder where
-  pipeTable aligns headerCells rows = mempty
-  {-
-
-    let alignToAttr LeftAlignedCol    = [style_ "text-align: left;"]
-        alignToAttr CenterAlignedCol  = [style_ "text-align: center;"]
-        alignToAttr RightAlignedCol   = [style_ "text-align: right;"]
-        alignToAttr DefaultAlignedCol = []
-    let toCell constructor align cell = do
-          with constructor (alignToAttr align) cell
-          "\n"
-    table_ $ do
-      "\n"
-      thead_ $ do
-        "\n"
-        tr_ $ do
-          "\n"
-          zipWithM_ (toCell th_) aligns headerCells
-        "\n"
-      "\n"
-      unless (null rows) $ do
-        tbody_ $ do
-          "\n"
-          mapM_ ((>> "\n") . tr_ . ("\n" >>) .
-                   zipWithM_ (toCell td_) aligns) rows
-        "\n"
-    "\n"
-  -}
+  pipeTable aligns headerCells rows =
+    "<table>\n" <>
+    (if null headerCells
+        then ""
+        else "<thead>\n" <>
+             toRow "th" aligns headerCells <>
+             "</thead>\n") <>
+    (if null rows
+        then ""
+        else "<tbody>\n" <>
+             mconcat (map (toRow "td" aligns) rows) <>
+             "</tbody>\n") <>
+    "</table>\n"
+    where alignToAttr LeftAlignedCol    = " style=\"text-align: left;\""
+          alignToAttr CenterAlignedCol  = " style=\"text-align: center;\""
+          alignToAttr RightAlignedCol   = " style=\"text-align: right;\""
+          alignToAttr DefaultAlignedCol = ""
+          toRow constructor aligns' cells =
+            "<tr>\n" <> mconcat (zipWith (toCell constructor) aligns' cells)
+              <> "</tr>\n"
+          toCell constructor align cell =
+            "<" <> fromText constructor <> alignToAttr align <> ">" <>
+            cell <> "</" <> fromText constructor <> ">" <> "\n"
 
 instance (HasPipeTable i b, Monoid b)
         => HasPipeTable (WithSourceMap i) (WithSourceMap b) where

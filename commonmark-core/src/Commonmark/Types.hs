@@ -18,7 +18,6 @@ where
 import           Data.Data            (Data)
 import           Data.Text            (Text)
 import qualified Data.Text            as T
-import qualified Data.Text.Read       as TR
 import           Data.Typeable        (Typeable)
 import           Text.Parsec.Pos      (SourcePos, sourceColumn, sourceLine,
                                        sourceName)
@@ -28,6 +27,7 @@ import           Data.Text.Lazy.Builder (Builder, singleton, fromText,
 import           Data.Char            (isSpace)
 import           Commonmark.Html      (escapeHtmlChar, escapeHtml,
                                        escapeURI, innerText)
+import           Commonmark.Entity    (lookupEntity)
 
 newtype Format = Format Text
   deriving (Show, Data, Typeable)
@@ -69,9 +69,9 @@ instance IsInline Builder where
   lineBreak = "<br />\n"
   softBreak = "\n"
   str t = escapeHtml t
-  entity t
-    | illegalCodePoint t = "\xFFFD"
-    | otherwise = fromText t
+  entity t = case lookupEntity (drop 1 $ T.unpack t) of
+                   Just t' -> escapeHtml (T.pack t')
+                   Nothing -> fromText t
   escapedChar c = escapeHtmlChar c
   emph ils = "<em>" <> ils <> "</em>"
   strong ils = "<strong>" <> ils <> "</strong>"
@@ -199,19 +199,3 @@ prettyRange (SourceRange xs@((p,_):_)) =
          if null rest
             then ""
             else ";" ++ go (sourceName p2) rest
-
-illegalCodePoint :: Text -> Bool
-illegalCodePoint t =
-  "&#" `T.isPrefixOf` t &&
-  let t' = T.drop 2 $ T.filter (/=';') t
-      badvalue (n, r) = not (T.null r) ||
-                        n < 1 ||
-                        n > (0x10FFFF :: Integer)
-  in
-  case T.uncons t' of
-       Nothing -> True
-       Just (x, rest)
-         | x == 'x' || x == 'X'
-           -> either (const True) badvalue (TR.hexadecimal rest)
-         | otherwise
-           -> either (const True) badvalue (TR.decimal t')

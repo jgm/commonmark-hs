@@ -50,4 +50,3 @@ getInnerText = snd . TL.foldl' f (False, mempty)
         f (True, b) _    = (True, b)
         f (False, b) c   = (False, b <> singleton c)
 
-

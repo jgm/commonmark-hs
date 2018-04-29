@@ -5,7 +5,7 @@ module Commonmark.Entity
   ( lookupEntity )
 where
 
-import Data.Char (chr, ord)
+import Data.Char (chr)
 import Data.Ix
 import qualified Data.Map as Map
 import Numeric (readHex)
@@ -43,8 +43,9 @@ lookupNumericEntity = f
             case reader xs of
                 [(a,rest)]
                   | null rest || rest == ";" -> do
-                    test $ inRange (toInteger $ ord minBound, toInteger $ ord maxBound) a
-                    return [chr $ fromInteger a]
+                    if a < 1 || a > 0x10FFFF
+                       then return [chr $ fromInteger a]
+                       else return "\xFFFD"  -- illegal code point
                 _ -> Nothing
 
         isValid :: [(Char,Char)] -> String -> Bool

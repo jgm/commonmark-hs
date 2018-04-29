@@ -12,6 +12,7 @@ import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.SourceMap
 import Commonmark.Util
+import Commonmark.Html (escapeHtml)
 import Text.Parsec
 import Data.Text (Text)
 import Data.Semigroup (Semigroup(..))
@@ -31,14 +32,10 @@ class HasMath a where
   displayMath :: Text -> a
 
 instance HasMath Builder where
-  inlineMath _ = mempty
-  displayMath _ = mempty
-{-
   inlineMath t = "<span class=\"math inline\">" <>
     "\\(" <> escapeHtml t <> "\\)" <> "</span>"
   displayMath t = "<span class=\"math display\">" <>
     "\\[" <> escapeHtml t <> "\\]" <> "</span>"
--}
 
 instance (HasMath i, Monoid i) => HasMath (WithSourceMap i) where
   inlineMath t = (inlineMath t) <* addName "inlineMath"

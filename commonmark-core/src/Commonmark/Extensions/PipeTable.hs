@@ -37,6 +37,8 @@ import Text.Parsec
 import Data.Dynamic
 import Data.Tree
 import Data.Data
+import Data.Semigroup (Semigroup(..))
+import Data.Text.Lazy.Builder (Builder)
 
 data ColAlignment = LeftAlignedCol
                   | CenterAlignedCol
@@ -53,9 +55,10 @@ data PipeTableData = PipeTableData
 class HasPipeTable il bl where
   pipeTable :: [ColAlignment] -> [il] -> [[il]] -> bl
 
-{-
-instance HasPipeTable (Html ()) (Html ()) where
-  pipeTable aligns headerCells rows = do
+instance HasPipeTable Builder Builder where
+  pipeTable aligns headerCells rows = mempty
+  {-
+
     let alignToAttr LeftAlignedCol    = [style_ "text-align: left;"]
         alignToAttr CenterAlignedCol  = [style_ "text-align: center;"]
         alignToAttr RightAlignedCol   = [style_ "text-align: right;"]
@@ -79,12 +82,7 @@ instance HasPipeTable (Html ()) (Html ()) where
                    zipWithM_ (toCell td_) aligns) rows
         "\n"
     "\n"
-
-instance HasPipeTable RangedHtml RangedHtml where
-  pipeTable aligns headerCells rows =
-    RangedHtml $ pipeTable aligns (map unRangedHtml headerCells)
-                   (map (map unRangedHtml) rows)
--}
+  -}
 
 instance (HasPipeTable i b, Monoid b)
         => HasPipeTable (WithSourceMap i) (WithSourceMap b) where

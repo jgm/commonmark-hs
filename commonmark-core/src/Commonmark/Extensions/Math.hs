@@ -14,6 +14,8 @@ import Commonmark.SourceMap
 import Commonmark.Util
 import Text.Parsec
 import Data.Text (Text)
+import Data.Semigroup (Semigroup(..))
+import Data.Text.Lazy.Builder (Builder)
 
 mathSpec :: (Monad m, IsBlock il bl, IsInline il, HasMath il)
          => SyntaxSpec m il bl
@@ -28,14 +30,14 @@ class HasMath a where
   inlineMath :: Text -> a
   displayMath :: Text -> a
 
+instance HasMath Builder where
+  inlineMath _ = mempty
+  displayMath _ = mempty
 {-
-instance HasMath (Html ()) where
-  inlineMath t = span_ [class_ ("math inline")] ("\\(" <> toHtml t <> "\\)")
-  displayMath t = span_ [class_ ("math display")] ("\\[" <> toHtml t <> "\\]")
-
-instance HasMath RangedHtml where
-  inlineMath t = RangedHtml (inlineMath t)
-  displayMath t = RangedHtml (displayMath t)
+  inlineMath t = "<span class=\"math inline\">" <>
+    "\\(" <> escapeHtml t <> "\\)" <> "</span>"
+  displayMath t = "<span class=\"math display\">" <>
+    "\\[" <> escapeHtml t <> "\\]" <> "</span>"
 -}
 
 instance (HasMath i, Monoid i) => HasMath (WithSourceMap i) where

@@ -69,29 +69,28 @@ class (Monoid a, Show a, Rangeable a) => IsInline a where
 
 -- This instance mirrors what is expected in the spec tests.
 instance IsInline Builder where
-  lineBreak = fromText "<br />\n"
-  softBreak = singleton '\n'
+  lineBreak = "<br />\n"
+  softBreak = "\n"
   str t = escapeHtml t
   entity t
-    | illegalCodePoint t = fromText "\xFFFD"
+    | illegalCodePoint t = "\xFFFD"
     | otherwise = fromText t
   escapedChar c = escapeHtmlChar c
-  emph ils = fromText "<em>" <> ils <> fromText "</em>"
-  strong ils = fromText "<strong>" <> ils <> fromText "</strong>"
-  link target title ils = fromText "<a href=\"" <>
-    escapeURI target <> fromText "\"" <>
+  emph ils = "<em>" <> ils <> "</em>"
+  strong ils = "<strong>" <> ils <> "</strong>"
+  link target title ils = "<a href=\"" <> escapeURI target <> "\"" <>
     (if T.null title
         then mempty
-        else fromText " title=\"" <> escapeHtml title <> fromText "\"") <>
-    fromText ">" <> ils <> fromText "</a>"
-  image target title ils = fromText "<img src=\"" <>
-    escapeURI target <> fromText "\"" <>
-    fromText " alt=\"" <> innerText ils <> fromText "\"" <>
+        else " title=\"" <> escapeHtml title <> "\"") <>
+    ">" <> ils <> "</a>"
+  image target title ils = "<img src=\"" <>
+    escapeURI target <> "\"" <>
+    " alt=\"" <> innerText ils <> "\"" <>
     (if T.null title
         then mempty
-        else fromText " title=\"" <> escapeHtml title <> fromText "\"") <>
-    fromText " />"
-  code t = fromText "<code>" <> escapeHtml t <> fromText "</code>"
+        else " title=\"" <> escapeHtml title <> "\"") <>
+    " />"
+  code t = "<code>" <> escapeHtml t <> "</code>"
   rawInline f t
     | f == Format "html" = fromText t
     | otherwise          = mempty
@@ -100,10 +99,10 @@ escapeHtml :: Text -> Builder
 escapeHtml = foldMap escapeHtmlChar . T.unpack
 
 escapeHtmlChar :: Char -> Builder
-escapeHtmlChar '<' = fromText "&lt;"
-escapeHtmlChar '>' = fromText "&gt;"
-escapeHtmlChar '&' = fromText "&amp;"
-escapeHtmlChar '"' = fromText "&quot;"
+escapeHtmlChar '<' = "&lt;"
+escapeHtmlChar '>' = "&gt;"
+escapeHtmlChar '&' = "&amp;"
+escapeHtmlChar '"' = "&quot;"
 escapeHtmlChar c   = singleton c
 
 escapeURI :: Text -> Builder
@@ -115,7 +114,8 @@ escapeURIChar c
   | otherwise     = singleton c
   where isEscapable d = not (isAscii d && isAlphaNum d)
                      && d `notElem` ['%','/','?',':','@','-','.','_','~','&',
-                                     '!','$','\'','(',')','*','+',',',';','=']
+                                     '#','!','$','\'','(',')','*','+',',',
+                                     ';','=']
 
 innerText :: Builder -> Builder
 innerText = getInnerText . toLazyText
@@ -145,21 +145,20 @@ class (Monoid b, Show b, Rangeable b, IsInline il)
   list :: ListType -> ListSpacing -> [b] -> b
 
 instance IsBlock Builder Builder where
-  paragraph ils = fromText "<p>" <> ils <> fromText "</p>" <> nl
-  plain ils = ils <> nl
-  thematicBreak = fromText "<hr />" <> nl
-  blockQuote bs = fromText "<blockquote>" <> nl <> bs <>
-    fromText "</blockquote>" <> nl
-  codeBlock info t = fromText "<pre><code" <>
+  paragraph ils = "<p>" <> ils <> "</p>" <> nl
+  plain ils = ils
+  thematicBreak = "<hr />" <> nl
+  blockQuote bs = "<blockquote>" <> nl <> bs <>
+    "</blockquote>" <> nl
+  codeBlock info t = "<pre><code" <>
     (if T.null lang
-        then mempty
-        else fromText (" class=\"language-" <> lang <> "\"")) <>
-    escapeHtml t <> fromText "</code></pre>" <> nl
+        then ">"
+        else fromText (" class=\"language-" <> lang <> "\">")) <>
+    escapeHtml t <> "</code></pre>" <> nl
     where lang = T.takeWhile (not . isSpace) info
   header level ils = singleton '<' <> h <> singleton '>' <>
-    ils <> fromText "</" <> h <> singleton '>' <> nl
-    where h = fromText $
-               case level of
+    ils <> "</" <> h <> singleton '>' <> nl
+    where h = case level of
                    1 -> "h1"
                    2 -> "h2"
                    3 -> "h3"
@@ -171,22 +170,22 @@ instance IsBlock Builder Builder where
     | f == Format "html" = fromText t
     | otherwise          = mempty
   referenceLinkDefinition _ _ = mempty
-  list (BulletList _) lSpacing items = fromText "<ul>" <> nl <>
-    mconcat (map li items) <> fromText "</ul>" <> nl
-   where li x = fromText "<li>" <> x <>
-                (if lSpacing == TightList then mempty else nl) <>
-                fromText "</li>" <> nl
-  list (OrderedList startnum _) lSpacing items = fromText "<ol" <>
+  list (BulletList _) lSpacing items = "<ul>" <> nl <>
+    mconcat (map li items) <> "</ul>" <> nl
+   where li x = "<li>" <>
+                (if lSpacing == TightList then mempty else nl) <> x <>
+                "</li>" <> nl
+  list (OrderedList startnum _) lSpacing items = "<ol" <>
     (if startnum /= 1
-        then fromText " start=\"" <> fromString (show startnum) <> fromText "\""
-        else mempty) <> fromText ">" <> nl <>
-    mconcat (map li items) <> fromText "</ol>" <> nl
-   where li x = fromText "<li>" <> x <>
-                (if lSpacing == TightList then mempty else nl) <>
-                fromText "</li>" <> nl
+        then " start=\"" <> fromString (show startnum) <> "\""
+        else mempty) <> ">" <> nl <>
+    mconcat (map li items) <> "</ol>" <> nl
+   where li x = "<li>" <>
+                (if lSpacing == TightList then mempty else nl) <> x <>
+                "</li>" <> nl
 
 nl :: Builder
-nl = fromText "\n"
+nl = "\n"
 
 newtype SourceRange = SourceRange
         { unSourceRange :: [(SourcePos, SourcePos)] }

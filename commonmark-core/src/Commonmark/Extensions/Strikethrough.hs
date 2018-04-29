@@ -9,6 +9,8 @@ import Commonmark.Types
 import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.SourceMap
+import Data.Semigroup (Semigroup(..))
+import Data.Text.Lazy.Builder (Builder)
 
 strikethroughSpec :: (Monad m, IsBlock il bl, IsInline il, HasStrikethrough il)
               => SyntaxSpec m il bl
@@ -24,13 +26,8 @@ strikethroughSpec = SyntaxSpec
 class HasStrikethrough a where
   strikethrough :: a -> a
 
-{-
-instance HasStrikethrough (Html ()) where
-  strikethrough x = del_ x
-
-instance HasStrikethrough RangedHtml where
-  strikethrough (RangedHtml x) = RangedHtml (del_ x)
--}
+instance HasStrikethrough Builder where
+  strikethrough x = "<del>" <> x <> "</del>"
 
 instance (HasStrikethrough i, Monoid i)
         => HasStrikethrough (WithSourceMap i) where

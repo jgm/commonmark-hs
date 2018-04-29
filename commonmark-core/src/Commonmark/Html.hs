@@ -6,11 +6,13 @@ module Commonmark.Html
   , innerText
   )
 where
+
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import           Data.Text.Lazy.Builder (Builder, singleton,
-                                         toLazyText, fromString)
+                                         toLazyText, fromString,
+                                         fromLazyText)
 import           Data.Text.Encoding   (encodeUtf8)
 import qualified Data.ByteString.Char8 as B
 import           Data.Semigroup       ((<>))
@@ -18,6 +20,8 @@ import           Text.Printf          (printf)
 import           Data.Char            (ord, isAlphaNum, isAscii)
 import           Commonmark.Entity    (unEntity)
 import           Commonmark.Tokens    (tokenize)
+import           Text.Parsec
+import           Commonmark.Util      (skipManyTill)
 
 escapeHtml :: Text -> Builder
 escapeHtml = foldMap escapeHtmlChar . T.unpack
@@ -45,11 +49,27 @@ escapeURIChar c
 innerText :: Builder -> Builder
 innerText = getInnerText . toLazyText
 
-getInnerText :: TL.Text -> Builder
-getInnerText = snd . TL.foldl' f (False, mempty)
-  where f :: (Bool, Builder) -> Char -> (Bool, Builder)
-        f (False, b) '<' = (True, b)
-        f (True, b) '>'  = (False, b)
-        f (True, b) _    = (True, b)
-        f (False, b) c   = (False, b <> singleton c)
+pInnerText :: Parsec TL.Text () Builder
+pInnerText = (mconcat <$> many (pTag <|> pNonTag)) <* eof
 
+pTag :: Parsec TL.Text () Builder
+pTag = do
+  char '<'
+  cs <- many (satisfy isAlphaNum)
+  if cs == "img" || cs == "IMG"
+     then do
+       alt <- option "" $ try $ do
+                skipManyTill anyChar (try (string "alt=\""))
+                manyTill anyChar (char '"')
+       skipManyTill anyChar (char '>')
+       return $ fromString alt
+     else mempty <$ skipManyTill anyChar (char '>')
+
+pNonTag :: Parsec TL.Text () Builder
+pNonTag = fromString <$> many1 (satisfy (/='<'))
+
+getInnerText :: TL.Text -> Builder
+getInnerText t =
+  case parse pInnerText "" t of
+    Left _  -> fromLazyText t
+    Right b -> b

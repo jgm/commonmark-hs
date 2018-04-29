@@ -148,7 +148,7 @@ isOneOfCI :: [Text] -> Text -> Bool
 isOneOfCI ts t = T.toLower t `elem` ts
 
 -- | Apply @p@ many times until @stop@ succeeds, discarding results.
-skipManyTill :: ParsecT s u m a -> ParsecT s u m a -> ParsecT s u m ()
+skipManyTill :: ParsecT s u m a -> ParsecT s u m b -> ParsecT s u m ()
 skipManyTill p stop = scan
     where scan = (() <$ stop) <|> (p >> scan)
 

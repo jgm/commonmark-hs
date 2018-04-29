@@ -11,7 +11,6 @@ module Commonmark.Entity
 where
 
 import Data.Char (chr)
-import Data.Ix
 import Data.Functor.Identity (Identity)
 import qualified Data.Map as Map
 import Numeric (readHex)
@@ -47,24 +46,20 @@ lookupNumericEntity = f
         -- entity = '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
     where
         f (x:xs) | x `elem` ['x','X']
-             = g [('0','9'),('a','f'),('A','F')] readHex xs
-        f xs = g [('0','9')] reads xs
+             = g readHex xs
+        f xs = g reads xs
 
-        g :: [(Char,Char)] -> ReadS Integer -> String -> Maybe String
-        g valid reader xs = do
+        g :: ReadS Integer -> String -> Maybe String
+        g reader xs = do
             let test b = if b then Just () else Nothing
-            test $ isValid valid xs
             test $ not $ null xs
             case reader xs of
                 [(a,rest)]
                   | null rest || rest == ";" -> do
                     if a < 1 || a > 0x10FFFF
-                       then return [chr $ fromInteger a]
-                       else return "\xFFFD"  -- illegal code point
+                       then return "\xFFFD"  -- illegal code point
+                       else return [chr $ fromInteger a]
                 _ -> Nothing
-
-        isValid :: [(Char,Char)] -> String -> Bool
-        isValid valid xs = all (\x -> any (`inRange` x) valid) xs
 
 
 -- | Lookup a named entity, using 'htmlEntities'

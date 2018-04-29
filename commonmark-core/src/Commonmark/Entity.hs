@@ -1,15 +1,29 @@
--- This code is lifted from Text.HTML.TagSoup.Entity
+{-# LANGUAGE OverloadedStrings #-}
+-- This code for lookupEntity is lifted from Text.HTML.TagSoup.Entity
 -- (C) 2006--2018 Neil Mitchell, released under the BSD-3 license
 
 module Commonmark.Entity
-  ( lookupEntity )
+  ( lookupEntity
+  , charEntity
+  , numEntity
+  , unEntity
+  )
 where
 
 import Data.Char (chr)
 import Data.Ix
+import Data.Functor.Identity (Identity)
 import qualified Data.Map as Map
 import Numeric (readHex)
-
+import Commonmark.Util
+import Commonmark.Tokens
+import Text.Parsec
+import qualified Data.Text as T
+import Data.Text (Text)
+import Control.Monad (guard, mzero)
+import Data.Char (isDigit, isHexDigit)
+import Data.Semigroup (Semigroup(..))
+import Data.Maybe (isJust)
 
 -- | Lookup an entity, using 'lookupNumericEntity' if it starts with
 --   @#@ and 'lookupNamedEntity' otherwise
@@ -32,7 +46,8 @@ lookupNumericEntity :: String -> Maybe String
 lookupNumericEntity = f
         -- entity = '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
     where
-        f (x:xs) | x `elem` "xX" = g [('0','9'),('a','f'),('A','F')] readHex xs
+        f (x:xs) | x `elem` ['x','X']
+             = g [('0','9'),('a','f'),('A','F')] readHex xs
         f xs = g [('0','9')] reads xs
 
         g :: [(Char,Char)] -> ReadS Integer -> String -> Maybe String
@@ -2299,3 +2314,40 @@ htmlEntities =
     ,("zwnj;", "\x200C")
     ]
 
+charEntity :: Monad m => ParsecT [Tok] s m [Tok]
+charEntity = do
+  wc@(Tok WordChars _ ts) <- satisfyTok (hasType WordChars)
+  semi <- symbol ';'
+  guard $ isJust $ lookupEntity (T.unpack (ts <> ";"))
+  return [wc, semi]
+
+numEntity :: Monad m => ParsecT [Tok] s m [Tok]
+numEntity = do
+  octo <- symbol '#'
+  wc@(Tok WordChars _ t) <- satisfyTok (hasType WordChars)
+  guard $
+    case T.uncons t of
+         Just (x, rest)
+          | x == 'x' || x == 'X' ->
+            T.all isHexDigit rest &&
+            not (T.null rest) &&
+            T.length rest <= 6
+          | otherwise -> T.all isDigit t &&
+            T.length t <= 7
+         _ -> False
+  semi <- symbol ';'
+  return [octo, wc, semi]
+
+unEntity :: [Tok] -> Text
+unEntity ts = untokenize $
+  case parse (many (pEntity' <|> anyTok)) "" ts of
+        Left _    -> ts
+        Right ts' -> ts'
+  where pEntity' :: ParsecT [Tok] () Identity Tok
+        pEntity' = try $ do
+          pos <- getPosition
+          symbol '&'
+          ent <- untokenize <$> (numEntity <|> charEntity)
+          case lookupEntity (T.unpack ent) of
+                Just s  -> return $ Tok WordChars pos (T.pack s)
+                Nothing -> mzero

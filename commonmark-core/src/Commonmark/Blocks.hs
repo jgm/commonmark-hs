@@ -42,7 +42,8 @@ import           Commonmark.Tag
 import           Commonmark.Util
 import           Commonmark.ReferenceMap
 import           Commonmark.Inlines        (pEscaped, pLinkDestination,
-                                            pLinkLabel, pLinkTitle, unEntity)
+                                            pLinkLabel, pLinkTitle)
+import           Commonmark.Entity         (unEntity)
 import           Commonmark.Tokens
 import           Commonmark.Types
 import           Control.Monad             (foldM, guard, mzero, void, unless,

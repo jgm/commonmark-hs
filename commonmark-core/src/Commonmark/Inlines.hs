@@ -19,7 +19,6 @@ module Commonmark.Inlines
   , pLinkDestination
   , pLinkTitle
   , pEscaped
-  , unEntity
   , processEmphasis
   , processBrackets
   -- * Basic parsers
@@ -44,10 +43,8 @@ import           Commonmark.Types
 import           Control.Monad              (guard, mzero)
 import           Control.Monad.Trans.State.Strict (State, evalState,
                                              get, gets, modify)
-import           Data.Char                  (isAscii, isDigit, isHexDigit,
-                                             isLetter)
+import           Data.Char                  (isAscii, isLetter)
 import           Data.Dynamic               (Dynamic)
-import           Data.Functor.Identity      (Identity)
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map                   as M
 import           Data.Maybe                 (isJust, mapMaybe)
@@ -57,7 +54,7 @@ import           Data.Monoid                ((<>))
 #endif
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
-import           Commonmark.Entity          (lookupEntity)
+import           Commonmark.Entity          (unEntity, charEntity, numEntity)
 import           Text.Parsec                hiding (State, space)
 import           Text.Parsec.Pos
 
@@ -375,30 +372,6 @@ pEntity = try $ do
   symbol '&'
   ent <- numEntity <|> charEntity
   return (entity ("&" <> untokenize ent))
-
-charEntity :: Monad m => ParsecT [Tok] s m [Tok]
-charEntity = do
-  wc@(Tok WordChars _ ts) <- satisfyTok (hasType WordChars)
-  semi <- symbol ';'
-  guard $ isJust $ lookupEntity (T.unpack (ts <> ";"))
-  return [wc, semi]
-
-numEntity :: Monad m => ParsecT [Tok] s m [Tok]
-numEntity = do
-  octo <- symbol '#'
-  wc@(Tok WordChars _ t) <- satisfyTok (hasType WordChars)
-  guard $
-    case T.uncons t of
-         Just (x, rest)
-          | x == 'x' || x == 'X' ->
-            T.all isHexDigit rest &&
-            not (T.null rest) &&
-            T.length rest <= 6
-          | otherwise -> T.all isDigit t &&
-            T.length t <= 7
-         _ -> False
-  semi <- symbol ';'
-  return [octo, wc, semi]
 
 pBacktickSpan :: Monad m
               => InlineParser m (Either [Tok] [Tok])
@@ -916,16 +889,3 @@ pReferenceLink rm key = do
                 else lab
   maybe mzero return $ lookupReference key' rm
 
-unEntity :: [Tok] -> Text
-unEntity ts = untokenize $
-  case parse (many (pEntity' <|> anyTok)) "" ts of
-        Left _    -> ts
-        Right ts' -> ts'
-  where pEntity' :: ParsecT [Tok] () Identity Tok
-        pEntity' = try $ do
-          pos <- getPosition
-          symbol '&'
-          ent <- untokenize <$> (numEntity <|> charEntity)
-          case lookupEntity (T.unpack ent) of
-                Just s  -> return $ Tok WordChars pos (T.pack s)
-                Nothing -> mzero

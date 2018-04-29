@@ -1,7 +1,12 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-import           Commonmark
+import           Commonmark.Parser
+import           Commonmark.Extensions.Autolink
+import           Commonmark.Extensions.PipeTable
+import           Commonmark.Extensions.Smart
+import           Commonmark.Extensions.Strikethrough
+import           Commonmark.Extensions.Math
 import           Control.Monad         (when)
 import           Data.Functor.Identity
 import           Data.List             (sort, groupBy)
@@ -10,11 +15,10 @@ import           Data.Text             (Text)
 import qualified Data.Text             as T
 import qualified Data.Text.IO          as T
 import qualified Data.Text.Lazy        as TL
-import           Lucid
+import           Data.Text.Lazy.Builder (toLazyText, Builder)
 import           Test.Tasty
 import           Test.Tasty.HUnit
 import           Test.Tasty.QuickCheck
-import           Text.HTML.TagSoup
 import           Text.Parsec
 import           Text.Parsec.Pos
 
@@ -45,7 +49,7 @@ main = do
     ]
 
 getSpecTestTree :: FilePath
-                -> SyntaxSpec Identity Html5 Html5
+                -> SyntaxSpec Identity Builder Builder
                 -> IO TestTree
 getSpecTestTree fp syntaxspec = do
   spectests <- getSpecTests fp
@@ -77,48 +81,26 @@ data SpecTest = SpecTest
      , html       :: Text }
   deriving (Show)
 
-toSpecTest :: ([Tok] -> Either ParseError Html5)
+toSpecTest :: ([Tok] -> Either ParseError Builder)
            -> SpecTest -> TestTree
 toSpecTest parser st =
   testCase name (actual @?= expected)
     where name = T.unpack (section st) ++ " example " ++ show (example st) ++
                  " (" ++ show (start_line st) ++ "-" ++
                  show (end_line st) ++ ")"
-          expected = normalizeHTML $ html st
-          actual = normalizeHTML $
-                   TL.toStrict . renderText . unHtml5 .
+          expected = normalizeHtml $ html st
+          actual = normalizeHtml .  TL.toStrict . toLazyText .
                    fromRight mempty $
                      (parser (tokenize "" (markdown st))
-                      :: Either ParseError Html5)
+                      :: Either ParseError Builder)
+
+normalizeHtml :: Text -> Text
+normalizeHtml = T.replace "\n</li>" "</li>" .
+                T.replace "<li>\n" "<li>"
 
 fromRight :: b -> Either a b ->  b
 fromRight fallback (Left _) = fallback
 fromRight _ (Right x)       = x
-
-normalizeHTML :: Text -> Text
-normalizeHTML = renderTagsOptions renderOptions{
-                    optEscape = escapeHTML' } .
-                 map normalizeTag .
-                 removeNewlineWithLi .
-                 filter (\t -> not $
-                           isTagCloseName "img" t ||
-                           isTagCloseName "hr" t ||
-                           isTagCloseName "br" t) .
-                 parseTags
-  where escapeHTML' = T.replace "'" "&#39;" . escapeHTML
-
-removeNewlineWithLi :: [Tag Text] -> [Tag Text]
-removeNewlineWithLi [] = []
-removeNewlineWithLi (t@(TagOpen "li" _) : TagText "\n" : ts) =
-  t : removeNewlineWithLi ts
-removeNewlineWithLi (TagText txt : t@(TagClose "li") : ts)
-  | txt == "\n" = t : removeNewlineWithLi ts
-  | T.last txt == '\n' = TagText (T.init txt) : t : removeNewlineWithLi ts
-removeNewlineWithLi (t:ts) = t : removeNewlineWithLi ts
-
-normalizeTag :: Tag Text -> Tag Text
-normalizeTag (TagOpen name attrs) = TagOpen name (sort attrs)
-normalizeTag x                    = x
 
 tokenize_roundtrip :: String -> Bool
 tokenize_roundtrip s = untokenize (tokenize "source" t) == t

@@ -5,9 +5,6 @@
 This repository contains four packages:
 
 - [`commonmark`](commonmark/):
-  an umbrella library containing `commonmark-core` and `commonmark-lucid`.
-
-- [`commonmark-core`](commonmark-core/):
   a pure Haskell library for parsing commonmark,
   designed for flexibility and extensibility.
 

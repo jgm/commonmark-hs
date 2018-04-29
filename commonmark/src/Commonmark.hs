@@ -2,7 +2,6 @@ module Commonmark
     ( module Commonmark.Tokens
     , module Commonmark.Types
     , module Commonmark.Syntax
-    , module Commonmark.Lucid
     , module Commonmark.Parser
     , module Commonmark.SourceMap
     , module Commonmark.Extensions.Smart
@@ -15,7 +14,6 @@ module Commonmark
 import           Commonmark.Tokens
 import           Commonmark.Types
 import           Commonmark.Parser
-import           Commonmark.Lucid
 import           Commonmark.Syntax
 import           Commonmark.SourceMap
 import           Commonmark.Extensions.Smart

@@ -4,19 +4,21 @@
 import Criterion.Main
 import Data.Text (Text)
 import Data.Functor.Identity  -- base >= 4.8
-import Commonmark
+import Commonmark.Parser
+import Commonmark.Extensions.PipeTable
+import Commonmark.Extensions.Smart
+import Commonmark.Extensions.Autolink
 import Commonmark.Inlines
-import Lucid (renderText)
 import qualified Data.Text as T
-import qualified Data.Text.IO as T
+import qualified Data.Text.IO as TIO
 #if !MIN_VERSION_base(4,11,0)
 import Data.Monoid
 #endif
-import Lucid
+import Data.Text.Lazy.Builder (Builder, toLazyText)
 
 main :: IO ()
 main = do
-  sample <- T.readFile "benchmark/sample.md"
+  sample <- TIO.readFile "benchmark/sample.md"
   defaultMainWith defaultConfig
     [ bgroup "tokenize"
       [ benchTokenize ("sample.md", sample) ]
@@ -84,12 +86,12 @@ pathtests =
      mconcat $ map (\x -> "e" <> T.replicate x "`") [1..num])
   ]
 
-benchCommonmark :: SyntaxSpec Identity Html5 Html5
+benchCommonmark :: SyntaxSpec Identity Builder Builder
                 -> (String, Text)
                 -> Benchmark
 benchCommonmark spec (name, contents) =
   bench name $
-    nf (either (error . show) (renderText . unHtml5)
+    nf (either (error . show) toLazyText
         . runIdentity . parseCommonmarkWith spec . tokenize name)
     contents
 
@@ -104,4 +106,4 @@ benchChunks (name, contents) =
              defaultInlineParsers (tokenize name contents)
     case res of
          Left e -> error (show e)
-         Right (cs :: [Chunk Html5]) -> return $ length cs
+         Right (cs :: [Chunk Builder]) -> return $ length cs

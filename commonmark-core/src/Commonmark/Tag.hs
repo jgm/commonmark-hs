@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Commonmark.HTML
+module Commonmark.Tag
   ( htmlTag
   , htmlOpenTag
   , htmlClosingTag

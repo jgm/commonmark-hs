@@ -36,7 +36,7 @@ module Commonmark.Inlines
   )
 where
 
-import           Commonmark.HTML            (htmlTag)
+import           Commonmark.Tag             (htmlTag)
 import           Commonmark.Tokens
 import           Commonmark.Util
 import           Commonmark.ReferenceMap

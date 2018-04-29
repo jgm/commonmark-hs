@@ -38,7 +38,7 @@ module Commonmark.Blocks
   )
 where
 
-import           Commonmark.HTML
+import           Commonmark.Tag
 import           Commonmark.Util
 import           Commonmark.ReferenceMap
 import           Commonmark.Inlines        (pEscaped, pLinkDestination,

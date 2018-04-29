@@ -92,19 +92,17 @@ test-suite test-commonmark
     , parsec
   default-language: Haskell2010
 
--- benchmark benchmark-commonmark
---   type:            exitcode-stdio-1.0
---   main-is:         benchmark.hs
---   hs-source-dirs:  benchmark
---   build-depends:
---        commonmark
---      , commonmark-core
---      , base >= 4.8 && < 5
---      , text
---      , transformers
---      , containers
---      , bytestring
---      , lucid
---      , criterion >= 1.0 && < 1.5
---   ghc-options: -threaded -rtsopts -with-rtsopts=-N -with-rtsopts=-K10K
---   default-language: Haskell2010
+benchmark benchmark-commonmark
+  type:            exitcode-stdio-1.0
+  main-is:         benchmark.hs
+  hs-source-dirs:  benchmark
+  build-depends:
+       commonmark-core
+     , base >= 4.8 && < 5
+     , text
+     , transformers
+     , containers
+     , bytestring
+     , criterion >= 1.0 && < 1.5
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -with-rtsopts=-K10K
+  default-language: Haskell2010

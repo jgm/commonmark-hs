@@ -88,11 +88,15 @@ toSpecTest parser st =
     where name = T.unpack (section st) ++ " example " ++ show (example st) ++
                  " (" ++ show (start_line st) ++ "-" ++
                  show (end_line st) ++ ")"
-          expected = html st
-          actual = TL.toStrict . toLazyText .
+          expected = normalizeHtml $ html st
+          actual = normalizeHtml .  TL.toStrict . toLazyText .
                    fromRight mempty $
                      (parser (tokenize "" (markdown st))
                       :: Either ParseError Builder)
+
+normalizeHtml :: Text -> Text
+normalizeHtml = T.replace "\n</li>" "</li>" .
+                T.replace "<li>\n" "<li>"
 
 fromRight :: b -> Either a b ->  b
 fromRight fallback (Left _) = fallback

@@ -146,7 +146,7 @@ class (Monoid b, Show b, Rangeable b, IsInline il)
 
 instance IsBlock Builder Builder where
   paragraph ils = "<p>" <> ils <> "</p>" <> nl
-  plain ils = ils
+  plain ils = ils <> nl
   thematicBreak = "<hr />" <> nl
   blockQuote bs = "<blockquote>" <> nl <> bs <>
     "</blockquote>" <> nl

@@ -6,12 +6,10 @@ module Main where
 import           Commonmark
 import           Control.Monad
 import           Control.Monad.Identity
-import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Text.IO               as TIO
 import qualified Data.Text.Lazy.IO          as TLIO
 import qualified Data.Map                   as M
 import qualified Data.Text                  as T
-import           Data.Text                  (Text)
 import           Data.Text.Lazy.Builder     (Builder, toLazyText,
                                              fromText, fromString)
 import           System.Environment

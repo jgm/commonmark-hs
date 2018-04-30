@@ -9,7 +9,7 @@ import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.Math
 import           Control.Monad         (when)
 import           Data.Functor.Identity
-import           Data.List             (sort, groupBy)
+import           Data.List             (groupBy)
 import           Data.Monoid           ((<>))
 import           Data.Text             (Text)
 import qualified Data.Text             as T

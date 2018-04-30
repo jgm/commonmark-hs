@@ -87,15 +87,11 @@ script:
       ;;
     cabal)
       cabal update && \
-      pushd commonmark-core && \
+      pushd commonmark && \
       cabal sdist --output-directory=sourcedist && \
       pushd sourcedist && \
       cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS" && \
       popd && popd && pushd commonmark-lucid && \
-      cabal sdist --output-directory=sourcedist && \
-      pushd sourcedist && \
-      cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS" && \
-      popd && popd && pushd commonmark && \
       cabal sdist --output-directory=sourcedist && \
       pushd sourcedist && \
       cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS" && \

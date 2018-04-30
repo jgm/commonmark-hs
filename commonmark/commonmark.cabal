@@ -36,6 +36,12 @@ cabal-version:  >= 1.10
 extra-source-files:
     changelog.md
     README.md
+    test/spec.txt
+    test/autolinks.txt
+    test/pipe-tables.txt
+    test/math.txt
+    test/smart_punct.txt
+    test/strikethrough.txt
 
 source-repository head
   type: git

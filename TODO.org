@@ -4,45 +4,7 @@ BracketedSpec
 FormattingSpec
 * TODO Change fields in FormattingSpec to follow naming pattern of BracketedSpec
 * TODO Don't export Chunk and parseChunks
-* TODO Think about how you'd add footnotes
-This seems to require a different API
-Somehow we have to pass the footnote map to the inline
-parser...
-The extension mechanism should be flexible enough for this,
-but it's hard to see how to do it.
-Instead of referenceMap in BPState and IPState, we could
-have something which can be parameterized with a typeclass
-like HasReferenceMap.
-Make sure it is a monoid (or maybe has a default instance),
-so we can initialize it.
-class HasReferenceMap a where
-  getReferenceMap :: a -> ReferenceMap
-  setReferenceMap :: a -> ReferenceMap -> a
-
-Ideally we'd have a single References parameter.
-And we could do something like
-
-     lookupRef "note1" refs :: Maybe RawNote
-
-and it would use the appropriate map, if defined.
-This could be done by making
-
-    type References = Map Text [Dynamic]
-
-And then
-
-    lookupRef "foo" refs :: Maybe RawNote
-
-could lookup "foo" and try to convert one of the values to
-a RawNote.
-
-This would avoid typeclasses and make the parameter
-easy to initialize.  Having a list [Dynamic] would
-allow you to have, e.g., a footnote, a reference link,
-and an example list item with the same name.
-
-Or, we could just insist on unique names, and have
-a single value.  foo = reference, ^foo = footnote,
-@foo = example list item.  This would be more
-effficient.
+* DONE Think about how you'd add footnotes
+Use the ReferenceMap; we can now store various sorts of objects
+there, and they are disambiguated by type.
 

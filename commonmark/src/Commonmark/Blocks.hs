@@ -67,7 +67,7 @@ mkBlockParser :: (Monad m, IsBlock il bl)
 mkBlockParser _ _ [] = return $ Right mempty
 mkBlockParser specs ilParser (t:ts) =
   runParserT (setPosition (tokPos t) >> processLines specs)
-          BPState{ referenceMap = mempty
+          BPState{ referenceMap = emptyReferenceMap
                  , inlineParser = ilParser
                  , nodeStack    = [Node (defBlockData docSpec) []]
                  , blockMatched = False
@@ -375,7 +375,8 @@ paraSpec = BlockSpec
                  mapM_
                    (\((_,lab),(dest,tit)) ->
                     updateState $ \st -> st{
-                     referenceMap = insertReference lab (dest,tit)
+                     referenceMap = insertReference lab
+                       LinkInfo{ linkDestination = dest, linkTitle = tit }
                        (referenceMap st) }) linkdefs
                  let isRefPos = case toks' of
                                   (t:_) -> (< tokPos t)

@@ -220,13 +220,13 @@ imageSpec = BracketedSpec
 pLinkSuffix :: IsInline il
             => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
 pLinkSuffix rm key = do
-  (target, title) <- pLink rm key
+  LinkInfo target title <- pLink rm key
   return $ link target title
 
 pImageSuffix :: IsInline il
              => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
 pImageSuffix rm key = do
-  (target, title) <- pLink rm key
+  LinkInfo target title <- pLink rm key
   return $ image target title
 
 ---
@@ -518,7 +518,7 @@ processEmphasis xs =
          evalState processEmphasis'
             DState{ leftCursor = startcursor
                   , rightCursor = startcursor
-                  , refmap = mempty
+                  , refmap = emptyReferenceMap
                   , stackBottoms = mempty
                   , absoluteBottom = chunkPos z }
          where
@@ -815,12 +815,11 @@ fixSingleQuote
   Cursor (Just (Chunk d{ delimCanOpen = False } pos toks)) xs ys
 fixSingleQuote cursor = cursor
 
-pLink :: ReferenceMap -> Text -> Parsec [Tok] s (Text, Text)
+pLink :: ReferenceMap -> Text -> Parsec [Tok] s LinkInfo
 pLink rm key = do
-  (target, title) <- pInlineLink <|> pReferenceLink rm key
-  return (target, title)
+  pInlineLink <|> pReferenceLink rm key
 
-pInlineLink :: Parsec [Tok] s (Text, Text)
+pInlineLink :: Parsec [Tok] s LinkInfo
 pInlineLink = try $ do
   _ <- symbol '('
   optional whitespace
@@ -829,7 +828,7 @@ pInlineLink = try $ do
   title <- option "" $
              unEntity <$> (pLinkTitle <* optional whitespace)
   _ <- symbol ')'
-  return (target, title)
+  return $ LinkInfo { linkDestination = target, linkTitle = title }
 
 pLinkDestination :: Parsec [Tok] s [Tok]
 pLinkDestination = pAngleDest <|> pNormalDest
@@ -881,7 +880,7 @@ pLinkLabel = try $ do
   guard $ T.length lab <= 999
   return lab
 
-pReferenceLink :: ReferenceMap -> Text -> Parsec [Tok] s (Text, Text)
+pReferenceLink :: ReferenceMap -> Text -> Parsec [Tok] s LinkInfo
 pReferenceLink rm key = do
   lab <- option key pLinkLabel
   let key' = if T.null lab

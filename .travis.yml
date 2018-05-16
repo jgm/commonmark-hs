@@ -73,7 +73,7 @@ install:
     cabal)
       cabal update && \
       pushd commonmark && \
-      cabal install --only-dependencies --disable-optimization -ffast --enable-tests --enable-benchmarks && \
+      cabal install --force-reinstalls --only-dependencies --disable-optimization -ffast --enable-tests --enable-benchmarks && \
       popd
       ;;
   esac
@@ -90,7 +90,7 @@ script:
       pushd commonmark && \
       cabal sdist --output-directory=sourcedist && \
       pushd sourcedist && \
-      cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS" && \
+      cabal install --force-reinstalls --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS" && \
       popd && popd && pushd commonmark-lucid && \
       cabal sdist --output-directory=sourcedist && \
       pushd sourcedist && \

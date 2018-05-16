@@ -18,3 +18,31 @@ so we can initialize it.
 class HasReferenceMap a where
   getReferenceMap :: a -> ReferenceMap
   setReferenceMap :: a -> ReferenceMap -> a
+
+Ideally we'd have a single References parameter.
+And we could do something like
+
+     lookupRef "note1" refs :: Maybe RawNote
+
+and it would use the appropriate map, if defined.
+This could be done by making
+
+    type References = Map Text [Dynamic]
+
+And then
+
+    lookupRef "foo" refs :: Maybe RawNote
+
+could lookup "foo" and try to convert one of the values to
+a RawNote.
+
+This would avoid typeclasses and make the parameter
+easy to initialize.  Having a list [Dynamic] would
+allow you to have, e.g., a footnote, a reference link,
+and an example list item with the same name.
+
+Or, we could just insist on unique names, and have
+a single value.  foo = reference, ^foo = footnote,
+@foo = example list item.  This would be more
+effficient.
+

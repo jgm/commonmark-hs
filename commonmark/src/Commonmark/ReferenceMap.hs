@@ -11,7 +11,6 @@ import qualified Data.Text as T
 import qualified Data.Map as M
 import Data.Dynamic
 import Data.Typeable (Typeable)
-import Control.Monad (msum)
 
 -- | Lookup table for link references.
 newtype ReferenceMap = ReferenceMap (M.Map Text [Dynamic])

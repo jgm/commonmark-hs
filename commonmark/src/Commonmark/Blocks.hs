@@ -70,6 +70,7 @@ mkBlockParser specs ilParser (t:ts) =
           BPState{ referenceMap = emptyReferenceMap
                  , inlineParser = ilParser
                  , nodeStack    = [Node (defBlockData docSpec) []]
+                 , endNodes     = []
                  , blockMatched = False
                  , maybeLazy    = False
                  , maybeBlank   = True
@@ -81,7 +82,10 @@ processLines :: (Monad m, IsBlock il bl)
 processLines specs = do
   whileM_ (not . null <$> getInput) (processLine specs)
   tree <- (nodeStack <$> getState) >>= collapseNodeStack
-  blockConstructor (blockSpec (rootLabel tree)) tree
+  -- add end nodes
+  endnodes <- endNodes <$> getState
+  let tree' = tree{ subForest = endnodes ++ subForest tree }
+  blockConstructor (blockSpec (rootLabel tree)) tree'
 
 processLine :: (Monad m, IsBlock il bl)
             => [BlockSpec m il bl] -> BlockParser m il bl ()
@@ -251,6 +255,7 @@ data BPState m il bl = BPState
      { referenceMap :: ReferenceMap
      , inlineParser :: ReferenceMap -> [Tok] -> m (Either ParseError il)
      , nodeStack    :: [BlockNode m il bl]   -- reverse order, head is tip
+     , endNodes     :: [BlockNode m il bl]   -- reverse order
      , blockMatched :: Bool
      , maybeLazy    :: Bool
      , maybeBlank   :: Bool

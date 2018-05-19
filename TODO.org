@@ -2,6 +2,7 @@
 Document BlockSpec
 BracketedSpec
 FormattingSpec
+* TODO Cleanup names in records
 * TODO Change fields in FormattingSpec to follow naming pattern of BracketedSpec
 * TODO Don't export Chunk and parseChunks
 * DONE Think about how you'd add footnotes

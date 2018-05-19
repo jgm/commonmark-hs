@@ -67,7 +67,7 @@ mkInlineParser :: (Monad m, IsInline a)
                -> m (Either ParseError a)
 mkInlineParser bracketedSpecs formattingSpecs ilParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
-  res <- parseChunks bracketedSpecs formattingSpecs ilParsers
+  res <- parseChunks bracketedSpecs formattingSpecs ilParsers rm
          -- TODO cleanup whitespace handling
          (dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks)
   return $
@@ -107,10 +107,11 @@ parseChunks :: (Monad m, IsInline a)
             => [BracketedSpec a]
             -> [FormattingSpec a]
             -> [InlineParser m a]
+            -> ReferenceMap
             -> [Tok]
             -> m (Either ParseError [Chunk a])
-parseChunks _ _ _ []             = return (Right [])
-parseChunks bspecs specs ilParsers (t:ts) =
+parseChunks _ _ _ _ []             = return (Right [])
+parseChunks bspecs specs ilParsers rm (t:ts) =
   runParserT (setPosition (tokPos t) >> many (pChunk specmap ilParsers) <* eof)
           IPState{ afterPunct = initialPos "",
                    afterSpace = tokPos t,
@@ -118,7 +119,8 @@ parseChunks bspecs specs ilParsers (t:ts) =
                    userState = undefined,
                    formattingDelimChars = Set.fromList $
                      '[' : ']' : suffixchars ++ prefixchars
-                                  ++ M.keys specmap }
+                                  ++ M.keys specmap,
+                   ipReferenceMap = rm }
           "source" (t:ts)
   where specmap = mkFormattingSpecMap specs
         prefixchars = mapMaybe bracketedPrefix bspecs
@@ -147,6 +149,7 @@ data IPState = IPState
                                -- backtick spans so we don't scan in vain
      , userState            :: Dynamic
      , formattingDelimChars :: Set.Set Char
+     , ipReferenceMap       :: ReferenceMap
      } deriving Show
 
 type InlineParser m = ParsecT [Tok] IPState m

@@ -18,6 +18,7 @@ import Data.Maybe (fromMaybe)
 import Data.Dynamic
 import Data.Tree
 import Text.Parsec
+import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Map as M
 import Data.Semigroup (Semigroup(..))
@@ -25,8 +26,6 @@ import Data.Text.Lazy.Builder (Builder)
 
 {-
 TODO:
-- create a way to keep a running counter
-- on finalize, add the nodes to refmap
 - parser for inline fn refs (this will use refmap)
   (inline parser can look this up and then just run
    blockConstructor on the contained nodes, or add
@@ -55,11 +54,8 @@ footnoteBlockSpec = BlockSpec
      , blockStart          = try $ do
              nonindentSpaces
              pos <- getPosition
-             lab <- pLinkLabel
+             lab' <- pFootnoteLabel
              _ <- symbol ':'
-             lab' <- case T.uncons lab of
-                          Just ('^', t') -> return t'
-                          _ -> mzero
              counters' <- counters <$> getState
              let num = fromMaybe (1 :: Int) $
                        M.lookup "footnote" counters' >>= fromDynamic
@@ -91,11 +87,20 @@ footnoteBlockSpec = BlockSpec
          defaultFinalizer child parent
      }
 
+pFootnoteLabel :: Monad m => ParsecT [Tok] u m Text
+pFootnoteLabel = try $ do
+  lab <- pLinkLabel
+  case T.uncons lab of
+        Just ('^', t') -> return t'
+        _ -> mzero
+
 pFootnoteRef :: (Monad m, HasFootnoteRef a) => InlineParser m a
-pFootnoteRef = fail "undefined"
+pFootnoteRef = do
+  lab <- pFootnoteLabel
+  return $ footnoteRef lab
 
 class HasFootnote a where
-  footnote :: Int -> T.Text -> a -> a
+  footnote :: Int -> Text -> a -> a
 
 instance HasFootnote Builder where
   -- footnote _ = mempty
@@ -109,11 +114,11 @@ instance (HasFootnote b, Monoid b)
   footnote num lab' x = (footnote num lab' <$> x) <* addName "footnote"
 
 class HasFootnoteRef a where
-  footnoteRef :: a -> a
+  footnoteRef :: Text -> a
 
 instance HasFootnoteRef Builder where
-  footnoteRef x = "<sup>" <> x <> "</sup>"
+  footnoteRef x = "<sup>" <> escapeHtml x <> "</sup>"
 
 instance (HasFootnoteRef i, Monoid i)
         => HasFootnoteRef (WithSourceMap i) where
-  footnoteRef x = (footnoteRef <$> x) <* addName "footnoteRef"
+  footnoteRef x = (pure (footnoteRef x)) <* addName "footnoteRef"

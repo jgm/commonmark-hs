@@ -5,6 +5,7 @@ import Criterion.Main
 import Data.Text (Text)
 import Data.Functor.Identity  -- base >= 4.8
 import Commonmark.Parser
+import Commonmark.ReferenceMap (emptyReferenceMap)
 import Commonmark.Extensions.PipeTable
 import Commonmark.Extensions.Smart
 import Commonmark.Extensions.Autolink
@@ -103,7 +104,7 @@ benchChunks :: (String, Text) -> Benchmark
 benchChunks (name, contents) =
   bench name $ nfIO $ do
     res <- parseChunks defaultBracketedSpecs defaultFormattingSpecs
-             defaultInlineParsers (tokenize name contents)
+             defaultInlineParsers emptyReferenceMap (tokenize name contents)
     case res of
          Left e -> error (show e)
          Right (cs :: [Chunk Builder]) -> return $ length cs

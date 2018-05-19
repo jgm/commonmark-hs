@@ -871,7 +871,7 @@ inbetween op cl =
   try $ between (symbol op) (symbol cl)
      (many (pEscaped <|> noneOfToks [Symbol cl]))
 
-pLinkLabel :: Parsec [Tok] s Text
+pLinkLabel :: Monad m => ParsecT [Tok] s m Text
 pLinkLabel = try $ do
   lab <- untokenize
       <$> try (between (symbol '[') (symbol ']')

@@ -53,6 +53,7 @@ import           Data.Char                 (isAsciiUpper, isDigit, isSpace)
 import           Data.Dynamic
 import           Data.List                 (findIndex, sort, partition)
 import           Data.Text                 (Text)
+import qualified Data.Map                  as M
 import qualified Data.Text                 as T
 import qualified Data.Text.Read            as TR
 import           Data.Tree
@@ -74,6 +75,7 @@ mkBlockParser specs ilParser (t:ts) =
                  , blockMatched = False
                  , maybeLazy    = False
                  , maybeBlank   = True
+                 , counters     = M.empty
                  }
           "source" (t:ts)
 
@@ -259,6 +261,7 @@ data BPState m il bl = BPState
      , blockMatched :: Bool
      , maybeLazy    :: Bool
      , maybeBlank   :: Bool
+     , counters     :: M.Map Text Dynamic
      }
 
 type BlockParser m il bl = ParsecT [Tok] (BPState m il bl) m

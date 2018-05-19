@@ -4,6 +4,7 @@
 module Commonmark.Extensions.Footnote
   ( footnoteSpec )
 where
+import Commonmark.Tokens
 import Commonmark.Types
 import Commonmark.Syntax
 import Commonmark.Blocks
@@ -46,7 +47,8 @@ footnoteBlockSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = \n -> try $ do
-             _ <- gobbleSpaces 4
+             () <$ (gobbleSpaces 4)
+               <|> (skipWhile (hasType Spaces) >> () <$ lookAhead lineEnd)
              pos <- getPosition
              return (pos, n)
      , blockConstructor    = \node ->
@@ -66,7 +68,7 @@ class HasFootnote a where
 
 instance HasFootnote Builder where
   -- footnote _ = mempty
-  footnote x = "<footnote>" <> x <> "</footnote>"
+  footnote x = "<footnote>\n" <> x <> "</footnote>\n"
 
 instance (HasFootnote b, Monoid b)
         => HasFootnote (WithSourceMap b) where

@@ -9,6 +9,7 @@ module Commonmark
     , module Commonmark.Extensions.PipeTable
     , module Commonmark.Extensions.Math
     , module Commonmark.Extensions.Autolink
+    , module Commonmark.Extensions.Footnote
     ) where
 
 import           Commonmark.Tokens
@@ -21,4 +22,5 @@ import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.PipeTable
 import           Commonmark.Extensions.Math
 import           Commonmark.Extensions.Autolink
+import           Commonmark.Extensions.Footnote
 

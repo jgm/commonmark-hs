@@ -75,6 +75,7 @@ library
       Commonmark.Extensions.PipeTable
       Commonmark.Extensions.Math
       Commonmark.Extensions.Autolink
+      Commonmark.Extensions.Footnote
   other-modules:
       Commonmark.Tag
       Commonmark.Html

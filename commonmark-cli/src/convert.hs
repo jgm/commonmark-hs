@@ -68,6 +68,7 @@ main = do
       extFromName "smart" = return smartPunctuationSpec
       extFromName "math" = return mathSpec
       extFromName "autolink" = return autolinkSpec
+      extFromName "footnote" = return footnoteSpec
       extFromName extname = do
         hPutStrLn stderr $ "Unknown extension " ++ extname
         exitWith (ExitFailure 1)

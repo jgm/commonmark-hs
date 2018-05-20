@@ -27,10 +27,13 @@ import Data.Text.Lazy.Builder (Builder)
 
 {-
 TODO:
-- parser for inline fn refs (this will use refmap)
-  (inline parser can look this up and then just run
-   blockConstructor on the contained nodes, or add
-   a number, depending on format)
+- put footnotes at the end, in endNodes
+- but note, we need something that will work for BOTH
+  formats like HTML, where notes go at end, and formats
+  like LaTex, where they are inline
+- currently we cn suppress inline notes in HTML by
+  having footnoteRef emit just the number; but how
+  do we suppress or generate end notes?
 -}
 
 data FootnoteDef il m =
@@ -91,9 +94,11 @@ footnoteBlockSpec = BlockSpec
                  st{ referenceMap = refmap }
                  "source" []
          updateState $ \s -> s{
-           referenceMap = insertReference lab' (FootnoteDef num mkNoteContents)
-                              (referenceMap s) }
-         defaultFinalizer child parent
+             referenceMap = insertReference lab'
+                              (FootnoteDef num mkNoteContents)
+                              (referenceMap s)
+           , endNodes = child : endNodes s }
+         return parent
      }
 
 pFootnoteLabel :: Monad m => ParsecT [Tok] u m Text

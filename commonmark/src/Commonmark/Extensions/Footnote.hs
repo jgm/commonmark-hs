@@ -13,7 +13,8 @@ import Commonmark.Inlines
 import Commonmark.SourceMap
 import Commonmark.Util
 import Commonmark.ReferenceMap
-import Control.Monad (mzero)
+import Control.Monad.Trans.Class (lift)
+import Control.Monad (mzero, liftM)
 import Data.Maybe (fromMaybe)
 import Data.Dynamic
 import Data.Tree
@@ -32,8 +33,9 @@ TODO:
    a number, depending on format)
 -}
 
-data FootnoteDef m il bl =
-  FootnoteDef Int [BlockNode m il bl]
+data FootnoteDef il m =
+  FootnoteDef Int (ReferenceMap -> m (Either ParseError il))
+  deriving Typeable
 
 footnoteSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
                  Typeable il, Typeable bl,
@@ -47,7 +49,7 @@ footnoteSpec = SyntaxSpec
   }
 
 footnoteBlockSpec :: (Monad m, Typeable m, Typeable il, Typeable bl,
-                      IsBlock il bl, HasFootnote bl)
+                      IsBlock il bl, IsInline il, HasFootnote bl)
                   => BlockSpec m il bl
 footnoteBlockSpec = BlockSpec
      { blockType           = "Footnote"
@@ -79,10 +81,17 @@ footnoteBlockSpec = BlockSpec
           (addRange node . footnote num lab' . mconcat) <$> mapM (\n ->
               blockConstructor (blockSpec (rootLabel n)) n)
             (reverse (subForest node))
-     , blockFinalize       = \child@(Node bdata children) parent -> do
-         let (num, lab') = fromDyn (blockData bdata) (1, mempty)
+     , blockFinalize       = \child@(Node root children) parent -> do
+         let (num, lab') = fromDyn (blockData root) (1, mempty)
+         st <- getState
+         let mkNoteContents refmap =
+               runParserT
+                 (mconcat <$>
+                    mapM (blockConstructor (blockSpec root)) children)
+                 st{ referenceMap = refmap }
+                 "source" []
          updateState $ \s -> s{
-           referenceMap = insertReference lab' (FootnoteDef num children)
+           referenceMap = insertReference lab' (FootnoteDef num mkNoteContents)
                               (referenceMap s) }
          defaultFinalizer child parent
      }
@@ -94,10 +103,19 @@ pFootnoteLabel = try $ do
         Just ('^', t') -> return t'
         _ -> mzero
 
-pFootnoteRef :: (Monad m, HasFootnoteRef a) => InlineParser m a
-pFootnoteRef = do
+pFootnoteRef :: (Monad m, HasFootnoteRef a, Typeable m, Typeable a, IsInline a)
+             => InlineParser m a
+pFootnoteRef = try $ do
   lab <- pFootnoteLabel
-  return $ footnoteRef lab
+  rm <- ipReferenceMap <$> getState
+  case lookupReference lab rm of
+        Just (FootnoteDef num mkContents) -> do
+          res <- lift $ mkContents rm
+          case res of
+               Left err -> mkPT (\_ -> return (Empty (return (Error err))))
+               Right contents -> return $
+                 footnoteRef (T.pack (show num)) contents
+        Nothing -> mzero
 
 class HasFootnote a where
   footnote :: Int -> Text -> a -> a
@@ -114,11 +132,11 @@ instance (HasFootnote b, Monoid b)
   footnote num lab' x = (footnote num lab' <$> x) <* addName "footnote"
 
 class HasFootnoteRef a where
-  footnoteRef :: Text -> a
+  footnoteRef :: Text -> a -> a
 
 instance HasFootnoteRef Builder where
-  footnoteRef x = "<sup>" <> escapeHtml x <> "</sup>"
+  footnoteRef x _ = "<sup>" <> escapeHtml x <> "</sup>"
 
 instance (HasFootnoteRef i, Monoid i)
         => HasFootnoteRef (WithSourceMap i) where
-  footnoteRef x = (pure (footnoteRef x)) <* addName "footnoteRef"
+  footnoteRef x y = (footnoteRef x <$> y) <* addName "footnoteRef"

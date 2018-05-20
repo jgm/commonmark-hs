@@ -11,6 +11,7 @@ import qualified Data.Text as T
 import qualified Data.Map as M
 import Data.Dynamic
 import Data.Typeable (Typeable)
+import Debug.Trace
 
 -- | Lookup table for link references.
 newtype ReferenceMap = ReferenceMap (M.Map Text [Dynamic])
@@ -44,9 +45,9 @@ lookupReference label (ReferenceMap m) =
   getFirst $ M.lookup (T.toCaseFold $ normalizeSpaces label) m
   where getFirst Nothing       = Nothing
         getFirst (Just [])     = Nothing
-        getFirst (Just (x:xs)) = case fromDynamic x of
+        getFirst (Just (x:xs)) = case fromDynamic (traceShowId x) of
                                       Just v  -> Just v
-                                      Nothing -> getFirst (Just xs)
+                                      Nothing -> trace "moving on" $ getFirst (Just xs)
 
 normalizeSpaces :: Text -> Text
 normalizeSpaces = T.unwords . T.words

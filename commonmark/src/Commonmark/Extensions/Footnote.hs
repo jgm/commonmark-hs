@@ -1,11 +1,13 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Commonmark.Extensions.Footnote
   ( footnoteSpec
   , HasFootnote(..)
-  , HasFootnoteRef(..)
   )
 where
 import Commonmark.Tokens
@@ -21,6 +23,7 @@ import Control.Monad.Trans.Class (lift)
 import Control.Monad (mzero)
 import Data.List
 import Data.Maybe (fromMaybe, mapMaybe)
+import Data.Semigroup (Semigroup)
 #if !MIN_VERSION_base(4,11,0)
 import Data.Monoid
 #endif
@@ -32,21 +35,20 @@ import qualified Data.Text as T
 import qualified Data.Map as M
 import Data.Text.Lazy.Builder (Builder)
 
-data FootnoteDef il m =
-  FootnoteDef Int Text (ReferenceMap -> m (Either ParseError il))
+data FootnoteDef bl m =
+  FootnoteDef Int Text (ReferenceMap -> m (Either ParseError bl))
   deriving Typeable
 
-instance Eq (FootnoteDef il m) where
+instance Eq (FootnoteDef bl m) where
   FootnoteDef num1 lab1 _ == FootnoteDef num2 lab2 _
     = num1 == num2 && lab1 == lab2
 
-instance Ord (FootnoteDef il m) where
+instance Ord (FootnoteDef bl m) where
   (FootnoteDef num1 lab1 _) `compare` (FootnoteDef num2 lab2 _) =
     (num1, lab1) `compare` (num2, lab2)
 
 footnoteSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
-                 Typeable il, Typeable bl,
-                 HasFootnoteRef il, HasFootnote bl)
+                 Typeable il, Typeable bl, HasFootnote il bl)
              => SyntaxSpec m il bl
 footnoteSpec = SyntaxSpec
   { syntaxBlockSpecs = [footnoteBlockSpec]
@@ -57,7 +59,7 @@ footnoteSpec = SyntaxSpec
   }
 
 footnoteBlockSpec :: (Monad m, Typeable m, Typeable il, Typeable bl,
-                      IsBlock il bl, IsInline il, HasFootnote bl)
+                      IsBlock il bl, IsInline il, HasFootnote il bl)
                   => BlockSpec m il bl
 footnoteBlockSpec = BlockSpec
      { blockType           = "Footnote"
@@ -111,7 +113,8 @@ pFootnoteLabel = try $ do
         Just ('^', t') -> return t'
         _ -> mzero
 
-pFootnoteRef :: (Monad m, HasFootnoteRef a, Typeable m, Typeable a, IsInline a)
+pFootnoteRef :: (Monad m, Typeable m, Typeable a,
+                 Typeable b, IsInline a, IsBlock a b, HasFootnote a b)
              => InlineParser m a
 pFootnoteRef = try $ do
   lab <- pFootnoteLabel
@@ -125,8 +128,8 @@ pFootnoteRef = try $ do
                  footnoteRef (T.pack (show num)) lab contents
         Nothing -> mzero
 
-addFootnoteList :: (Monad m, Typeable m, Typeable bl, HasFootnote bl,
-                    IsBlock il bl, HasFootnote bl) => BlockParser m il bl bl
+addFootnoteList :: (Monad m, Typeable m, Typeable bl, HasFootnote il bl,
+                    IsBlock il bl) => BlockParser m il bl bl
 addFootnoteList = do
   rm <- referenceMap <$> getState
   let keys = M.keys . unReferenceMap $ rm
@@ -139,11 +142,12 @@ addFootnoteList = do
              Right contents -> return $ footnote num lab contents
   footnoteList <$> mapM renderNote notes
 
-class HasFootnote a where
-  footnote :: Int -> Text -> a -> a
-  footnoteList :: [a] -> a
+class IsBlock il bl => HasFootnote il bl | il -> bl where
+  footnote :: Int -> Text -> bl -> bl
+  footnoteList :: [bl] -> bl
+  footnoteRef :: Text -> Text -> bl -> il
 
-instance HasFootnote Builder where
+instance HasFootnote Builder Builder where
   -- footnote _ = mempty
   footnote num lab' x = "<div class=\"footnote\" id=\""
     <> escapeHtml ("fn-" <> lab')
@@ -160,16 +164,6 @@ instance HasFootnote Builder where
     <> "</div>\n</div>\n"
   footnoteList items = "<section class=\"footnotes\">\n" <>
     mconcat items <> "</section>\n"
-
-instance (HasFootnote b, Monoid b)
-        => HasFootnote (WithSourceMap b) where
-  footnote num lab' x = (footnote num lab' <$> x) <* addName "footnote"
-  footnoteList items = footnoteList items
-
-class HasFootnoteRef a where
-  footnoteRef :: Text -> Text -> a -> a
-
-instance HasFootnoteRef Builder where
   footnoteRef x lab _ = "<sup>"
     <> "<a id=\""
     <> escapeHtml ("fnref-" <> lab)
@@ -179,6 +173,8 @@ instance HasFootnoteRef Builder where
     <> (str ("[" <> x <> "]"))
     <> "</a></sup>"
 
-instance (HasFootnoteRef i, Monoid i)
-        => HasFootnoteRef (WithSourceMap i) where
+instance (HasFootnote il bl, Semigroup bl, Semigroup il)
+        => HasFootnote (WithSourceMap il) (WithSourceMap bl) where
+  footnote num lab' x = (footnote num lab' <$> x) <* addName "footnote"
+  footnoteList items = footnoteList items
   footnoteRef x y z = (footnoteRef x y <$> z) <* addName "footnoteRef"

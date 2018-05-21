@@ -1,9 +1,11 @@
 resolver: lts-10.10
 extra-deps:
 - criterion-1.4.0.0
+- pandoc-types-1.17.4.2
 ghc-options:
    "$locals": -fhide-source-paths
 packages:
 - commonmark
 - commonmark-cli
 - commonmark-lucid
+- commonmark-pandoc

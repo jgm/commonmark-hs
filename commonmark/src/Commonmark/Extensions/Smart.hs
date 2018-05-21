@@ -20,6 +20,7 @@ smartPunctuationSpec = SyntaxSpec
   , syntaxBracketedSpecs = []
   , syntaxFormattingSpecs = [singleQuotedSpec, doubleQuotedSpec]
   , syntaxInlineParsers = [pEllipses, pDash]
+  , syntaxFinalParsers  = []
   }
 
 singleQuotedSpec :: IsInline il => FormattingSpec il

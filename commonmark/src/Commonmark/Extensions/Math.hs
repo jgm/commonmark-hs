@@ -25,6 +25,7 @@ mathSpec = SyntaxSpec
   , syntaxBracketedSpecs = []
   , syntaxFormattingSpecs = []
   , syntaxInlineParsers = [parseMath]
+  , syntaxFinalParsers = []
   }
 
 class HasMath a where

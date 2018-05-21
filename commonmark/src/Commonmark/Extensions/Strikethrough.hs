@@ -21,6 +21,7 @@ strikethroughSpec = SyntaxSpec
       FormattingSpec '~' False Nothing (Just strikethrough) '~'
       ]
   , syntaxInlineParsers = []
+  , syntaxFinalParsers = []
   }
 
 class HasStrikethrough a where

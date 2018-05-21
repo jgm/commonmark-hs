@@ -25,6 +25,7 @@ autolinkSpec = SyntaxSpec
   , syntaxBracketedSpecs = []
   , syntaxFormattingSpecs = []
   , syntaxInlineParsers = [parseAutolink]
+  , syntaxFinalParsers = []
   }
 
 parseAutolink :: (Monad m, IsInline a) => InlineParser m a

@@ -24,13 +24,16 @@ data SyntaxSpec m il bl = SyntaxSpec
         -- ^ Defines formatted inline containers (strong, emph)
      , syntaxInlineParsers   :: [InlineParser m il]
         -- ^ Defines inline elements that don't contain inlines
+     , syntaxFinalParsers    :: [BlockParser m il bl bl]
+        -- ^ Run at the end of document, e.g. to collect footnotes
      }
 
 instance Semigroup (SyntaxSpec m il bl) where
-  SyntaxSpec bl1 br1 fo1 il1 <> SyntaxSpec bl2 br2 fo2 il2
+  SyntaxSpec bl1 br1 fo1 il1 fp1 <> SyntaxSpec bl2 br2 fo2 il2 fp2
     = SyntaxSpec (bl1 <> bl2) (br1 <> br2) (fo1 <> fo2) (il1 <> il2)
+                 (fp1 <> fp2)
 instance Monoid (SyntaxSpec m il bl) where
-  mempty = SyntaxSpec mempty mempty mempty mempty
+  mempty = SyntaxSpec mempty mempty mempty mempty mempty
   mappend = (<>)
 
 -- | Standard commonmark syntax.
@@ -41,4 +44,5 @@ defaultSyntaxSpec = SyntaxSpec
   , syntaxBracketedSpecs  = defaultBracketedSpecs
   , syntaxFormattingSpecs = defaultFormattingSpecs
   , syntaxInlineParsers   = defaultInlineParsers
+  , syntaxFinalParsers    = []
   }

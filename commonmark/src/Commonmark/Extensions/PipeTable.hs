@@ -145,6 +145,7 @@ pipeTableSpec = SyntaxSpec
   , syntaxBracketedSpecs = []
   , syntaxFormattingSpecs = []
   , syntaxInlineParsers = []
+  , syntaxFinalParsers = []
   }
 
 pipeTableBlockSpec :: (Monad m, IsBlock il bl, IsInline il,

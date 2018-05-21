@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Commonmark.ReferenceMap
-  ( ReferenceMap
+  ( ReferenceMap(..)
   , LinkInfo(..)
   , emptyReferenceMap
   , insertReference
@@ -11,10 +11,9 @@ import qualified Data.Text as T
 import qualified Data.Map as M
 import Data.Dynamic
 import Data.Typeable (Typeable)
-import Debug.Trace
 
 -- | Lookup table for link references.
-newtype ReferenceMap = ReferenceMap (M.Map Text [Dynamic])
+newtype ReferenceMap = ReferenceMap { unReferenceMap :: M.Map Text [Dynamic] }
   deriving (Show)
 
 data LinkInfo = LinkInfo{ linkDestination :: Text
@@ -45,9 +44,9 @@ lookupReference label (ReferenceMap m) =
   getFirst $ M.lookup (T.toCaseFold $ normalizeSpaces label) m
   where getFirst Nothing       = Nothing
         getFirst (Just [])     = Nothing
-        getFirst (Just (x:xs)) = case fromDynamic (traceShowId x) of
+        getFirst (Just (x:xs)) = case fromDynamic x of
                                       Just v  -> Just v
-                                      Nothing -> trace "moving on" $ getFirst (Just xs)
+                                      Nothing -> getFirst (Just xs)
 
 normalizeSpaces :: Text -> Text
 normalizeSpaces = T.unwords . T.words

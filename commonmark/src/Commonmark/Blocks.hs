@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -49,6 +50,7 @@ import           Commonmark.Types
 import           Control.Monad             (foldM, guard, mzero, void, unless,
                                             when)
 import           Control.Monad.Trans.Class (lift)
+import           Data.Monoid
 import           Data.Char                 (isAsciiUpper, isDigit, isSpace)
 import           Data.Dynamic
 import           Data.List                 (findIndex, sort, partition)
@@ -61,17 +63,17 @@ import           Text.Parsec
 
 mkBlockParser :: (Monad m, IsBlock il bl)
              => [BlockSpec m il bl] -- ^ Defines block syntax
+             -> [BlockParser m il bl bl] -- ^ Parsers to run at end
              -> (ReferenceMap -> [Tok]
                   -> m (Either ParseError il)) -- ^ Inline parser
              -> [Tok] -- ^ Tokenized commonmark input
              -> m (Either ParseError bl)  -- ^ Result or error
-mkBlockParser _ _ [] = return $ Right mempty
-mkBlockParser specs ilParser (t:ts) =
-  runParserT (setPosition (tokPos t) >> processLines specs)
+mkBlockParser _ _ _ [] = return $ Right mempty
+mkBlockParser specs finalParsers ilParser (t:ts) =
+  runParserT (setPosition (tokPos t) >> processLines specs finalParsers)
           BPState{ referenceMap = emptyReferenceMap
                  , inlineParser = ilParser
                  , nodeStack    = [Node (defBlockData docSpec) []]
-                 , endNodes     = []
                  , blockMatched = False
                  , maybeLazy    = False
                  , maybeBlank   = True
@@ -80,14 +82,15 @@ mkBlockParser specs ilParser (t:ts) =
           "source" (t:ts)
 
 processLines :: (Monad m, IsBlock il bl)
-             => [BlockSpec m il bl] -> BlockParser m il bl bl
-processLines specs = do
+             => [BlockSpec m il bl]
+             -> [BlockParser m il bl bl] -- ^ Parsers to run at end
+             -> BlockParser m il bl bl
+processLines specs finalParsers = do
   whileM_ (not . null <$> getInput) (processLine specs)
   tree <- (nodeStack <$> getState) >>= collapseNodeStack
-  -- add end nodes
-  endnodes <- endNodes <$> getState
-  let tree' = tree{ subForest = endnodes ++ subForest tree }
-  blockConstructor (blockSpec (rootLabel tree)) tree'
+  body <- blockConstructor (blockSpec (rootLabel tree)) tree
+  endContent <- mconcat <$> sequence finalParsers
+  return $ body <> endContent
 
 processLine :: (Monad m, IsBlock il bl)
             => [BlockSpec m il bl] -> BlockParser m il bl ()
@@ -257,7 +260,6 @@ data BPState m il bl = BPState
      { referenceMap :: ReferenceMap
      , inlineParser :: ReferenceMap -> [Tok] -> m (Either ParseError il)
      , nodeStack    :: [BlockNode m il bl]   -- reverse order, head is tip
-     , endNodes     :: [BlockNode m il bl]   -- reverse order
      , blockMatched :: Bool
      , maybeLazy    :: Bool
      , maybeBlank   :: Bool

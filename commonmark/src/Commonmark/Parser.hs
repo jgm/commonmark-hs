@@ -46,6 +46,7 @@ parseCommonmarkWith :: (Monad m, IsBlock il bl, IsInline il)
                     -> m (Either ParseError bl)  -- ^ Result or error
 parseCommonmarkWith syntax =
     mkBlockParser (syntaxBlockSpecs syntax)
+      (syntaxFinalParsers syntax)
       (mkInlineParser (syntaxBracketedSpecs syntax)
                       (syntaxFormattingSpecs syntax)
                       (syntaxInlineParsers syntax))

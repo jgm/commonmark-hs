@@ -15,30 +15,26 @@ import Commonmark.Util
 import Commonmark.ReferenceMap
 import Control.Monad.Trans.Class (lift)
 import Control.Monad (mzero)
-import Data.Maybe (fromMaybe)
+import Data.List
+import Data.Maybe (fromMaybe, mapMaybe)
+import Data.Monoid
 import Data.Dynamic
 import Data.Tree
 import Text.Parsec
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Map as M
-import Data.Semigroup (Semigroup(..))
 import Data.Text.Lazy.Builder (Builder)
-
-{-
-TODO:
-- put footnotes at the end, in endNodes
-- but note, we need something that will work for BOTH
-  formats like HTML, where notes go at end, and formats
-  like LaTex, where they are inline
-- currently we cn suppress inline notes in HTML by
-  having footnoteRef emit just the number; but how
-  do we suppress or generate end notes?
--}
 
 data FootnoteDef il m =
   FootnoteDef Int (ReferenceMap -> m (Either ParseError il))
   deriving Typeable
+
+instance Eq (FootnoteDef il m) where
+  FootnoteDef num1 _ == FootnoteDef num2 _ = num1 == num2
+
+instance Ord (FootnoteDef il m) where
+  (FootnoteDef num1 _) `compare` (FootnoteDef num2 _) = num1 `compare` num2
 
 footnoteSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
                  Typeable il, Typeable bl,
@@ -49,6 +45,7 @@ footnoteSpec = SyntaxSpec
   , syntaxBracketedSpecs = []
   , syntaxFormattingSpecs = []
   , syntaxInlineParsers = [pFootnoteRef]
+  , syntaxFinalParsers = [addFootnoteList]
   }
 
 footnoteBlockSpec :: (Monad m, Typeable m, Typeable il, Typeable bl,
@@ -79,25 +76,23 @@ footnoteBlockSpec = BlockSpec
                <|> (skipWhile (hasType Spaces) >> () <$ lookAhead lineEnd)
              pos <- getPosition
              return (pos, n)
-     , blockConstructor    = \node -> do
-          let (num, lab') = fromDyn (blockData (rootLabel node)) (1, mempty)
-          (addRange node . footnote num lab' . mconcat) <$> mapM (\n ->
+     , blockConstructor    = \node ->
+          (addRange node . mconcat) <$> mapM (\n ->
               blockConstructor (blockSpec (rootLabel n)) n)
             (reverse (subForest node))
-     , blockFinalize       = \child@(Node root children) parent -> do
+     , blockFinalize       = \(Node root children) parent -> do
          let (num, lab') = fromDyn (blockData root) (1, mempty)
          st <- getState
          let mkNoteContents refmap =
                runParserT
-                 (mconcat <$>
-                    mapM (blockConstructor (blockSpec root)) children)
+                 (blockConstructor (blockSpec root) (Node root children))
                  st{ referenceMap = refmap }
                  "source" []
          updateState $ \s -> s{
              referenceMap = insertReference lab'
                               (FootnoteDef num mkNoteContents)
                               (referenceMap s)
-           , endNodes = child : endNodes s }
+             }
          return parent
      }
 
@@ -121,6 +116,20 @@ pFootnoteRef = try $ do
                Right contents -> return $
                  footnoteRef (T.pack (show num)) contents
         Nothing -> mzero
+
+addFootnoteList :: (Monad m, Typeable m, Typeable bl, HasFootnote bl,
+                    IsBlock il bl, HasFootnote bl) => BlockParser m il bl bl
+addFootnoteList = do
+  rm <- referenceMap <$> getState
+  let keys = M.keys . unReferenceMap $ rm
+  let getNote key = lookupReference key rm
+  let notes = sort $ mapMaybe getNote keys
+  let renderNote (FootnoteDef num mkContents) = do
+        res <- lift $ mkContents rm
+        case res of
+             Left err -> mkPT (\_ -> return (Empty (return (Error err))))
+             Right contents -> return $ footnote num mempty contents
+  footnoteList <$> mapM renderNote notes
 
 class HasFootnote a where
   footnote :: Int -> Text -> a -> a

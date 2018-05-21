@@ -27,14 +27,16 @@ import qualified Data.Map as M
 import Data.Text.Lazy.Builder (Builder)
 
 data FootnoteDef il m =
-  FootnoteDef Int (ReferenceMap -> m (Either ParseError il))
+  FootnoteDef Int Text (ReferenceMap -> m (Either ParseError il))
   deriving Typeable
 
 instance Eq (FootnoteDef il m) where
-  FootnoteDef num1 _ == FootnoteDef num2 _ = num1 == num2
+  FootnoteDef num1 lab1 _ == FootnoteDef num2 lab2 _
+    = num1 == num2 && lab1 == lab2
 
 instance Ord (FootnoteDef il m) where
-  (FootnoteDef num1 _) `compare` (FootnoteDef num2 _) = num1 `compare` num2
+  (FootnoteDef num1 lab1 _) `compare` (FootnoteDef num2 lab2 _) =
+    (num1, lab1) `compare` (num2, lab2)
 
 footnoteSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
                  Typeable il, Typeable bl,
@@ -90,7 +92,7 @@ footnoteBlockSpec = BlockSpec
                  "source" []
          updateState $ \s -> s{
              referenceMap = insertReference lab'
-                              (FootnoteDef num mkNoteContents)
+                              (FootnoteDef num lab' mkNoteContents)
                               (referenceMap s)
              }
          return parent
@@ -109,7 +111,7 @@ pFootnoteRef = try $ do
   lab <- pFootnoteLabel
   rm <- ipReferenceMap <$> getState
   case lookupReference lab rm of
-        Just (FootnoteDef num mkContents) -> do
+        Just (FootnoteDef num _ mkContents) -> do
           res <- lift $ mkContents rm
           case res of
                Left err -> mkPT (\_ -> return (Empty (return (Error err))))
@@ -124,11 +126,11 @@ addFootnoteList = do
   let keys = M.keys . unReferenceMap $ rm
   let getNote key = lookupReference key rm
   let notes = sort $ mapMaybe getNote keys
-  let renderNote (FootnoteDef num mkContents) = do
+  let renderNote (FootnoteDef num lab mkContents) = do
         res <- lift $ mkContents rm
         case res of
              Left err -> mkPT (\_ -> return (Empty (return (Error err))))
-             Right contents -> return $ footnote num mempty contents
+             Right contents -> return $ footnote num lab contents
   footnoteList <$> mapM renderNote notes
 
 class HasFootnote a where

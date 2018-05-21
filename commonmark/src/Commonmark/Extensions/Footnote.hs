@@ -116,7 +116,7 @@ pFootnoteRef = try $ do
           case res of
                Left err -> mkPT (\_ -> return (Empty (return (Error err))))
                Right contents -> return $
-                 footnoteRef (T.pack (show num)) contents
+                 footnoteRef (T.pack (show num)) lab contents
         Nothing -> mzero
 
 addFootnoteList :: (Monad m, Typeable m, Typeable bl, HasFootnote bl,
@@ -139,11 +139,20 @@ class HasFootnote a where
 
 instance HasFootnote Builder where
   -- footnote _ = mempty
-  footnote num lab' x = "<footnote num=\""
-    <> escapeHtml (T.pack (show num))
-    <> "\" label=\"" <> escapeHtml lab' <> "\">\n"
-    <> x <> "</footnote>\n"
-  footnoteList items = "<section class=\"footnotes\">" <>
+  footnote num lab' x = "<div class=\"footnote\" id=\""
+    <> escapeHtml ("fn-" <> lab')
+    <> "\">\n"
+    <> "<div class=\"footnote-number\">\n"
+    <> "<a href=\""
+    <> escapeHtml ("#fnref-" <> lab')
+    <> "\">"
+    <> escapeHtml ("[" <> T.pack (show num) <> "]")
+    <> "</a>\n"
+    <> "</div>\n"
+    <> "<div class=\"footnote-contents\">\n"
+    <> x
+    <> "</div>\n</div>\n"
+  footnoteList items = "<section class=\"footnotes\">\n" <>
     mconcat items <> "</section>\n"
 
 instance (HasFootnote b, Monoid b)
@@ -152,11 +161,18 @@ instance (HasFootnote b, Monoid b)
   footnoteList items = footnoteList items
 
 class HasFootnoteRef a where
-  footnoteRef :: Text -> a -> a
+  footnoteRef :: Text -> Text -> a -> a
 
 instance HasFootnoteRef Builder where
-  footnoteRef x _ = "<sup>" <> escapeHtml x <> "</sup>"
+  footnoteRef x lab _ = "<sup>"
+    <> "<a id=\""
+    <> escapeHtml ("fnref-" <> lab)
+    <> "\" href=\""
+    <> escapeHtml ("#fn-" <> lab)
+    <> "\">"
+    <> (str ("[" <> x <> "]"))
+    <> "</a></sup>"
 
 instance (HasFootnoteRef i, Monoid i)
         => HasFootnoteRef (WithSourceMap i) where
-  footnoteRef x y = (footnoteRef x <$> y) <* addName "footnoteRef"
+  footnoteRef x y z = (footnoteRef x y <$> z) <* addName "footnoteRef"

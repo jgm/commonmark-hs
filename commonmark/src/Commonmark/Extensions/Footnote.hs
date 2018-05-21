@@ -3,7 +3,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Commonmark.Extensions.Footnote
-  ( footnoteSpec )
+  ( footnoteSpec
+  , HasFootnote(..)
+  , HasFootnoteRef(..)
+  )
 where
 import Commonmark.Tokens
 import Commonmark.Types

@@ -124,6 +124,7 @@ pFootnoteRef = try $ do
 
 class HasFootnote a where
   footnote :: Int -> Text -> a -> a
+  footnoteList :: [a] -> a
 
 instance HasFootnote Builder where
   -- footnote _ = mempty
@@ -131,10 +132,13 @@ instance HasFootnote Builder where
     <> escapeHtml (T.pack (show num))
     <> "\" label=\"" <> escapeHtml lab' <> "\">\n"
     <> x <> "</footnote>\n"
+  footnoteList items = "<section class=\"footnotes\">" <>
+    mconcat items <> "</section>\n"
 
 instance (HasFootnote b, Monoid b)
         => HasFootnote (WithSourceMap b) where
   footnote num lab' x = (footnote num lab' <$> x) <* addName "footnote"
+  footnoteList items = footnoteList items
 
 class HasFootnoteRef a where
   footnoteRef :: Text -> a -> a

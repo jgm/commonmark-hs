@@ -1,3 +1,4 @@
+* TODO Move Cm type tricks from -pandoc into main module
 * TODO Finish Haddocks
 Document BlockSpec
 BracketedSpec

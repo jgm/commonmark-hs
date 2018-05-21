@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE ExtendedDefaultRules       #-}
+{-# LANGUAGE ExtendedDefaultRules       #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE FunctionalDependencies     #-}
@@ -7,31 +8,96 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module Commonmark.Pandoc
-  ( CmPandoc(..)
-  , CmRangedPandoc(..)
+  ( Cm(..)
   )
 
 where
 
-import Data.Semigroup       (Semigroup, (<>))
+import qualified Data.Text as T
+import qualified Data.Text.Read as TR
+import Data.Semigroup       (Semigroup)
 import Text.Pandoc.Definition
-import Commonmark.Types
+import qualified Text.Pandoc.Builder as B
+import Commonmark.Types as C
 import Commonmark.Extensions.Math
 import Commonmark.Extensions.PipeTable
 import Commonmark.Extensions.Strikethrough
 import Commonmark.Extensions.Footnote
+import Data.Char (isSpace)
 
-newtype CmPandoc = CmPandoc { unCmPandoc :: Pandoc }
+newtype Cm b a = Cm { unCm :: a }
   deriving (Show, Semigroup, Monoid)
 
+instance Functor (Cm b) where
+  fmap f (Cm x) = Cm (f x)
+
+instance Rangeable (Cm b B.Inlines) => IsInline (Cm b B.Inlines) where
+  lineBreak = Cm B.linebreak
+  softBreak = Cm B.softbreak
+  str t = Cm $ B.str (T.unpack t)
+  entity t
+    | illegalCodePoint t = Cm $ B.str "\xFFFD"
+    | otherwise = Cm $ B.str (T.unpack t)
+  escapedChar c = Cm $ B.str [c]
+  emph ils = B.emph <$> ils
+  strong ils = B.strong <$> ils
+  link target title ils = B.link (T.unpack target) (T.unpack title) <$> ils
+  image target title ils = B.image (T.unpack target) (T.unpack title) <$> ils
+  code t = Cm $ B.code (T.unpack t)
+  rawInline (C.Format f) t = Cm $ B.rawInline (T.unpack f) (T.unpack t)
+
+instance Rangeable (Cm () B.Inlines) where
+  ranged _r x = x
+
+instance Rangeable (Cm SourceRange B.Inlines) where
+  ranged r x = B.spanWith ("",[],[("data-pos",show r)]) <$> x
+
+instance (Rangeable (Cm b B.Inlines),
+          Rangeable (Cm b B.Blocks))
+      => IsBlock (Cm b B.Inlines) (Cm b B.Blocks) where
+  paragraph ils = Cm $ B.para $ unCm ils
+  plain ils = Cm $ B.plain $ unCm ils
+  thematicBreak = Cm B.horizontalRule
+  blockQuote bs = B.blockQuote <$> bs
+  codeBlock info t = Cm $ B.codeBlockWith attr (T.unpack t)
+    where attr = ("", [T.unpack lang | not (T.null lang)], [])
+          lang = T.takeWhile (not . isSpace) info
+  header level ils = Cm $ B.header level $ unCm ils
+  rawBlock (C.Format f) t = Cm $ B.rawBlock (T.unpack f) (T.unpack t)
+  referenceLinkDefinition _ _ = Cm mempty
+  list (C.BulletList _) lSpacing items = Cm $ B.bulletList items'
+    where items' = if lSpacing == TightList
+                      then map (B.fromList . map paraToPlain . B.toList. unCm)
+                           items
+                      else map unCm items
+          paraToPlain (Para xs) = Plain xs
+          paraToPlain x = x
+  list (C.OrderedList startnum _) lSpacing items =
+    Cm $ B.orderedListWith attr items'
+    where items' = if lSpacing == TightList
+                      then map (B.fromList . map paraToPlain . B.toList. unCm)
+                           items
+                      else map unCm items
+          paraToPlain (Para xs) = Plain xs
+          paraToPlain x = x
+          attr = (startnum, DefaultStyle, DefaultDelim)
+
+instance Rangeable (Cm () B.Blocks) where
+  ranged _r x = x
+
+instance Rangeable (Cm SourceRange B.Blocks) where
+  ranged r x = B.divWith ("",[],[("data-pos",show r)]) <$> x
+
+
+  {-
 newtype CmRangedPandoc = CmRangedPandoc { unCmRangedPandoc :: Pandoc }
   deriving (Show, Semigroup, Monoid)
 
-{-
 instance IsInline CmPandoc where
-  lineBreak = Html5 $ br_ [] <> "\n"
+  lineBerak = Html5 $ "<br>"
   softBreak = Html5 $ "\n"
   str t = Html5 $ toHtml t
   entity t
@@ -61,22 +127,6 @@ renderAlt = mconcat . map textOrAlt . parseTags . TL.toStrict . renderText
   where textOrAlt (TagText t)           = t
         textOrAlt tag@(TagOpen "img" _) = fromAttrib "alt" tag
         textOrAlt _                     = mempty
-
-illegalCodePoint :: Text -> Bool
-illegalCodePoint t =
-  "&#" `T.isPrefixOf` t &&
-  let t' = T.drop 2 $ T.filter (/=';') t
-      badvalue (n, r) = not (T.null r) ||
-                        n < 1 ||
-                        n > (0x10FFFF :: Integer)
-  in
-  case T.uncons t' of
-       Nothing -> True
-       Just (x, rest)
-         | x == 'x' || x == 'X'
-           -> either (const True) badvalue (TR.hexadecimal rest)
-         | otherwise
-           -> either (const True) badvalue (TR.decimal t')
 
 instance IsBlock Html5 Html5 where
   paragraph ils = Html5 $ p_ (unHtml5 ils) <> nl
@@ -226,3 +276,19 @@ instance HasStrikethrough Html5 where
 instance HasStrikethrough RangedHtml5 where
   strikethrough (RangedHtml5 ils) = RangedHtml5 $ del_ ils
 -}
+
+illegalCodePoint :: T.Text -> Bool
+illegalCodePoint t =
+  "&#" `T.isPrefixOf` t &&
+  let t' = T.drop 2 $ T.filter (/=';') t
+      badvalue (n, r) = not (T.null r) ||
+                        n < 1 ||
+                        n > (0x10FFFF :: Integer)
+  in
+  case T.uncons t' of
+       Nothing -> True
+       Just (x, rest)
+         | x == 'x' || x == 'X'
+           -> either (const True) badvalue (TR.hexadecimal rest)
+         | otherwise
+           -> either (const True) badvalue (TR.decimal t')

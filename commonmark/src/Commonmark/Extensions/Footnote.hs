@@ -14,7 +14,7 @@ import Commonmark.SourceMap
 import Commonmark.Util
 import Commonmark.ReferenceMap
 import Control.Monad.Trans.Class (lift)
-import Control.Monad (mzero, liftM)
+import Control.Monad (mzero)
 import Data.Maybe (fromMaybe)
 import Data.Dynamic
 import Data.Tree

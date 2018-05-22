@@ -4,6 +4,10 @@
 module Main where
 
 import           Commonmark
+import           Commonmark.Pandoc
+import           Data.Aeson                 (encode)
+import qualified Data.ByteString.Lazy       as BL
+import qualified Text.Pandoc.Builder        as B
 import           Control.Monad
 import           Control.Monad.Identity
 import qualified Data.Text.IO               as TIO
@@ -28,6 +32,7 @@ data Opt =
      | Tokenize
      | SourcePos
      | Highlight
+     | PandocJSON
      | Extension String
      deriving Eq
 
@@ -37,6 +42,7 @@ options =
   , Option ['x'] ["extension"] (ReqArg Extension "extension") "use extension"
   , Option ['p'] ["sourcepos"] (NoArg SourcePos) "source positions"
   , Option ['h'] ["highlight"] (NoArg Highlight) "highlight"
+  , Option ['j'] ["json"] (NoArg PandocJSON) "pandoc JSON output"
   , Option ['v'] ["version"] (NoArg Help) "version info"
   , Option ['h'] ["help"] (NoArg Help) "help message"
   ]
@@ -96,13 +102,21 @@ main = do
        case runIdentity (parseCommonmarkWith spec toks) of
             Left e -> errExit e
             Right r -> TLIO.putStr . toLazyText $ r
-    else do
-       extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]
-       let spec = extensions <> defaultSyntaxSpec
-       case runIdentity (parseCommonmarkWith spec toks) of
-            Left e -> errExit e
-            Right (r :: Builder) -> TLIO.putStr . toLazyText $ r
-
+    else
+      if PandocJSON `elem` opts then do
+        extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]
+        let spec = extensions <> defaultSyntaxSpec
+        case runIdentity (parseCommonmarkWith spec toks) of
+             Left e -> errExit e
+             Right (r :: Cm () B.Blocks) -> do
+               BL.putStr . encode $ B.doc $ unCm r
+               BL.putStr "\n"
+      else do
+        extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]
+        let spec = extensions <> defaultSyntaxSpec
+        case runIdentity (parseCommonmarkWith spec toks) of
+             Left e -> errExit e
+             Right (r :: Builder) -> TLIO.putStr . toLazyText $ r
 
 errExit :: ParseError -> IO a
 errExit err = do

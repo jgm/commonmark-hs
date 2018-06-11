@@ -96,33 +96,14 @@ instance HasMath (Cm b B.Inlines) where
   displayMath t = Cm $ B.displayMath (T.unpack t)
 
 instance HasPipeTable (Cm a B.Inlines) (Cm b B.Blocks) where
-  pipeTable aligns headerCells rows = mempty -- TODO
-  {-
-  Html5 $ do
-    let alignToAttr LeftAlignedCol    = [style_ "text-align: left;"]
-        alignToAttr CenterAlignedCol  = [style_ "text-align: center;"]
-        alignToAttr RightAlignedCol   = [style_ "text-align: right;"]
-        alignToAttr DefaultAlignedCol = []
-    let toCell constructor align cell = do
-          with constructor (alignToAttr align) (unHtml5 cell)
-          "\n"
-    table_ $ do
-      "\n"
-      thead_ $ do
-        "\n"
-        tr_ $ do
-          "\n"
-          zipWithM_ (toCell th_) aligns headerCells
-        "\n"
-      "\n"
-      unless (null rows) $ do
-        tbody_ $ do
-          "\n"
-          mapM_ ((>> "\n") . tr_ . ("\n" >>) .
-                   zipWithM_ (toCell td_) aligns) rows
-        "\n"
-    "\n"
-  -}
+  pipeTable aligns headerCells rows =
+    Cm $ B.table mempty colspecs (map (B.plain . unCm) headerCells)
+                     (map (map (B.plain . unCm)) rows)
+    where toPandocAlignment LeftAlignedCol = AlignLeft
+          toPandocAlignment CenterAlignedCol = AlignCenter
+          toPandocAlignment RightAlignedCol = AlignRight
+          toPandocAlignment DefaultAlignedCol = AlignDefault
+          colspecs = map (\al -> (toPandocAlignment al, 0.0)) aligns
 
 instance HasStrikethrough (Cm a B.Inlines) where
   strikethrough ils = B.strikeout <$> ils

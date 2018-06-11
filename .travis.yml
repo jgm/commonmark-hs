@@ -72,9 +72,10 @@ install:
       ;;
     cabal)
       cabal update && \
-      pushd commonmark && \
+      for package in commonmark commonmark-lucid commonmark-pandoc commonmark-cli; do \
+      pushd $package && \
       cabal install --force-reinstalls --only-dependencies --disable-optimization -ffast --enable-tests --enable-benchmarks && \
-      popd
+      popd ; done
       ;;
   esac
 
@@ -87,21 +88,11 @@ script:
       ;;
     cabal)
       cabal update && \
-      pushd commonmark && \
+      for package in commonmark commonmark-lucid commonmark-pandoc commonmark-cli; do \
+      pushd $package && \
       cabal sdist --output-directory=sourcedist && \
       pushd sourcedist && \
       cabal install --force-reinstalls --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS" && \
-      popd && popd && pushd commonmark-lucid && \
-      cabal sdist --output-directory=sourcedist && \
-      pushd sourcedist && \
-      cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS" && \
-      popd && popd && pushd commonmark-pandoc && \
-      cabal sdist --output-directory=sourcedist && \
-      pushd sourcedist && \
-      cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS"
-       popd && popd && pushd commonmark-cli && \
-      cabal sdist --output-directory=sourcedist && \
-      pushd sourcedist && \
-      cabal install --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS"
+      popd && popd ; done
       ;;
   esac

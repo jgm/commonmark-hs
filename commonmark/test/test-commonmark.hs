@@ -25,6 +25,8 @@ import           Text.Parsec.Pos
 main :: IO ()
 main = do
   spectests <- getSpecTestTree "test/spec.txt" defaultSyntaxSpec
+  regressiontests <- getSpecTestTree "test/regression.txt"
+                       defaultSyntaxSpec
   smarttests <- getSpecTestTree "test/smart_punct.txt"
                    (smartPunctuationSpec <> defaultSyntaxSpec)
   strikethroughtests <- getSpecTestTree "test/strikethrough.txt"
@@ -38,6 +40,7 @@ main = do
   defaultMain $ testGroup "Tests"
     [ testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip
     , spectests
+    , regressiontests
     , smarttests
     , strikethroughtests
     , pipetabletests

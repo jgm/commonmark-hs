@@ -42,6 +42,7 @@ extra-source-files:
     test/math.txt
     test/smart_punct.txt
     test/strikethrough.txt
+    test/regression.txt
 
 source-repository head
   type: git

@@ -136,6 +136,7 @@ data ChunkType a =
        Delim{ delimType     :: !Char
             , delimCanOpen  :: !Bool
             , delimCanClose :: !Bool
+            , delimLength   :: Int
             , delimSpec     :: Maybe (FormattingSpec a)
             }
      | Parsed a
@@ -330,6 +331,7 @@ pDelimChunk specmap = try $ do
                       , delimCanOpen = canOpen
                       , delimCanClose = canClose
                       , delimSpec = mbspec
+                      , delimLength = length toks'
                       } pos toks'
 
 pInline :: (IsInline a, Monad m)
@@ -639,7 +641,7 @@ delimsMatch (Chunk open@Delim{} _ opents) (Chunk close@Delim{} _ closets) =
       (delimType open == delimType close &&
            if (delimCanOpen open && delimCanClose open) ||
                 (delimCanOpen close && delimCanClose close)
-                then (length opents + length closets) `mod` 3 /= 0
+                then (delimLength open + delimLength close) `mod` 3 /= 0
                 else True) &&
     opents /= closets
 delimsMatch _ _ = False

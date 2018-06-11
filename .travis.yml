@@ -72,7 +72,7 @@ install:
       ;;
     cabal)
       cabal update && \
-      for package in commonmark commonmark-lucid commonmark-pandoc commonmark-cli; do \
+      for package in commonmark commonmark-lucid commonmark-pandoc ; do \
       pushd $package && \
       cabal install --force-reinstalls --only-dependencies --disable-optimization -ffast --enable-tests --enable-benchmarks && \
       popd ; done

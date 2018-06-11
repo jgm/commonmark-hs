@@ -50,7 +50,9 @@ import           Commonmark.Types
 import           Control.Monad             (foldM, guard, mzero, void, unless,
                                             when)
 import           Control.Monad.Trans.Class (lift)
+#if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid
+#endif
 import           Data.Char                 (isAsciiUpper, isDigit, isSpace)
 import           Data.Dynamic
 import           Data.List                 (findIndex, sort, partition)

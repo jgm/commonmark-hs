@@ -1,5 +1,5 @@
-# commonmark-core
+# commonmark-lucid
 
-This package provides the core parsing functionality
-for commonmark, without any renderers.
+This package provides typeclass instances for parsing
+commonmark directly into Lucid `Html`.
 

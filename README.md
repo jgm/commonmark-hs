@@ -14,3 +14,7 @@ This repository contains four packages:
 - [`commonmark-cli`](commonmark-cli/): a
   command-line program that uses this library to convert
   and syntax-highlight commonmark documents.
+
+See the [README for commonmark](commonmark/README.md) for a
+more detailed description of the project's goals.
+

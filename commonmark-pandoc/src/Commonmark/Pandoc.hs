@@ -11,6 +11,9 @@
 {-# LANGUAGE UndecidableInstances       #-}
 
 module Commonmark.Pandoc
+  ( Cm(..)
+  )
+
 where
 
 import qualified Data.Text as T
@@ -24,6 +27,12 @@ import Commonmark.Extensions.PipeTable
 import Commonmark.Extensions.Strikethrough
 import Commonmark.Extensions.Footnote
 import Data.Char (isSpace)
+
+newtype Cm b a = Cm { unCm :: a }
+  deriving (Show, Semigroup, Monoid)
+
+instance Functor (Cm b) where
+  fmap f (Cm x) = Cm (f x)
 
 instance Rangeable (Cm b B.Inlines) => IsInline (Cm b B.Inlines) where
   lineBreak = Cm B.linebreak

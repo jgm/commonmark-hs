@@ -5,8 +5,7 @@
 {-# LANGUAGE OverloadedStrings          #-}
 
 module Commonmark.Types
-  ( Cm(..)
-  , Format(..)
+  ( Format(..)
   , ListSpacing(..)
   , ListType(..)
   , IsInline(..)
@@ -29,12 +28,6 @@ import           Data.Char            (isSpace)
 import           Commonmark.Html      (escapeHtmlChar, escapeHtml,
                                        escapeURI, innerText)
 import           Commonmark.Entity    (lookupEntity)
-
-newtype Cm b a = Cm { unCm :: a }
-  deriving (Show, Semigroup, Monoid)
-
-instance Functor (Cm b) where
-  fmap f (Cm x) = Cm (f x)
 
 newtype Format = Format Text
   deriving (Show, Data, Typeable)

@@ -1,4 +1,3 @@
-* TODO Move Cm type tricks from -pandoc into main module
 * TODO Finish Haddocks
 Document BlockSpec
 BracketedSpec
@@ -6,7 +5,3 @@ FormattingSpec
 * TODO Cleanup names in records
 * TODO Change fields in FormattingSpec to follow naming pattern of BracketedSpec
 * TODO Don't export Chunk and parseChunks
-* DONE Think about how you'd add footnotes
-Use the ReferenceMap; we can now store various sorts of objects
-there, and they are disambiguated by type.
-

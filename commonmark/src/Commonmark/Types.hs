@@ -30,6 +30,11 @@ import           Commonmark.Html      (escapeHtmlChar, escapeHtml,
                                        escapeURI, innerText)
 import           Commonmark.Entity    (lookupEntity)
 
+-- | 'Cm' is used to wrap other types when defining 'IsInline'
+-- and 'IsBlock' instances for them.  The 'b' is a phantom
+-- type which can be used, for example, to distinguish between
+-- ranged and unranged variants.  For an example, see the
+-- definitions in the commonmark-pandoc package.
 newtype Cm b a = Cm { unCm :: a }
   deriving (Show, Semigroup, Monoid)
 

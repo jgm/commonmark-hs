@@ -6,9 +6,6 @@
 module Commonmark.Inlines
   ( mkInlineParser
   , defaultInlineParsers
-  , parseChunks  -- export for now for benchmark
-  , Chunk(..)    -- export for now
-  , unChunks
   , IPState(..)
   , InlineParser
   , FormattingSpec(..)
@@ -95,13 +92,18 @@ unChunks :: IsInline a => [Chunk a] -> a
 unChunks = mconcat . map unChunk
 
 unChunk :: IsInline a => Chunk a -> a
-unChunk (Chunk Delim{} pos ts) =
-  ranged range (str (untokenize ts))
-  where range = case ts of
-                     (_:_) -> SourceRange [(pos,
-                                  incSourceColumn (tokPos (last ts)) 1)]
-                     _     -> mempty
-unChunk (Chunk (Parsed ils) _ _) = ils
+unChunk chunk =
+  case chunkType chunk of
+       Delim{} -> ranged range (str (untokenize ts))
+                   where ts = chunkToks chunk
+                         range =
+                           case ts of
+                                []    -> mempty
+                                (_:_) -> SourceRange
+                                           [(chunkPos chunk,
+                                             incSourceColumn
+                                               (tokPos (last ts)) 1)]
+       Parsed ils -> ils
 
 parseChunks :: (Monad m, IsInline a)
             => [BracketedSpec a]

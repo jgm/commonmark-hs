@@ -23,8 +23,6 @@ main = do
   defaultMainWith defaultConfig
     [ bgroup "tokenize"
       [ benchTokenize ("sample.md", sample) ]
-    , bgroup "parseChunks"
-      [ benchChunks ("sample.md", sample) ]
     , bgroup "parse sample.md"
       [ benchCommonmark defaultSyntaxSpec ("commonmark default", sample)
       , benchCommonmark (smartPunctuationSpec <> defaultSyntaxSpec)
@@ -99,12 +97,3 @@ benchCommonmark spec (name, contents) =
 benchTokenize :: (String, Text) -> Benchmark
 benchTokenize (name, contents) =
   bench ("tokenize " ++ name) $ nf (length . tokenize name) contents
-
-benchChunks :: (String, Text) -> Benchmark
-benchChunks (name, contents) =
-  bench name $ nfIO $ do
-    res <- parseChunks defaultBracketedSpecs defaultFormattingSpecs
-             defaultInlineParsers emptyReferenceMap (tokenize name contents)
-    case res of
-         Left e -> error (show e)
-         Right (cs :: [Chunk Builder]) -> return $ length cs

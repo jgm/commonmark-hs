@@ -91,7 +91,7 @@ script:
       pushd $package && \
       cabal sdist --output-directory=sourcedist && \
       pushd sourcedist && \
-      cabal install --force-reinstalls --only-dependencies --disable-optimization -ffast --enabletests --enable-benchmarks && \
+      cabal install --force-reinstalls --only-dependencies --disable-optimization -ffast --enable-tests --enable-benchmarks && \
       cabal install --force-reinstalls --enable-tests --run-tests --enable-benchmarks --ghc-options="$OPTS" && \
       popd && popd ; done
       ;;

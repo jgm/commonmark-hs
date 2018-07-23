@@ -24,18 +24,18 @@ matrix:
     addons: {apt: {packages: [cabal-install-2.0,ghc-8.2.2,happy-1.19.5], sources: [hvr-ghc]}}
 
   - env: BUILD=cabal GHCVER=8.4.1 CABALVER=2.0
-    compiler: ": #GHC 8.4.1"
-    addons: {apt: {packages: [cabal-install-2.0,ghc-8.4.1,happy-1.19.5], sources: [hvr-ghc]}}
+    compiler: ": #GHC 8.4.3"
+    addons: {apt: {packages: [cabal-install-2.0,ghc-8.4.3,happy-1.19.5], sources: [hvr-ghc]}}
 
   # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
   # variable, such as using --stack-yaml to point to a different file.
-  - env: BUILD=stack ARGS="--resolver lts-10"
-    compiler: ": #stack 8.2.2"
-    addons: {apt: {packages: [ghc-8.2.2], sources: [hvr-ghc]}}
+  - env: BUILD=stack ARGS="--resolver lts-12"
+    compiler: ": #stack 8.4.3"
+    addons: {apt: {packages: [ghc-8.4.3], sources: [hvr-ghc]}}
 
   - env: BUILD=stack ARGS="--resolver nightly"
-    compiler: ": #stack 8.4.1"
-    addons: {apt: {packages: [ghc-8.4.1], sources: [hvr-ghc]}}
+    compiler: ": #stack 8.4.3"
+    addons: {apt: {packages: [ghc-8.4.3], sources: [hvr-ghc]}}
 
   allow_failures:
   - env: BUILD=cabal GHCVER=head  CABALVER=head
@@ -74,7 +74,7 @@ install:
       cabal update && \
       pushd commonmark && \
       cabal install --force-reinstalls --only-dependencies --disable-optimization -ffast --enable-tests --enable-benchmarks && \
-      popd ; done
+      popd
       ;;
   esac
 

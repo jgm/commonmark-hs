@@ -6,19 +6,6 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE DeriveDataTypeable    #-}
 
--- Note: we require pipes at the beginning and end
--- of each line, so this type of table is not supported:
---
---  a | b
---  - | -
---  1 | 2
---
--- This is for reasons of parsing efficiency; otherwise
--- we'd need to parse the whole line to tell if it's a
--- table line.
---
--- [ ] Spec this out and adjust test/pipe_table.txt.
-
 module Commonmark.Extensions.PipeTable
  ( HasPipeTable(..)
  , ColAlignment(..)

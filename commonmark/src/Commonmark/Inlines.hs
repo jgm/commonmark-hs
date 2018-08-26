@@ -406,8 +406,16 @@ pCodeSpan =
   pBacktickSpan >>=
   \case
     Left ticks     -> return $ str (untokenize ticks)
-    Right codetoks -> return $ code . T.unwords . filter (not . T.null)
-                             . T.split isAsciiSpace . untokenize $ codetoks
+    Right codetoks -> return $ code . normalizeCodeSpan . untokenize
+                             $ codetoks
+    where normalizeCodeSpan = removeSurroundingSpace . T.map nltosp
+          nltosp '\n' = ' '
+          nltosp c    = c
+          removeSurroundingSpace s
+             | not (T.null s)
+             , T.head s == ' '
+             , T.last s == ' ' = T.drop 1 $ T.dropEnd 1 s
+             | otherwise = s
 
 pHtml :: (IsInline a, Monad m) => InlineParser m a
 pHtml = try $ do
@@ -479,13 +487,6 @@ pSpaces = do
            _ ->
              return softBreak)
    <|> return (str t)
-
-isAsciiSpace :: Char -> Bool
-isAsciiSpace ' '  = True
-isAsciiSpace '\t' = True
-isAsciiSpace '\r' = True
-isAsciiSpace '\n' = True
-isAsciiSpace _    = False
 
 pSoftbreak :: (IsInline a, Monad m) => InlineParser m a
 pSoftbreak = softBreak <$ satisfyTok (hasType LineEnd)

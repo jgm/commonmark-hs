@@ -1,6 +1,6 @@
-resolver: lts-12.0
+resolver: lts-12.7
 extra-deps:
-- pandoc-types-1.17.5.1
+- cmark-gfm-0.1.5
 ghc-options:
    "$locals": -fhide-source-paths
 packages:

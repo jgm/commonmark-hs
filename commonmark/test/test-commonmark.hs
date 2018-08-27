@@ -7,6 +7,7 @@ import           Commonmark.Extensions.PipeTable
 import           Commonmark.Extensions.Smart
 import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.Math
+import           Commonmark.Extensions.Footnote
 import           Control.Monad         (when)
 import           Data.Functor.Identity
 import           Data.List             (groupBy)
@@ -33,6 +34,12 @@ main = do
                          (strikethroughSpec <> defaultSyntaxSpec)
   pipetabletests <- getSpecTestTree "test/pipe-tables.txt"
                          (pipeTableSpec <> defaultSyntaxSpec)
+  footnotetests <- getSpecTestTree "test/footnotes.txt"
+                         (footnoteSpec <> defaultSyntaxSpec)
+  cmarkgfmtests <- getSpecTestTree "test/cmark-gfm-extensions.txt"
+                         (pipeTableSpec <> strikethroughSpec <>
+                          autolinkSpec <> footnoteSpec <>
+                          defaultSyntaxSpec)
   mathtests <- getSpecTestTree "test/math.txt"
                          (mathSpec <> defaultSyntaxSpec)
   autolinktests <- getSpecTestTree "test/autolinks.txt"
@@ -44,6 +51,8 @@ main = do
     , smarttests
     , strikethroughtests
     , pipetabletests
+    , footnotetests
+    , cmarkgfmtests
     , mathtests
     , autolinktests
     -- we handle these in the benchmarks now
@@ -71,7 +80,7 @@ getSpecTests fp = do
   speclines <- zip [1..] . T.lines . T.replace "→" "\t"
                 <$> T.readFile fp
   return $ either (error . show) id $ runParser
-             (many1 (try (skipMany normalLine *> parseSpecTest))
+             (many (try (skipMany normalLine *> parseSpecTest))
                 <* skipMany normalLine <* eof) ("",1) fp
                 speclines
 

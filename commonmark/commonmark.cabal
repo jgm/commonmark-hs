@@ -39,6 +39,8 @@ extra-source-files:
     test/spec.txt
     test/autolinks.txt
     test/pipe-tables.txt
+    test/cmark-gfm-extensions.txt
+    test/footnotes.txt
     test/math.txt
     test/smart_punct.txt
     test/strikethrough.txt

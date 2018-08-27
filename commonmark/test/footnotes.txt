@@ -1,3 +1,5 @@
+## Footnotes
+
 TODO: proper spec.
 Until then, here are the tests from cmark-gfm.
 

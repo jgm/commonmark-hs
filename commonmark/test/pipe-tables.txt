@@ -222,3 +222,18 @@ If there are no rows in the body, no `<tbody>` is generated in HTML output:
 </table>
 ````````````````````````````````
 
+Here are some non-tables:
+
+```````````````````````````````` example
+| Not enough table | to be considered table |
+
+| Not enough table | to be considered table |
+| Not enough table | to be considered table |
+
+| ---- | --- |
+.
+<p>| Not enough table | to be considered table |</p>
+<p>| Not enough table | to be considered table |
+| Not enough table | to be considered table |</p>
+````````````````````````````````
+

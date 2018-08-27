@@ -36,10 +36,6 @@ main = do
                          (pipeTableSpec <> defaultSyntaxSpec)
   footnotetests <- getSpecTestTree "test/footnotes.txt"
                          (footnoteSpec <> defaultSyntaxSpec)
-  cmarkgfmtests <- getSpecTestTree "test/cmark-gfm-extensions.txt"
-                         (pipeTableSpec <> strikethroughSpec <>
-                          autolinkSpec <> footnoteSpec <>
-                          defaultSyntaxSpec)
   mathtests <- getSpecTestTree "test/math.txt"
                          (mathSpec <> defaultSyntaxSpec)
   autolinktests <- getSpecTestTree "test/autolinks.txt"
@@ -52,7 +48,6 @@ main = do
     , strikethroughtests
     , pipetabletests
     , footnotetests
-    , cmarkgfmtests
     , mathtests
     , autolinktests
     -- we handle these in the benchmarks now

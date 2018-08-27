@@ -140,7 +140,9 @@ addFootnoteList = do
         case res of
              Left err -> mkPT (\_ -> return (Empty (return (Error err))))
              Right contents -> return $ footnote num lab contents
-  footnoteList <$> mapM renderNote notes
+  if null notes
+     then return mempty
+     else footnoteList <$> mapM renderNote notes
 
 class IsBlock il bl => HasFootnote il bl | il -> bl where
   footnote :: Int -> Text -> bl -> bl

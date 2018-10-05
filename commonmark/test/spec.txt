@@ -1584,8 +1584,8 @@ begins with a code fence, indented no more than three spaces.
 
 The line with the opening code fence may optionally contain some text
 following the code fence; this is trimmed of leading and trailing
-whitespace and called the [info string](@).
-The [info string] may not contain any backtick
+whitespace and called the [info string](@). If the [info string] comes
+after a backtick fence, it may not contain any backtick
 characters.  (The reason for this restriction is that otherwise
 some inline code would be incorrectly interpreted as the
 beginning of a fenced code block.)
@@ -1970,6 +1970,18 @@ foo
 .
 <p><code>aa</code>
 foo</p>
+````````````````````````````````
+
+
+[Info strings] for tilde code blocks can contain backticks and tildes:
+
+```````````````````````````````` example
+~~~ aa ``` ~~~
+foo
+~~~
+.
+<pre><code class="language-aa">foo
+</code></pre>
 ````````````````````````````````
 
 
@@ -2877,6 +2889,18 @@ The link destination may not be omitted:
 [foo]
 .
 <p>[foo]:</p>
+<p>[foo]</p>
+````````````````````````````````
+
+The title must be separated from the link destination by
+whitespace:
+
+```````````````````````````````` example
+[foo]: <bar>(baz)
+
+[foo]
+.
+<p>[foo]: <bar>(baz)</p>
 <p>[foo]</p>
 ````````````````````````````````
 
@@ -5565,7 +5589,7 @@ foo
 ## Entity and numeric character references
 
 All valid HTML entity references and numeric character
-references, except those occuring in code blocks and code spans,
+references, except those occurring in code blocks and code spans,
 are recognized as such and treated as equivalent to the
 corresponding Unicode characters.  Conforming CommonMark parsers
 need not store information about whether a particular character
@@ -5983,15 +6007,17 @@ of one or more `_` characters that is not preceded or followed by
 a non-backslash-escaped `_` character.
 
 A [left-flanking delimiter run](@) is
-a [delimiter run] that is (a) not followed by [Unicode whitespace],
-and (b) not followed by a [punctuation character], or
+a [delimiter run] that is (1) not followed by [Unicode whitespace],
+and either (2a) not followed by a [punctuation character], or
+(2b) followed by a [punctuation character] and
 preceded by [Unicode whitespace] or a [punctuation character].
 For purposes of this definition, the beginning and the end of
 the line count as Unicode whitespace.
 
 A [right-flanking delimiter run](@) is
-a [delimiter run] that is (a) not preceded by [Unicode whitespace],
-and (b) not preceded by a [punctuation character], or
+a [delimiter run] that is (1) not preceded by [Unicode whitespace],
+and either (2a) not preceded by a [punctuation character], or
+(2b) preceded by a [punctuation character] and
 followed by [Unicode whitespace] or a [punctuation character].
 For purposes of this definition, the beginning and the end of
 the line count as Unicode whitespace.

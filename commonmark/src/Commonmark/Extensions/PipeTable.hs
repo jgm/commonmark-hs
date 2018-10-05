@@ -162,6 +162,7 @@ pipeTableBlockSpec = BlockSpec
      , blockParagraph      = False -- :: Bool
      , blockContinue       = \(Node ndata children) -> try $ do
          nonindentSpaces
+         notFollowedBy blankLine
          let tabledata = fromDyn
                 (blockData ndata)
                 PipeTableData{ pipeTableAlignments = []
@@ -187,17 +188,21 @@ pipeTableBlockSpec = BlockSpec
                                             } children))
              <|> return (pos, Node ndata{
                                  blockSpec = paraSpec } children)
-     , blockConstructor    = \(Node ndata _) -> do
-         let tabledata = fromDyn
-                (blockData ndata)
-                PipeTableData{ pipeTableAlignments = []
-                             , pipeTableHeaders = []
-                             , pipeTableRows = [] }
-         let aligns = pipeTableAlignments tabledata
-         headers <- mapM runInlineParser (pipeTableHeaders tabledata)
-         let numcols = length headers
-         rows <- mapM (mapM runInlineParser . take numcols . (++ (repeat [])))
-                    (reverse $ pipeTableRows tabledata)
-         return (pipeTable aligns headers rows)
+     , blockConstructor    = \(Node ndata children) -> do
+         if null (blockLines ndata)
+            then do
+              let tabledata = fromDyn
+                     (blockData ndata)
+                     PipeTableData{ pipeTableAlignments = []
+                                  , pipeTableHeaders = []
+                                  , pipeTableRows = [] }
+              let aligns = pipeTableAlignments tabledata
+              headers <- mapM runInlineParser (pipeTableHeaders tabledata)
+              let numcols = length headers
+              rows <- mapM (mapM runInlineParser . take numcols . (++ (repeat [])))
+                         (reverse $ pipeTableRows tabledata)
+              return (pipeTable aligns headers rows)
+            else blockConstructor paraSpec
+                   (Node ndata{ blockSpec = paraSpec } children)
      , blockFinalize       = defaultFinalizer
      }

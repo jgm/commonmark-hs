@@ -235,5 +235,6 @@ Here are some non-tables:
 <p>| Not enough table | to be considered table |</p>
 <p>| Not enough table | to be considered table |
 | Not enough table | to be considered table |</p>
+<p>| ---- | --- |</p>
 ````````````````````````````````
 

@@ -261,10 +261,11 @@ pChunk :: (IsInline a, Monad m)
        => FormattingSpecMap a
        -> [InlineParser m a]
        -> InlineParser m (Chunk a)
-pChunk specmap ilParsers = pDelimChunk specmap
-  <|> (do pos <- getPosition
+pChunk specmap ilParsers =
+      (do pos <- getPosition
           (ils, ts) <- withRaw $ many1 (pInline ilParsers)
           return $ Chunk (Parsed (mconcat ils)) pos ts)
+   <|> pDelimChunk specmap
 
 pDelimTok :: Monad m => InlineParser m Tok
 pDelimTok = do

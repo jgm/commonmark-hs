@@ -158,7 +158,7 @@ instance HasFootnote Builder Builder where
     <> "<a href=\""
     <> escapeHtml ("#fnref-" <> lab')
     <> "\">"
-    <> escapeHtml ("[" <> T.pack (show num) <> "]")
+    <> escapeHtml (T.pack (show num))
     <> "</a>\n"
     <> "</div>\n"
     <> "<div class=\"footnote-contents\">\n"
@@ -166,13 +166,13 @@ instance HasFootnote Builder Builder where
     <> "</div>\n</div>\n"
   footnoteList items = "<section class=\"footnotes\">\n" <>
     mconcat items <> "</section>\n"
-  footnoteRef x lab _ = "<sup>"
-    <> "<a id=\""
-    <> escapeHtml ("fnref-" <> lab)
-    <> "\" href=\""
+  footnoteRef x lab _ = "<sup class=\"footnote-ref\">"
+    <> "<a href=\""
     <> escapeHtml ("#fn-" <> lab)
+    <> "\" id=\""
+    <> escapeHtml ("fnref-" <> lab)
     <> "\">"
-    <> (str ("[" <> x <> "]"))
+    <> str x
     <> "</a></sup>"
 
 instance (HasFootnote il bl, Semigroup bl, Semigroup il)

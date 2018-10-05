@@ -770,8 +770,8 @@ fencedCodeSpec = BlockSpec
              let fencelength = length ticks
              guard $ fencelength >= 3
              skipWhile (hasType Spaces)
-             info <- unEntity <$>
-                      many (pEscaped <|> noneOfToks [LineEnd, Symbol '`'])
+             let infoTok = noneOfToks (LineEnd : [Symbol '`' | c == '`'])
+             info <- unEntity <$> many (pEscaped <|> infoTok)
              lookAhead $ void lineEnd <|> eof
              addNodeToStack $
                 Node (defBlockData fencedCodeSpec){

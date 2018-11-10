@@ -150,7 +150,6 @@ class IsBlock il bl => HasFootnote il bl | il -> bl where
   footnoteRef :: Text -> Text -> bl -> il
 
 instance HasFootnote Builder Builder where
-  -- footnote _ = mempty
   footnote num lab' x = "<div class=\"footnote\" id=\""
     <> escapeHtml ("fn-" <> lab')
     <> "\">\n"

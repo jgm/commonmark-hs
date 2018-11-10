@@ -202,17 +202,21 @@ showNodeStack = do
            , show (length  children) ]
 -}
 
+-- | Defines a block-level element type.
 data BlockSpec m il bl = BlockSpec
-     { blockType           :: Text
-     , blockStart          :: BlockParser m il bl ()
-     , blockCanContain     :: BlockSpec m il bl -> Bool
-     , blockContainsLines  :: Bool
-     , blockParagraph      :: Bool
+     { blockType           :: Text  -- ^ Descriptive name of block type
+     , blockStart          :: BlockParser m il bl () -- ^ TODO haddocks
+     , blockCanContain     :: BlockSpec m il bl -> Bool -- ^ TODO haddocks
+     , blockContainsLines  :: Bool -- ^ True if the block can contain text lines
+     , blockParagraph      :: Bool -- ^ True if the block can contain paragraphs
      , blockContinue       :: BlockNode m il bl
                            -> BlockParser m il bl (SourcePos, BlockNode m il bl)
+                           -- ^ TODO
      , blockConstructor    :: BlockNode m il bl -> BlockParser m il bl bl
+                           -- ^ TODO
      , blockFinalize       :: BlockNode m il bl -> BlockNode m il bl
                            -> BlockParser m il bl (BlockNode m il bl)
+                           -- ^ TODO
      }
 
 instance Show (BlockSpec m il bl) where

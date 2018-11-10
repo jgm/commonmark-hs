@@ -159,6 +159,7 @@ type InlineParser m = ParsecT [Tok] IPState m
 
 --- Formatting specs:
 
+-- ^ TODO haddocks
 data FormattingSpec il = FormattingSpec
     { delimChar     :: Char
     , intraWord     :: Bool
@@ -184,6 +185,7 @@ mkFormattingSpecMap fs = M.fromList [(delimChar s, s) | s <- fs]
 
 --- Bracketed specs:
 
+-- ^ TODO haddocks
 data BracketedSpec il = BracketedSpec
      { bracketedName      :: Text
      , bracketedNests     :: Bool

@@ -29,6 +29,7 @@ import Commonmark.Types
 import Commonmark.Extensions.Math
 import Commonmark.Extensions.PipeTable
 import Commonmark.Extensions.Strikethrough
+import Commonmark.Extensions.Footnote
 
 newtype Html5 = Html5 {unHtml5 :: Html ()}
   deriving (Show, Semigroup, Monoid)
@@ -229,3 +230,12 @@ instance HasStrikethrough Html5 where
 instance HasStrikethrough RangedHtml5 where
   strikethrough (RangedHtml5 ils) = RangedHtml5 $ del_ ils
 
+instance HasFootnote Html5 Html5 where
+  footnote = undefined -- TODO
+  footnoteList = undefined
+  footnoteRef = undefined
+
+instance HasFootnote RangedHtml5 RangedHtml5 where
+  footnote = undefined -- TODO
+  footnoteList = undefined
+  footnoteRef = undefined

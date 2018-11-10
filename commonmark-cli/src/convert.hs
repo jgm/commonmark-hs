@@ -5,6 +5,8 @@ module Main where
 
 import           Commonmark
 import           Commonmark.Pandoc
+import           Commonmark.Lucid
+import qualified Lucid                      as Lucid
 import           Data.Aeson                 (encode)
 import qualified Data.ByteString.Lazy       as BL
 import qualified Text.Pandoc.Builder        as B
@@ -101,7 +103,8 @@ main = do
        let spec = extensions <> defaultSyntaxSpec
        case runIdentity (parseCommonmarkWith spec toks) of
             Left e -> errExit e
-            Right r -> TLIO.putStr . toLazyText $ r
+            Right (r :: RangedHtml5)
+                   -> TLIO.putStr . Lucid.renderText . unRangedHtml5 $ r
     else
       if PandocJSON `elem` opts then do
         extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]

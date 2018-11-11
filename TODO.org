@@ -1,0 +1,12 @@
+* TODO extensions
+** TODO definition lists
+** TODO attributes (link/image/code/codeblock/header)
+** TODO bracketed spans
+** TODO fenced divs
+** TODO auto_identifiers (headers)
+* TODO documentation
+** TODO example of creating instances for roff man
+** TODO example of modifying existing HTML output
+** TODO example of adding an inline parser: abbreviations?
+* TODO reduce memory usage, increase performance
+

@@ -65,7 +65,6 @@ mkInlineParser :: (Monad m, IsInline a)
 mkInlineParser bracketedSpecs formattingSpecs ilParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
   res <- parseChunks bracketedSpecs formattingSpecs ilParsers rm
-         -- TODO cleanup whitespace handling
          (dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks)
   return $
     case res of
@@ -159,13 +158,19 @@ type InlineParser m = ParsecT [Tok] IPState m
 
 --- Formatting specs:
 
--- ^ TODO haddocks
+-- ^ Specifies delimiters for formatting, e.g. strong emphasis.
 data FormattingSpec il = FormattingSpec
     { formattingDelimChar     :: Char
+                              -- ^ Character that triggers formatting
     , formattingIntraWord     :: Bool
+                              -- ^ True if formatting can start/end in a word
     , formattingSingleMatch   :: Maybe (il -> il)
+                              -- ^ Constructor to use for text between
+                              -- single delimiters.
     , formattingDoubleMatch   :: Maybe (il -> il)
-    , formattingWhenUnmatched :: Char -- fallback when not matched
+                              -- ^ Constructor to use for text between
+                              -- double delimiters.
+    , formattingWhenUnmatched :: Char -- ^ Fallback when not matched.
     }
 
 instance Show (FormattingSpec il) where
@@ -177,7 +182,6 @@ defaultFormattingSpecs :: IsInline il => [FormattingSpec il]
 defaultFormattingSpecs =
   [ FormattingSpec '*' True (Just emph) (Just strong) '*'
   , FormattingSpec '_' False (Just emph) (Just strong) '_'
-  -- , FormattingSpec '~' True Nothing (Just strikeout) '~'
   ]
 
 mkFormattingSpecMap :: [FormattingSpec il] -> FormattingSpecMap il
@@ -185,15 +189,18 @@ mkFormattingSpecMap fs = M.fromList [(formattingDelimChar s, s) | s <- fs]
 
 --- Bracketed specs:
 
--- ^ TODO haddocks
+-- ^ Defines an inline element between square brackets.
 data BracketedSpec il = BracketedSpec
-     { bracketedName      :: Text
-     , bracketedNests     :: Bool
-     , bracketedPrefix    :: Maybe Char
-     , bracketedSuffixEnd :: Maybe Char
+     { bracketedName      :: Text  -- ^ Name of bracketed text type.
+     , bracketedNests     :: Bool  -- ^ True if this can be nested.
+     , bracketedPrefix    :: Maybe Char -- ^ Prefix character.
+     , bracketedSuffixEnd :: Maybe Char -- ^ Suffix character.
      , bracketedSuffix    :: ReferenceMap
-                          -> Text  {- raw key -}
+                          -> Text
                           -> Parsec [Tok] () (il -> il)
+                          -- ^ Parser for suffix after
+                          -- brackets.  Returns a constructor.
+                          -- Second parameter is the raw key.
      }
 
 instance Show (BracketedSpec il) where

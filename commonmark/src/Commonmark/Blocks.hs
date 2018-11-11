@@ -210,7 +210,7 @@ data BlockSpec m il bl = BlockSpec
                            -- preconditions, parse the opening of the block,
                            -- and the new block to the block stack using
                            -- 'addNodeToStack'.
-     , blockCanContain     :: BlockSpec m il bl -> Bool -- Returns True if
+     , blockCanContain     :: BlockSpec m il bl -> Bool -- ^ Returns True if
                            -- this kind of block can contain the specified
                            -- block type.
      , blockContainsLines  :: Bool -- ^ True if this kind of block

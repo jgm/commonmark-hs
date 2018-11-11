@@ -1,5 +1,0 @@
-* TODO Finish Haddocks
-Document BlockSpec -- see TODOs in src/commonmark/src/Commonmark/Blocks.hs
-BracketedSpec -- see TODO in Inlines.hs
-FormattingSpec -- see TODO in Inlines.hs
-* DONE Change fields in FormattingSpec to follow naming pattern of BracketedSpec

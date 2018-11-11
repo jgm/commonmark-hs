@@ -161,11 +161,11 @@ type InlineParser m = ParsecT [Tok] IPState m
 
 -- ^ TODO haddocks
 data FormattingSpec il = FormattingSpec
-    { delimChar     :: Char
-    , intraWord     :: Bool
-    , singleMatch   :: Maybe (il -> il)
-    , doubleMatch   :: Maybe (il -> il)
-    , whenUnmatched :: Char -- fallback when not matched
+    { formattingDelimChar     :: Char
+    , formattingIntraWord     :: Bool
+    , formattingSingleMatch   :: Maybe (il -> il)
+    , formattingDoubleMatch   :: Maybe (il -> il)
+    , formattingWhenUnmatched :: Char -- fallback when not matched
     }
 
 instance Show (FormattingSpec il) where
@@ -181,7 +181,7 @@ defaultFormattingSpecs =
   ]
 
 mkFormattingSpecMap :: [FormattingSpec il] -> FormattingSpecMap il
-mkFormattingSpecMap fs = M.fromList [(delimChar s, s) | s <- fs]
+mkFormattingSpecMap fs = M.fromList [(formattingDelimChar s, s) | s <- fs]
 
 --- Bracketed specs:
 
@@ -313,12 +313,12 @@ pDelimChunk specmap = try $ do
           followedByPunctuation)
   let canOpen =
          leftFlanking &&
-          (maybe True intraWord mbspec ||
+          (maybe True formattingIntraWord mbspec ||
            not rightFlanking ||
            precededByPunctuation)
   let canClose =
          rightFlanking &&
-          (maybe True intraWord mbspec ||
+          (maybe True formattingIntraWord mbspec ||
            not leftFlanking ||
            followedByPunctuation)
   updateState $ \s -> s{ afterPunct = newpos }
@@ -327,9 +327,9 @@ pDelimChunk specmap = try $ do
                     -- change tokens to unmatched fallback
                     -- this is mainly for quotes
                     Just spec
-                      | whenUnmatched spec /= c ->
+                      | formattingWhenUnmatched spec /= c ->
                          map (\t -> t{ tokContents =
-                               T.map (\_ -> whenUnmatched spec)
+                               T.map (\_ -> formattingWhenUnmatched spec)
                                   (tokContents t) }) toks
                     _ -> toks
   return $ Chunk Delim{ delimType = c
@@ -591,7 +591,7 @@ processEm = do
            let fallbackConstructor x = str (T.singleton c) <> x <>
                                        str (T.singleton c)
            let (constructor, numtoks)
-                = case (singleMatch spec, doubleMatch spec) of
+                = case (formattingSingleMatch spec, formattingDoubleMatch spec) of
                         (_, Just c2)
                           | min openlen closelen >= 2 -> (c2, 2)
                         (Just c1, _)     -> (c1, 1)

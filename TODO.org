@@ -1,3 +1,18 @@
+* TODO think about alternatives for basic typeclass
+With the current setup an instance of IsInline for roff man output
+would be impossible.  In roff, the effect of an 'emph' might
+be `\f[I]`, but it might be `\f[BI]` (if we're already in a
+boldface section).  The current setup gives us no way to be
+context-sensitive in this way.  If, instead of a function 'emph',
+we emitted something we could pattern match on -- say,
+`(Emph, ...)`, producing a kind of AST, then we'd be able to
+handle this.
+
+Not sure how to do this and keep extensibility.
+
+Of course, one option is to say: if you want this kind of output,
+you have to produce an AST and render it (which is still possible
+with the current setup).
 * TODO extensions
 ** TODO definition lists
 ** TODO attributes (link/image/code/codeblock/header)

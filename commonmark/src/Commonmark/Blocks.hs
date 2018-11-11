@@ -205,18 +205,33 @@ showNodeStack = do
 -- | Defines a block-level element type.
 data BlockSpec m il bl = BlockSpec
      { blockType           :: Text  -- ^ Descriptive name of block type
-     , blockStart          :: BlockParser m il bl () -- ^ TODO haddocks
-     , blockCanContain     :: BlockSpec m il bl -> Bool -- ^ TODO haddocks
-     , blockContainsLines  :: Bool -- ^ True if the block can contain text lines
-     , blockParagraph      :: Bool -- ^ True if the block can contain paragraphs
+     , blockStart          :: BlockParser m il bl () -- ^ Parses beginning
+                           -- of block.  The parser should verify any
+                           -- preconditions, parse the opening of the block,
+                           -- and the new block to the block stack using
+                           -- 'addNodeToStack'.
+     , blockCanContain     :: BlockSpec m il bl -> Bool -- Returns True if
+                           -- this kind of block can contain the specified
+                           -- block type.
+     , blockContainsLines  :: Bool -- ^ True if this kind of block
+                           -- can contain text lines.
+     , blockParagraph      :: Bool -- ^ True if this kind of block
+                           -- can contain paragraphs.
      , blockContinue       :: BlockNode m il bl
                            -> BlockParser m il bl (SourcePos, BlockNode m il bl)
-                           -- ^ TODO
+                           -- ^ Parser that checks to see if the current
+                           -- block (the 'BlockNode') can be kept open.
+                           -- If it fails, the block will be closed, unless
+                           -- we have a lazy paragraph continuation within
+                           -- the block.
      , blockConstructor    :: BlockNode m il bl -> BlockParser m il bl bl
-                           -- ^ TODO
+                           -- ^ Renders the node into its target format,
+                           -- possibly after rendering inline content.
      , blockFinalize       :: BlockNode m il bl -> BlockNode m il bl
                            -> BlockParser m il bl (BlockNode m il bl)
-                           -- ^ TODO
+                           -- ^ Runs when the block is closed, but prior
+                           -- to rendering.  The first parameter is the
+                           -- child, the second the parent.
      }
 
 instance Show (BlockSpec m il bl) where

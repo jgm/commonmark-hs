@@ -12,17 +12,10 @@ module Commonmark.Extensions.DefinitionList
 where
 import Commonmark.Tokens
 import Commonmark.Types
-import Commonmark.Html
 import Commonmark.Syntax
 import Commonmark.Blocks
-import Commonmark.Inlines
 import Commonmark.SourceMap
 import Commonmark.Util
-import Commonmark.ReferenceMap
-import Control.Monad.Trans.Class (lift)
-import Control.Monad (mzero)
-import Data.List
-import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Semigroup (Semigroup)
 #if !MIN_VERSION_base(4,11,0)
 import Data.Monoid
@@ -30,9 +23,6 @@ import Data.Monoid
 import Data.Dynamic
 import Data.Tree
 import Text.Parsec
-import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Map as M
 import Data.Text.Lazy.Builder (Builder)
 
 definitionListSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,

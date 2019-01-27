@@ -156,7 +156,9 @@ skipManyTill p stop = scan
 skipWhile :: Monad m => (Tok -> Bool) -> ParsecT [Tok] u m ()
 skipWhile f = void $ updateParserState $
   \(State inp pos user) ->
-     case dropWhile f inp of
+    case inp of
+      (i:is) | f i -> do
+       case dropWhile f is of
          rest@(Tok _ newpos _ : _) ->
             State rest newpos user
          [] ->
@@ -164,6 +166,7 @@ skipWhile f = void $ updateParserState $
                  (Tok _ lastpos t : _) ->
                    State [] (incSourceColumn lastpos (T.length t)) user
                  [] -> State inp pos user
+      _ -> State inp pos user
 
 -- | Parse optional spaces and an endline.
 blankLine :: Monad m => ParsecT [Tok] s m ()

@@ -59,6 +59,11 @@ definitionListItemBlockSpec = BlockSpec
      , blockStart          = try $ do
          (cur:_) <- nodeStack <$> getState
          pos <- getPosition
+         -- when we see a colon followed by indent space:
+         -- a) we're in a paragraph -> TightList
+         -- b) previous sibling is a paragraph -> LooseList
+         -- remove prev or current paragraph; store inlines
+         -- in data here (can we? -- see table captions?).
          when (blockParagraph (bspec cur)) $ do
            undefined -- TODO see setext header
            notFollowedBy blankLine

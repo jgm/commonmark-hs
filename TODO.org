@@ -18,7 +18,7 @@ Another alternative: make the output type for roff man be
 State EmphState Builder or something like that.  Then the
 effect can be state-dependent.
 * TODO extensions
-** DONE definition lists
+** TODO definition lists [in progress]
 ** TODO attributes (link/image/code/codeblock/header)
 ** TODO bracketed spans
 ** TODO fenced divs

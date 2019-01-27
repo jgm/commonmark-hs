@@ -31,6 +31,7 @@ import Commonmark.Extensions.Math
 import Commonmark.Extensions.PipeTable
 import Commonmark.Extensions.Strikethrough
 import Commonmark.Extensions.Footnote
+import Commonmark.Extensions.DefinitionList
 
 newtype Html5 = Html5 {unHtml5 :: Html ()}
   deriving (Show, Semigroup, Monoid)
@@ -197,6 +198,19 @@ instance HasPipeTable RangedHtml5 RangedHtml5 where
   pipeTable aligns headerCells rows = coerce
     (pipeTable aligns (map coerce headerCells :: [Html5])
       (map (map coerce) rows :: [[Html5]]) :: Html5)
+
+instance HasDefinitionList Html5 Html5 where
+  definitionList items = Html5 $ dl_
+    (nl <> mconcat (map li items)) <> nl
+   where li (x,y) = dt_ (unHtml5 x) <> nl <>
+                    mconcat
+                      (map
+                        (\d -> dd_ (nl <> unHtml5 d) <> nl)
+                          y)
+
+instance HasDefinitionList RangedHtml5 RangedHtml5 where
+  definitionList items =
+    coerce (definitionList (map coerce items :: [(Html5,[Html5])]) :: Html5)
 
 instance HasStrikethrough Html5 where
   strikethrough ils = Html5 $ del_ (unHtml5 ils)

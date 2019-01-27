@@ -10,6 +10,7 @@ module Commonmark
     , module Commonmark.Extensions.Math
     , module Commonmark.Extensions.Autolink
     , module Commonmark.Extensions.Footnote
+    , module Commonmark.Extensions.DefinitionList
     ) where
 
 import           Commonmark.Tokens
@@ -23,4 +24,5 @@ import           Commonmark.Extensions.PipeTable
 import           Commonmark.Extensions.Math
 import           Commonmark.Extensions.Autolink
 import           Commonmark.Extensions.Footnote
+import           Commonmark.Extensions.DefinitionList
 

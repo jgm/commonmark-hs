@@ -77,6 +77,7 @@ main = do
       extFromName "math" = return mathSpec
       extFromName "autolink" = return autolinkSpec
       extFromName "footnote" = return footnoteSpec
+      extFromName "definition_list" = return definitionListSpec
       extFromName extname = do
         hPutStrLn stderr $ "Unknown extension " ++ extname
         exitWith (ExitFailure 1)

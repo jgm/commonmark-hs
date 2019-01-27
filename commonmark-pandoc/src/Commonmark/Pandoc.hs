@@ -24,9 +24,11 @@ import qualified Text.Pandoc.Builder as B
 import Commonmark.Types as C
 import Commonmark.Extensions.Math
 import Commonmark.Extensions.PipeTable
+import Commonmark.Extensions.DefinitionList
 import Commonmark.Extensions.Strikethrough
 import Commonmark.Extensions.Footnote
 import Data.Char (isSpace)
+import Data.Coerce (coerce)
 
 newtype Cm b a = Cm { unCm :: a }
   deriving (Show, Semigroup, Monoid)
@@ -95,7 +97,7 @@ instance HasMath (Cm b B.Inlines) where
   inlineMath t = Cm $ B.math (T.unpack t)
   displayMath t = Cm $ B.displayMath (T.unpack t)
 
-instance HasPipeTable (Cm a B.Inlines) (Cm b B.Blocks) where
+instance HasPipeTable (Cm a B.Inlines) (Cm a B.Blocks) where
   pipeTable aligns headerCells rows =
     Cm $ B.table mempty colspecs (map (B.plain . unCm) headerCells)
                      (map (map (B.plain . unCm)) rows)
@@ -104,6 +106,11 @@ instance HasPipeTable (Cm a B.Inlines) (Cm b B.Blocks) where
           toPandocAlignment RightAlignedCol = AlignRight
           toPandocAlignment DefaultAlignedCol = AlignDefault
           colspecs = map (\al -> (toPandocAlignment al, 0.0)) aligns
+
+instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
+  => HasDefinitionList (Cm a B.Inlines) (Cm a B.Blocks) where
+  definitionList items =
+    Cm $ B.definitionList $ map coerce items
 
 instance HasStrikethrough (Cm a B.Inlines) where
   strikethrough ils = B.strikeout <$> ils

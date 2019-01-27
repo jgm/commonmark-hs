@@ -78,6 +78,7 @@ library
       Commonmark.Extensions.Math
       Commonmark.Extensions.Autolink
       Commonmark.Extensions.Footnote
+      Commonmark.Extensions.DefinitionList
   other-modules:
       Commonmark.Tag
       Commonmark.Html

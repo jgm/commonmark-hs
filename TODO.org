@@ -13,8 +13,12 @@ Not sure how to do this and keep extensibility.
 Of course, one option is to say: if you want this kind of output,
 you have to produce an AST and render it (which is still possible
 with the current setup).
+
+Another alternative: make the output type for roff man be
+State EmphState Builder or something like that.  Then the
+effect can be state-dependent.
 * TODO extensions
-** TODO definition lists
+** DONE definition lists
 ** TODO attributes (link/image/code/codeblock/header)
 ** TODO bracketed spans
 ** TODO fenced divs

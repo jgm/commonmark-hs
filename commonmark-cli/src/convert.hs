@@ -12,6 +12,7 @@ import qualified Data.ByteString.Lazy       as BL
 import qualified Text.Pandoc.Builder        as B
 import           Control.Monad
 import           Control.Monad.Identity
+import           Data.Typeable
 import qualified Data.Text.IO               as TIO
 import qualified Data.Text.Lazy.IO          as TLIO
 import qualified Data.Map                   as M
@@ -35,6 +36,7 @@ data Opt =
      | SourcePos
      | Highlight
      | PandocJSON
+     | ListExtensions
      | Extension String
      deriving Eq
 
@@ -46,6 +48,7 @@ options =
   , Option ['h'] ["highlight"] (NoArg Highlight) "highlight"
   , Option ['j'] ["json"] (NoArg PandocJSON) "pandoc JSON output"
   , Option ['v'] ["version"] (NoArg Version) "version info"
+  , Option [] ["list-extensions"] (NoArg ListExtensions) "list extensions"
   , Option ['h'] ["help"] (NoArg Help) "help message"
   ]
 
@@ -62,6 +65,9 @@ main = do
   when (Help `elem` opts) $ do
     putStr (usageMessage prg options)
     exitSuccess
+  when (ListExtensions `elem` opts) $ do
+    listExtensions
+    exitSuccess
   when (Version `elem` opts) $ do
     putStrLn $ prg ++ " " ++ showVersion version
     exitSuccess
@@ -71,19 +77,8 @@ main = do
   when (Tokenize `elem` opts) $ do
     print toks
     exitSuccess
-  let extFromName "pipe_table" = return pipeTableSpec
-      extFromName "strikethrough" = return strikethroughSpec
-      extFromName "smart" = return smartPunctuationSpec
-      extFromName "math" = return mathSpec
-      extFromName "autolink" = return autolinkSpec
-      extFromName "footnote" = return footnoteSpec
-      extFromName "definition_list" = return definitionListSpec
-      extFromName extname = do
-        hPutStrLn stderr $ "Unknown extension " ++ extname
-        exitWith (ExitFailure 1)
   if Highlight `elem` opts then do
-      extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]
-      let spec = extensions <> defaultSyntaxSpec
+      spec <- specFromExtensionNames [x | Extension x <- opts]
       case runWithSourceMap <$>
               runIdentity (parseCommonmarkWith spec toks) of
            Left e -> errExit e
@@ -100,24 +95,21 @@ main = do
                "</body>\n"
   else
     if SourcePos `elem` opts then do
-       extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]
-       let spec = extensions <> defaultSyntaxSpec
+       spec <- specFromExtensionNames [x | Extension x <- opts]
        case runIdentity (parseCommonmarkWith spec toks) of
             Left e -> errExit e
             Right (r :: RangedHtml5)
                    -> TLIO.putStr . Lucid.renderText . unRangedHtml5 $ r
     else
       if PandocJSON `elem` opts then do
-        extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]
-        let spec = extensions <> defaultSyntaxSpec
+        spec <- specFromExtensionNames [x | Extension x <- opts]
         case runIdentity (parseCommonmarkWith spec toks) of
              Left e -> errExit e
              Right (r :: Cm () B.Blocks) -> do
                BL.putStr . encode $ B.doc $ unCm r
                BL.putStr "\n"
       else do
-        extensions <- mconcat <$> mapM extFromName [x | Extension x <- opts]
-        let spec = extensions <> defaultSyntaxSpec
+        spec <- specFromExtensionNames [x | Extension x <- opts]
         case runIdentity (parseCommonmarkWith spec toks) of
              Left e -> errExit e
              Right (r :: Builder) -> TLIO.putStr . toLazyText $ r
@@ -126,6 +118,50 @@ errExit :: ParseError -> IO a
 errExit err = do
   hPrint stderr err
   exitWith (ExitFailure 1)
+
+extensions :: (Monad m, Typeable m,
+               Typeable bl, Typeable il,
+               IsBlock il bl, IsInline il,
+               HasPipeTable il bl, HasDefinitionList il bl,
+               HasMath il, HasStrikethrough il, HasFootnote il bl)
+           => [(String, SyntaxSpec m il bl)]
+extensions =
+  [("pipe_table", pipeTableSpec)
+  ,("strikethrough", strikethroughSpec)
+  ,("smart", smartPunctuationSpec)
+  ,("math", mathSpec)
+  ,("autolink", autolinkSpec)
+  ,("footnote", footnoteSpec)
+  ,("definition_list", definitionListSpec)
+  ]
+
+extensionList :: [String]
+extensionList = map fst
+  (extensions :: [(String, SyntaxSpec IO Builder Builder)])
+
+listExtensions :: IO ()
+listExtensions =
+  putStr $ "Available extensions (or 'all' for all):\n" ++
+    unlines (map ("  " ++) extensionList)
+
+specFromExtensionNames ::
+  (Monad m, Typeable m, Typeable bl, Typeable il,
+   IsBlock il bl, IsInline il,
+   HasPipeTable il bl, HasDefinitionList il bl,
+   HasMath il, HasStrikethrough il, HasFootnote il bl)
+   => [String] -> IO (SyntaxSpec m il bl)
+specFromExtensionNames extnames = do
+  let extFromName name =
+        case lookup name extensions of
+          Just ext -> return ext
+          Nothing  -> do
+            hPutStrLn stderr $ "Unknown extension " ++ name
+            listExtensions
+            exitWith (ExitFailure 1)
+  exts <- if "all" `elem` extnames
+             then return $ mconcat (map snd extensions)
+             else mconcat <$> mapM extFromName extnames
+  return $ exts <> defaultSyntaxSpec
 
 highlightWith :: SourceMap -> [Tok] -> Builder
 highlightWith sm ts = "<pre>" <>  mconcat (map (renderTok sm) ts) <> "</pre>"

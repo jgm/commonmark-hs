@@ -45,7 +45,7 @@ options =
   , Option ['p'] ["sourcepos"] (NoArg SourcePos) "source positions"
   , Option ['h'] ["highlight"] (NoArg Highlight) "highlight"
   , Option ['j'] ["json"] (NoArg PandocJSON) "pandoc JSON output"
-  , Option ['v'] ["version"] (NoArg Help) "version info"
+  , Option ['v'] ["version"] (NoArg Version) "version info"
   , Option ['h'] ["help"] (NoArg Help) "help message"
   ]
 

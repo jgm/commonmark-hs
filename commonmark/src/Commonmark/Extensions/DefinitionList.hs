@@ -47,7 +47,12 @@ definitionListBlockSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = \n -> (,n) <$> getPosition
-     , blockConstructor    = undefined
+     , blockConstructor    = \(Node bdata children) -> do
+         terms <- mapM (runInlineParser . getBlockText removeIndent) children
+         defs <- mapM (\(Node _ cs) ->
+                            (mapM (\c -> (blockConstructor (bspec c)) c) cs))
+                         children
+         return $ definitionList $ zip terms defs
      , blockFinalize       = defaultFinalizer
      }
 
@@ -57,33 +62,51 @@ definitionListItemBlockSpec ::
 definitionListItemBlockSpec = BlockSpec
      { blockType           = "DefinitionListItem"
      , blockStart          = try $ do
-         (cur:_) <- nodeStack <$> getState
-         pos <- getPosition
-         -- when we see a colon followed by indent space:
-         -- a) we're in a paragraph -> TightList
-         -- b) previous sibling is a paragraph -> LooseList
-         -- remove prev or current paragraph; store inlines
-         -- in data here (can we? -- see table captions?).
-         when (blockParagraph (bspec cur)) $ do
-           undefined -- TODO see setext header
-           notFollowedBy blankLine
-         -- TODO store inlines in data
-         let linode = Node (defBlockData definitionListItemBlockSpec){
-                            blockData = toDyn TightList,
-                            blockStartPos = [pos] } []
+         n <- gobbleUpToSpaces 3
+         symbol ':' <|> symbol '~'
+         gobbleSpaces (min 1 (3 - n))
+         (Node bdata children : rest) <- nodeStack <$> getState
+         linode <-
+           if blockParagraph (blockSpec bdata)
+             then do
+               -- a) we're in a paragraph -> TightList
+               --    make cur a DefinitionListItem instead
+               --    keep the tokens; they will be the term
+               -- remove paragraph from stack
+               updateState $ \st -> st{ nodeStack = rest }
+               return $ Node (defBlockData definitionListItemBlockSpec)
+                        { blockData = toDyn TightList
+                        , blockLines = blockLines bdata
+                        , blockStartPos = blockStartPos bdata
+                        } []
+             else
+               case reverse children of
+                 (lastChild : revRest) -> do
+                     -- b) previous sibling is a paragraph -> LooseList
+                     --    last child of cur is a Paragraph
+                     --    remove this child and mk new child with its content
+                     --    and position.  tokens will be term.
+                     -- remove paragraph from stack
+                     updateState $ \st -> st{ nodeStack =
+                          Node bdata (reverse revRest) : rest }
+                     return $ Node (defBlockData definitionListItemBlockSpec)
+                              { blockData = toDyn LooseList
+                              , blockStartPos = blockStartPos
+                                                 (rootLabel lastChild)
+                              , blockLines = blockLines (rootLabel lastChild)
+                              } []
+                 _ -> mzero
+
          let listnode = Node (defBlockData definitionListBlockSpec){
-                            blockStartPos = [pos] } []
-         case blockType (bspec cur) of
+                            blockStartPos = blockStartPos (rootLabel linode) } []
+         case blockType (blockSpec bdata) of
               "DefinitionList"
                 -> addNodeToStack linode
               _ -> addNodeToStack listnode >> addNodeToStack linode
      , blockCanContain     = \sp -> blockType sp == "DefinitionListDefinition"
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = \node@(Node ndata children) -> do
-         pos <- getPosition
-         gobbleSpaces 4 <|> 0 <$ lookAhead blankLine
-         return (pos, node)
+     , blockContinue       = \n -> (,n) <$> getPosition
      , blockConstructor    = undefined
      , blockFinalize       = defaultFinalizer
      {- TODO per item tight loose

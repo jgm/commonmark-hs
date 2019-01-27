@@ -216,7 +216,7 @@ data BlockSpec m il bl = BlockSpec
      , blockContainsLines  :: Bool -- ^ True if this kind of block
                            -- can contain text lines.
      , blockParagraph      :: Bool -- ^ True if this kind of block
-                           -- can contain paragraphs.
+                           -- is paragraph.
      , blockContinue       :: BlockNode m il bl
                            -> BlockParser m il bl (SourcePos, BlockNode m il bl)
                            -- ^ Parser that checks to see if the current

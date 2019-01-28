@@ -79,8 +79,8 @@ definitionListItemBlockSpec = BlockSpec
                         , blockStartPos = blockStartPos bdata
                         } []
              else
-               case reverse children of
-                 (lastChild : revRest)
+               case children of
+                 (lastChild : rest')
                    | blockParagraph (bspec lastChild) -> do
                      -- b) previous sibling is a paragraph -> LooseList
                      --    last child of cur is a Paragraph
@@ -88,7 +88,7 @@ definitionListItemBlockSpec = BlockSpec
                      --    and position.  tokens will be term.
                      -- remove paragraph from stack
                      updateState $ \st -> st{ nodeStack =
-                          Node bdata (reverse revRest) : rest }
+                          Node bdata rest' : rest }
                      return $ Node (defBlockData definitionListItemBlockSpec)
                               { blockData = toDyn LooseList
                               , blockStartPos = blockStartPos

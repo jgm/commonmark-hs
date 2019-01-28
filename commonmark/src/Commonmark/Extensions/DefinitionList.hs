@@ -11,13 +11,12 @@ module Commonmark.Extensions.DefinitionList
   , HasDefinitionList(..)
   )
 where
-import Commonmark.Tokens
 import Commonmark.Types
 import Commonmark.Syntax
 import Commonmark.Blocks
 import Commonmark.SourceMap
 import Commonmark.Util
-import Control.Monad (mzero, when)
+import Control.Monad (mzero)
 import Data.Semigroup (Semigroup)
 #if !MIN_VERSION_base(4,11,0)
 import Data.Monoid
@@ -47,12 +46,12 @@ definitionListBlockSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = \n -> (,n) <$> getPosition
-     , blockConstructor    = \(Node bdata children) -> do
-         terms <- mapM (runInlineParser . getBlockText removeIndent) children
-         defs <- mapM (\(Node _ cs) ->
-                            (mapM (\c -> (blockConstructor (bspec c)) c) cs))
-                         children
-         return $ definitionList $ zip terms defs
+     , blockConstructor    = \(Node _bdata items) -> do
+         let getItem item@(Node _ ds) = do
+               term <- runInlineParser (getBlockText removeIndent item)
+               defs <- mapM (\c -> (blockConstructor (bspec c)) c) ds
+               return (term, defs)
+         definitionList <$> mapM getItem items
      , blockFinalize       = defaultFinalizer
      }
 
@@ -81,7 +80,8 @@ definitionListItemBlockSpec = BlockSpec
                         } []
              else
                case reverse children of
-                 (lastChild : revRest) -> do
+                 (lastChild : revRest)
+                   | blockParagraph (bspec lastChild) -> do
                      -- b) previous sibling is a paragraph -> LooseList
                      --    last child of cur is a Paragraph
                      --    remove this child and mk new child with its content
@@ -99,10 +99,13 @@ definitionListItemBlockSpec = BlockSpec
 
          let listnode = Node (defBlockData definitionListBlockSpec){
                             blockStartPos = blockStartPos (rootLabel linode) } []
+         let defnode = Node (defBlockData definitionListDefinitionBlockSpec){
+                            blockStartPos = blockStartPos (rootLabel linode) } []
          case blockType (blockSpec bdata) of
               "DefinitionList"
-                -> addNodeToStack linode
-              _ -> addNodeToStack listnode >> addNodeToStack linode
+                -> addNodeToStack linode >> addNodeToStack defnode
+              _ -> addNodeToStack listnode >> addNodeToStack linode >>
+                   addNodeToStack defnode
      , blockCanContain     = \sp -> blockType sp == "DefinitionListDefinition"
      , blockContainsLines  = False
      , blockParagraph      = False
@@ -131,11 +134,12 @@ definitionListDefinitionBlockSpec = BlockSpec
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = \node@(Node ndata children) -> do
+     , blockContinue       = \node -> do
          pos <- getPosition
          gobbleSpaces 4 <|> 0 <$ lookAhead blankLine
          return (pos, node)
-     , blockConstructor    = undefined
+     , blockConstructor    = \(Node _bdata children) ->
+         mconcat <$> mapM (\c -> blockConstructor (bspec c) c) children
      , blockFinalize       = defaultFinalizer
      }
 
@@ -144,7 +148,7 @@ class IsBlock il bl => HasDefinitionList il bl | il -> bl where
 
 instance HasDefinitionList Builder Builder where
   definitionList items =
-    "<dl>\n" <> mconcat (map definitionListItem items) <> "</dl>"
+    "<dl>\n" <> mconcat (map definitionListItem items) <> "</dl>\n"
 
 definitionListItem :: (Builder, [Builder]) -> Builder
 definitionListItem (term, defns) =

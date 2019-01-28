@@ -111,19 +111,26 @@ definitionListItemBlockSpec = BlockSpec
      , blockParagraph      = False
      , blockContinue       = \n -> (,n) <$> getPosition
      , blockConstructor    = undefined
-     , blockFinalize       = defaultFinalizer
-     {- TODO per item tight loose
-          let totight (Node nd cs)
-                | blockType (blockSpec nd) == "Paragraph"
-                            = Node nd{ blockSpec = plainSpec } cs
-                | otherwise = Node nd cs
-          let childrenToTight (Node nd cs) = Node nd (map totight cs)
-          let children' =
-                 if ls == TightList
-                    then map childrenToTight children
-                    else children
-      -}
+     , blockFinalize       = \(Node cdata children) parent -> do
+         let listSpacing   = fromDyn (blockData cdata) LooseList
+         let plainSpec = paraSpec{
+               blockConstructor    = \node ->
+                   (addRange node . plain)
+                       <$> runInlineParser (getBlockText removeIndent node)
+               }
+         let totight (Node nd cs)
+               | blockType (blockSpec nd) == "Paragraph"
+                           = Node nd{ blockSpec = plainSpec } cs
+               | otherwise = Node nd cs
+         let childrenToTight (Node nd cs) = Node nd (map totight cs)
+         let children' =
+                case listSpacing of
+                  TightList -> map childrenToTight children
+                  LooseList -> children
+         defaultFinalizer (Node cdata children') parent
      }
+
+
 
 definitionListDefinitionBlockSpec ::
    (Monad m, IsBlock il bl, IsInline il, HasDefinitionList il bl)

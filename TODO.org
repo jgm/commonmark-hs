@@ -18,14 +18,19 @@ Another alternative: make the output type for roff man be
 State EmphState Builder or something like that.  Then the
 effect can be state-dependent.
 * TODO extensions
-** TODO definition lists [in progress]
+** DONE definition lists [in progress]
 ** TODO attributes (link/image/code/codeblock/header)
 ** TODO bracketed spans
 ** TODO fenced divs
 ** TODO auto_identifiers (headers)
+** TODO grid tables
 * TODO documentation
 ** TODO example of creating instances for roff man
 ** TODO example of modifying existing HTML output
 ** TODO example of adding an inline parser: abbreviations?
+* TODO create a sample markdown linter
+do a specific transformation on semantically identified
+text (e.g. capitalization)
+without changing anything else about the source text.
 * TODO reduce memory usage, increase performance
 

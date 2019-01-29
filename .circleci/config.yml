@@ -50,9 +50,9 @@ commands:
           TMPDIR=`mktemp -d -t circleci.XXXXXXX`
           cabal v2-sdist --output-dir=${TMPDIR} all
           cd ${TMPDIR}
-          for TARBALL in *.tar.gz; do tar xvzf $TARBALL; done
-          for DIR in $(find . -type d); do
-            pushd $DIR
+          for TARBALL in *.tar.gz; do
+            tar xvzf $TARBALL
+            pushd ${TARBALL%%.*}
             cabal v2-build -j2 --dependencies-only --enable-tests --ghc-options="${GHC_OPTS}" all
             cabal v2-build -j2 --enable-tests --ghc-options="${GHC_OPTS}" all 2>build.log
             # fail if we had warnings in local build

@@ -188,21 +188,21 @@ pipeTableBlockSpec = BlockSpec
                                             } children))
              <|> return (pos, Node ndata{
                                  blockSpec = paraSpec } children)
-     , blockConstructor    = \(Node ndata children) -> do
-         if null (blockLines ndata)
-            then do
-              let tabledata = fromDyn
-                     (blockData ndata)
-                     PipeTableData{ pipeTableAlignments = []
-                                  , pipeTableHeaders = []
-                                  , pipeTableRows = [] }
-              let aligns = pipeTableAlignments tabledata
-              headers <- mapM runInlineParser (pipeTableHeaders tabledata)
-              let numcols = length headers
-              rows <- mapM (mapM runInlineParser . take numcols . (++ (repeat [])))
-                         (reverse $ pipeTableRows tabledata)
-              return (pipeTable aligns headers rows)
-            else blockConstructor paraSpec
-                   (Node ndata{ blockSpec = paraSpec } children)
-     , blockFinalize       = defaultFinalizer
+     , blockConstructor    = \(Node ndata _) -> do
+         let tabledata = fromDyn
+                (blockData ndata)
+                PipeTableData{ pipeTableAlignments = []
+                             , pipeTableHeaders = []
+                             , pipeTableRows = [] }
+         let aligns = pipeTableAlignments tabledata
+         headers <- mapM runInlineParser (pipeTableHeaders tabledata)
+         let numcols = length headers
+         rows <- mapM (mapM runInlineParser . take numcols . (++ (repeat [])))
+                    (reverse $ pipeTableRows tabledata)
+         return (pipeTable aligns headers rows)
+     , blockFinalize       = \(Node ndata children) parent ->
+         defaultFinalizer
+           (if null (blockLines ndata)
+               then Node ndata children
+               else Node ndata{ blockSpec = paraSpec } children) parent
      }

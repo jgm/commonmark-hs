@@ -1,6 +1,6 @@
 # commonmark
 
-[![travis build status](https://img.shields.io/travis/jgm/commonmark-hs.svg)](https://travis-ci.org/jgm/commonmark-hs)
+[![CircleCI](https://circleci.com/gh/jgm/commonmark-hs.svg?style=svg)](https://circleci.com/gh/jgm/commonmark-hs)
 
 This repository contains four packages:
 

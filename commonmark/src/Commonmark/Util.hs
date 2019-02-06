@@ -64,7 +64,7 @@ noneOfToks ::  Monad m => [TokType] -> ParsecT [Tok] s m Tok
 noneOfToks toktypes =
   satisfyTok (\t -> not $ any ($ t) (map hasType toktypes))
 
--- | Parses a 'Tok' with none of the listed types.
+-- | Parses one or more whitespace 'Tok's.
 whitespace ::  Monad m => ParsecT [Tok] s m [Tok]
 whitespace = many1 $ oneOfToks [Spaces, LineEnd]
 

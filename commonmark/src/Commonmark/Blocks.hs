@@ -47,8 +47,9 @@ import           Commonmark.Inlines        (pEscaped, pLinkDestination,
 import           Commonmark.Entity         (unEntity)
 import           Commonmark.Tokens
 import           Commonmark.Types
+import           Commonmark.ParserCombinators
 import           Control.Monad             (foldM, guard, mzero, void, unless,
-                                            when)
+                                            when, msum)
 import           Control.Monad.Trans.Class (lift)
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid
@@ -61,18 +62,17 @@ import qualified Data.Map                  as M
 import qualified Data.Text                 as T
 import qualified Data.Text.Read            as TR
 import           Data.Tree
-import           Text.Parsec
 
 mkBlockParser :: (Monad m, IsBlock il bl)
              => [BlockSpec m il bl] -- ^ Defines block syntax
              -> [BlockParser m il bl bl] -- ^ Parsers to run at end
              -> (ReferenceMap -> [Tok]
-                  -> m (Either ParseError il)) -- ^ Inline parser
+                  -> m (Either [ParseError Tok] il)) -- ^ Inline parser
              -> [Tok] -- ^ Tokenized commonmark input
-             -> m (Either ParseError bl)  -- ^ Result or error
+             -> m (Either [ParseError Tok] bl)  -- ^ Result or error
 mkBlockParser _ _ _ [] = return $ Right mempty
 mkBlockParser specs finalParsers ilParser (t:ts) =
-  runParserT (setPosition (tokPos t) >> processLines specs finalParsers)
+  runParserT (processLines specs finalParsers)
           BPState{ referenceMap = emptyReferenceMap
                  , inlineParser = ilParser
                  , nodeStack    = [Node (defBlockData docSpec) []]
@@ -81,7 +81,7 @@ mkBlockParser specs finalParsers ilParser (t:ts) =
                  , maybeBlank   = True
                  , counters     = M.empty
                  }
-          "source" (t:ts)
+          (t:ts)
 
 processLines :: (Monad m, IsBlock il bl)
              => [BlockSpec m il bl]
@@ -149,7 +149,8 @@ processLine specs = do
 
   isblank <- option False $ True <$ (do getState >>= guard . maybeBlank
                                         lookAhead blankLine)
-  (skipMany1 (choice (map blockStart specs)) >> optional (blockStart paraSpec))
+  (void $ some (msum (map blockStart specs)) >>
+          optional (blockStart paraSpec))
       <|>
     (do getState >>= guard . maybeLazy
         guard $ not isblank
@@ -249,7 +250,8 @@ defaultBlockSpecs =
     , rawHtmlSpec
     ]
 
-defaultFinalizer :: BlockNode m il bl
+defaultFinalizer :: Monad m
+                 => BlockNode m il bl
                  -> BlockNode m il bl
                  -> BlockParser m il bl (BlockNode m il bl)
 defaultFinalizer child parent =
@@ -279,7 +281,7 @@ type BlockNode m il bl = Tree (BlockData m il bl)
 
 data BPState m il bl = BPState
      { referenceMap :: ReferenceMap
-     , inlineParser :: ReferenceMap -> [Tok] -> m (Either ParseError il)
+     , inlineParser :: ReferenceMap -> [Tok] -> m (Either [ParseError Tok] il)
      , nodeStack    :: [BlockNode m il bl]   -- reverse order, head is tip
      , blockMatched :: Bool
      , maybeLazy    :: Bool
@@ -287,7 +289,7 @@ data BPState m il bl = BPState
      , counters     :: M.Map Text Dynamic
      }
 
-type BlockParser m il bl = ParsecT [Tok] (BPState m il bl) m
+type BlockParser m il bl = ParserT Tok (BPState m il bl) m
 
 data ListData = ListData
      { listType    :: ListType
@@ -308,8 +310,7 @@ runInlineParser toks = do
   res <- lift $ ilParser refmap toks
   case res of
        Right ils -> return ils
-       Left err  -> mkPT (\_ -> return (Empty (return (Error err))))
-                    -- pass up ParseError
+       Left errs -> raiseParseErrors errs
 
 addRange :: (Monad m, IsBlock il bl)
          => BlockNode m il bl -> bl -> bl
@@ -377,7 +378,7 @@ paraSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 paraSpec = BlockSpec
      { blockType           = "Paragraph"
-     , blockStart          = try $ do
+     , blockStart          = do
              interruptsParagraph >>= guard . not
              skipWhile (hasType Spaces)
              pos <- getPosition
@@ -388,7 +389,7 @@ paraSpec = BlockSpec
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = True
-     , blockContinue       = \n -> lookAhead $ try $ do
+     , blockContinue       = \n -> lookAhead $ do
              skipWhile (hasType Spaces)
              pos <- getPosition
              notFollowedBy lineEnd
@@ -397,9 +398,8 @@ paraSpec = BlockSpec
          (addRange node . paragraph)
              <$> runInlineParser (getBlockText removeIndent node)
      , blockFinalize       = \child parent ->
-         case parse ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
-                               many1 linkReferenceDef)
-                         <*> getInput) ""
+         case runParser ((,) <$> (some linkReferenceDef)
+                         <*> getInput) ()
                   (getBlockText removeIndent child) of
                Left _ -> defaultFinalizer child parent
                Right (linkdefs, toks') -> do
@@ -445,8 +445,8 @@ plainSpec = paraSpec{
   }
 
 
-linkReferenceDef :: Parsec [Tok] s ((SourceRange, Text), (Text, Text))
-linkReferenceDef = try $ do
+linkReferenceDef :: Parser Tok s ((SourceRange, Text), (Text, Text))
+linkReferenceDef = do
   startpos <- getPosition
   lab <- pLinkLabel
   guard $ not $ T.all isSpace lab
@@ -454,7 +454,7 @@ linkReferenceDef = try $ do
   optional whitespace
   dest <- pLinkDestination
   guard $ not . null $ dest
-  title <- option [] $ try $
+  title <- option [] $
              whitespace
              *> pLinkTitle
              <* skipWhile (hasType Spaces)
@@ -469,10 +469,10 @@ atxHeaderSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 atxHeaderSpec = BlockSpec
      { blockType           = "ATXHeader"
-     , blockStart          = try $ do
+     , blockStart          = do
              nonindentSpaces
              pos <- getPosition
-             hashes <- many1 (symbol '#')
+             hashes <- some (symbol '#')
              let level = length hashes
              guard $ level <= 6
              void spaceTok
@@ -512,13 +512,13 @@ setextHeaderSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 setextHeaderSpec = BlockSpec
      { blockType           = "SetextHeader"
-     , blockStart          = try $ do
+     , blockStart          = do
              (cur:rest) <- nodeStack <$> getState
              guard $ blockParagraph (bspec cur)
              nonindentSpaces
              pos <- getPosition
-             level <- (2 :: Int) <$ skipMany1 (symbol '-')
-                  <|> (1 :: Int) <$ skipMany1 (symbol '=')
+             level <- (2 :: Int) <$ some (symbol '-')
+                  <|> (1 :: Int) <$ some (symbol '=')
              skipWhile (hasType Spaces)
              lookAhead (eof <|> void lineEnd)
              -- replace cur with new setext header node
@@ -545,7 +545,7 @@ setextHeaderSpec = BlockSpec
 blockQuoteSpec :: (Monad m, IsBlock il bl) => BlockSpec m il bl
 blockQuoteSpec = BlockSpec
      { blockType           = "BlockQuote"
-     , blockStart          = try $ do
+     , blockStart          = do
              nonindentSpaces
              pos <- getPosition
              _ <- symbol '>'
@@ -556,7 +556,7 @@ blockQuoteSpec = BlockSpec
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = \n -> try $ do
+     , blockContinue       = \n -> do
              nonindentSpaces
              pos <- getPosition
              _ <- symbol '>'
@@ -573,7 +573,7 @@ blockQuoteSpec = BlockSpec
 listItemSpec :: (Monad m, IsBlock il bl) => BlockSpec m il bl
 listItemSpec = BlockSpec
      { blockType           = "ListItem"
-     , blockStart          = try $ do
+     , blockStart          = do
              (pos, lidata) <- itemStart
              let linode = Node (defBlockData listItemSpec){
                              blockData = toDyn lidata,
@@ -633,7 +633,7 @@ itemStart = do
   ty <- bulletListMarker <|> orderedListMarker
   aftercol <- sourceColumn <$> getPosition
   lookAhead whitespace
-  numspaces <- try (gobbleUpToSpaces 4 <* notFollowedBy whitespace)
+  numspaces <- (gobbleUpToSpaces 4 <* notFollowedBy whitespace)
            <|> gobbleSpaces 1
            <|> 1 <$ lookAhead lineEnd
   return (pos, ListItemData{
@@ -718,11 +718,11 @@ thematicBreakSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 thematicBreakSpec = BlockSpec
      { blockType           = "ThematicBreak"
-     , blockStart          = try $ do
+     , blockStart          = do
              nonindentSpaces
              pos <- getPosition
              let tbchar c = symbol c <* skipWhile (hasType Spaces)
-             cs <- choice $ map (many1 . tbchar) ['-', '_', '*']
+             cs <- msum $ map (some . tbchar) ['-', '_', '*']
              guard $ length cs >= 3
              void $ lookAhead lineEnd
              addNodeToStack $
@@ -741,7 +741,7 @@ indentedCodeSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 indentedCodeSpec = BlockSpec
      { blockType           = "IndentedCode"
-     , blockStart          = try $ do
+     , blockStart          = do
              interruptsParagraph >>= guard . not
              getState >>= guard . not . maybeLazy
              _ <- gobbleSpaces 4
@@ -754,7 +754,7 @@ indentedCodeSpec = BlockSpec
      , blockParagraph      = False
      , blockContinue       = \node -> do
              void (gobbleSpaces 4)
-               <|> try (skipWhile (hasType Spaces) <* lookAhead lineEnd)
+               <|> (skipWhile (hasType Spaces) <* lookAhead lineEnd)
              pos <- getPosition
              return (pos, node)
 
@@ -779,13 +779,13 @@ fencedCodeSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 fencedCodeSpec = BlockSpec
      { blockType           = "FencedCode"
-     , blockStart          = try $ do
+     , blockStart          = do
              prepos <- getPosition
              nonindentSpaces
              pos <- getPosition
              let indentspaces = sourceColumn pos - sourceColumn prepos
-             (c, ticks) <-  (('`',) <$> many1 (symbol '`'))
-                        <|> (('~',) <$> many1 (symbol '~'))
+             (c, ticks) <-  (('`',) <$> some (symbol '`'))
+                        <|> (('~',) <$> some (symbol '~'))
              let fencelength = length ticks
              guard $ fencelength >= 3
              skipWhile (hasType Spaces)
@@ -800,14 +800,14 @@ fencedCodeSpec = BlockSpec
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = False
-     , blockContinue       = \node -> try (do
+     , blockContinue       = \node -> (do
              let ((c, fencelength, _, _)
                     :: (Char, Int, Int, Text)) = fromDyn
                                    (blockData (rootLabel node))
                                    ('`', 3, 0, mempty)
              nonindentSpaces
              pos <- getPosition
-             ts <- many1 (symbol c)
+             ts <- some (symbol c)
              guard $ length ts >= fencelength
              skipWhile (hasType Spaces)
              lookAhead $ void lineEnd <|> eof
@@ -834,12 +834,12 @@ rawHtmlSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 rawHtmlSpec = BlockSpec
      { blockType           = "RawHTML"
-     , blockStart          = try $ do
+     , blockStart          = do
          pos <- getPosition
          (rawHtmlType, toks) <- withRaw $
            do nonindentSpaces
               symbol '<'
-              ty <- choice $ map (\n -> n <$ startCond n) [1..7]
+              ty <- msum $ map (\n -> n <$ startCond n) [1..7]
               -- some blocks can end on same line
               finished <- option False $ do
                  guard (ty /= 6 && ty /= 7)
@@ -860,7 +860,7 @@ rawHtmlSpec = BlockSpec
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = False
-     , blockContinue       = \node@(Node ndata children) -> try $ do
+     , blockContinue       = \node@(Node ndata children) -> do
          pos <- getPosition
          case fromDyn (blockData (rootLabel node)) (0 :: Int) of
               0 -> mzero  -- 0 means that the block start already closed
@@ -886,27 +886,27 @@ rawHtmlSpec = BlockSpec
 ---------------- for raw html:
 
 startCond :: Monad m => Int -> BlockParser m il bl ()
-startCond 1 = void $ try $ do
+startCond 1 = void $ do
   satisfyWord (isOneOfCI ["script","pre","style"])
   spaceTok
      <|> symbol '>'
      <|> lookAhead lineEnd
-startCond 2 = void $ try $ do
+startCond 2 = void $ do
   symbol '!'
   symbol '-'
   symbol '-'
 startCond 3 = void $ symbol '?'
-startCond 4 = void $ try $ do
+startCond 4 = void $ do
   symbol '!'
   satisfyWord (\t -> case T.uncons t of
                           Just (c, _) -> isAsciiUpper c
                           _           -> False)
-startCond 5 = void $ try $ do
+startCond 5 = void $ do
   symbol '!'
   symbol '['
   satisfyWord (== "CDATA")
   symbol '['
-startCond 6 = void $ try $ do
+startCond 6 = void $ do
   optional (symbol '/')
   satisfyWord (isOneOfCI ["address", "article", "aside", "base",
     "basefont", "blockquote", "body", "caption", "center", "col",
@@ -921,7 +921,7 @@ startCond 6 = void $ try $ do
     <|> lookAhead lineEnd
     <|> symbol '>'
     <|> (symbol '/' >> symbol '>')
-startCond 7 = void $ try $ do
+startCond 7 = void $ do
   toks <- htmlOpenTag <|> htmlClosingTag
   guard $ not $ any (hasType LineEnd) toks
   skipWhile (hasType Spaces)
@@ -929,23 +929,22 @@ startCond 7 = void $ try $ do
 startCond n = fail $ "Unknown HTML block type " ++ show n
 
 endCond :: Monad m => Int -> BlockParser m il bl ()
-endCond 1 = try $ do
-  let closer = try $ do
+endCond 1 = do
+  let closer = do
         symbol '<'
         symbol '/'
         satisfyWord (isOneOfCI ["script","pre","style"])
         symbol '>'
   skipManyTill (satisfyTok (not . hasType LineEnd)) closer
-endCond 2 = try $ do
-  let closer = try $ symbol '-' >> symbol '-' >> symbol '>'
+endCond 2 = do
+  let closer = symbol '-' >> symbol '-' >> symbol '>'
   skipManyTill (satisfyTok (not . hasType LineEnd)) closer
-endCond 3 = try $ do
-  let closer = try $ symbol '?' >> symbol '>'
+endCond 3 = do
+  let closer = symbol '?' >> symbol '>'
   skipManyTill (satisfyTok (not . hasType LineEnd)) closer
-endCond 4 = try $
-  skipManyTill (satisfyTok (not . hasType LineEnd)) (symbol '>')
-endCond 5 = try $ do
-  let closer = try $ symbol ']' >> symbol ']' >> symbol '>'
+endCond 4 = skipManyTill (satisfyTok (not . hasType LineEnd)) (symbol '>')
+endCond 5 = do
+  let closer = symbol ']' >> symbol ']' >> symbol '>'
   skipManyTill (satisfyTok (not . hasType LineEnd)) closer
 endCond 6 = void blankLine
 endCond 7 = void blankLine
@@ -962,7 +961,9 @@ removeIndent = dropWhile (hasType Spaces)
 
 -------------------------------------------------------------------------
 
-collapseNodeStack :: [BlockNode m il bl] -> BlockParser m il bl (BlockNode m il bl)
+collapseNodeStack :: Monad m
+                  => [BlockNode m il bl]
+                  -> BlockParser m il bl (BlockNode m il bl)
 collapseNodeStack [] = error "Empty node stack!"  -- should not happen
 collapseNodeStack (n:ns) = foldM go n ns
   where go child parent

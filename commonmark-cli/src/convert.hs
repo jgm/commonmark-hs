@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
-import           Commonmark
+import           Commonmark                 hiding (SourcePos)
 import           Commonmark.Pandoc
 import           Commonmark.Lucid
 import qualified Lucid                      as Lucid
@@ -114,9 +114,9 @@ main = do
              Left e -> errExit e
              Right (r :: Builder) -> TLIO.putStr . toLazyText $ r
 
-errExit :: ParseError -> IO a
-errExit err = do
-  hPrint stderr err
+errExit :: [ParseError Tok] -> IO a
+errExit errs = do
+  hPrint stderr $ renderParseErrors errs
   exitWith (ExitFailure 1)
 
 extensions :: (Monad m, Typeable m,

@@ -10,9 +10,9 @@ import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.Util
-import Control.Monad (guard)
+import Commonmark.ParserCombinators
+import Control.Monad (guard, void)
 import Data.List (dropWhileEnd)
-import Text.Parsec
 import Data.Text (Text)
 #if !MIN_VERSION_base(4,11,0)
 import Data.Monoid
@@ -34,7 +34,7 @@ parseAutolink = do
   return $ link (prefix <> untokenize linktext) "" (str . untokenize $ linktext)
 
 wwwAutolink :: Monad m => InlineParser m Text
-wwwAutolink = try $ do
+wwwAutolink = do
   lookAhead $ satisfyWord (== "www")
   validDomain
   linkSuffix
@@ -43,17 +43,17 @@ wwwAutolink = try $ do
 validDomain :: Monad m => InlineParser m ()
 validDomain = do
   let domainPart = do
-        ds <- many1 $ satisfyTok (hasType WordChars)
+        ds <- some $ satisfyTok (hasType WordChars)
                            <|> symbol '-'
                            <|> symbol '_'
         guard $ case reverse ds of
                      (Tok WordChars _ _ : _) -> True
                      _ -> False
   domainPart
-  skipMany1 $ try (symbol '.' >> domainPart)
+  void $ some $ (symbol '.' >> domainPart)
 
 linkSuffix :: Monad m => InlineParser m ()
-linkSuffix = try $ do
+linkSuffix = do
   toks <- getInput
   let possibleSuffixTok (Tok (Symbol c) _ _) = c /= '<'
       possibleSuffixTok (Tok WordChars _ _) = True
@@ -77,7 +77,7 @@ linkSuffix = try $ do
   return ()
 
 urlAutolink :: Monad m => InlineParser m Text
-urlAutolink = try $ do
+urlAutolink = do
   satisfyWord (`elem` ["http", "https", "ftp"])
   symbol ':'
   symbol '/'
@@ -87,12 +87,12 @@ urlAutolink = try $ do
   return ""
 
 emailAutolink :: Monad m => InlineParser m Text
-emailAutolink = try $ do
+emailAutolink = do
   let emailNameTok (Tok WordChars _ _) = True
       emailNameTok (Tok (Symbol c) _ _) =
          c == '.' || c == '-' || c == '_' || c == '+'
       emailNameTok _ = False
-  skipMany1 $ satisfyTok emailNameTok
+  void $ some $ satisfyTok emailNameTok
   symbol '@'
   validDomain
   return "mailto:"

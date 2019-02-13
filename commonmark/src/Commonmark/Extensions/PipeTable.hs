@@ -13,14 +13,14 @@ module Commonmark.Extensions.PipeTable
  )
 where
 
-import Control.Monad (guard)
+import Control.Monad (guard, msum)
 import Commonmark.Syntax
 import Commonmark.Types
 import Commonmark.Tokens
 import Commonmark.Util
 import Commonmark.Blocks
 import Commonmark.SourceMap
-import Text.Parsec
+import Commonmark.ParserCombinators
 import Data.Dynamic
 import Data.Tree
 import Data.Data
@@ -73,10 +73,10 @@ instance (HasPipeTable i b, Monoid b)
     (pipeTable aligns <$> sequence headerCells <*> mapM sequence rows)
      <* addName "pipeTable"
 
-pCells :: Monad m => ParsecT [Tok] s m [[Tok]]
-pCells = try $ do
+pCells :: Monad m => ParserT Tok s m [[Tok]]
+pCells = do
   hasPipe <- option False $ True <$ symbol '|'
-  pipedCells <- many (try $ pCell <* symbol '|')
+  pipedCells <- many (pCell <* symbol '|')
   unpipedCell <- option [] $ (:[]) <$> pCell
   let cells = pipedCells ++ unpipedCell
   guard $ not (null cells)
@@ -84,10 +84,9 @@ pCells = try $ do
   lookAhead blankLine
   return cells
 
-pCell :: Monad m => ParsecT [Tok] s m [Tok]
-pCell = mconcat <$> many1
-  ( try
-      (do tok' <- symbol '\\'
+pCell :: Monad m => ParserT Tok s m [Tok]
+pCell = mconcat <$> some
+  (   (do tok' <- symbol '\\'
           tok@(Tok (Symbol c) _ _) <- anySymbol
           if c == '|'
              then return [tok]
@@ -97,10 +96,10 @@ pCell = mconcat <$> many1
           return [tok])
   ) <|> ([] <$ lookAhead (symbol '|'))
 
-pDividers :: Monad m => ParsecT [Tok] s m [ColAlignment]
-pDividers = try $ do
+pDividers :: Monad m => ParserT Tok s m [ColAlignment]
+pDividers = do
   hasPipe <- option False $ True <$ symbol '|'
-  pipedAligns <- many (try $ pDivider <* symbol '|')
+  pipedAligns <- many (pDivider <* symbol '|')
   unpipedAlign <- option [] $ (:[]) <$> pDivider
   let aligns = pipedAligns ++ unpipedAlign
   guard $ not (null aligns)
@@ -109,20 +108,20 @@ pDividers = try $ do
   return aligns
 
 
-pDivider :: Monad m => ParsecT [Tok] s m ColAlignment
-pDivider = try $ do
-  skipMany $ satisfyTok (hasType Spaces)
-  align <- choice
+pDivider :: Monad m => ParserT Tok s m ColAlignment
+pDivider = do
+  skipWhile (hasType Spaces)
+  align <- msum
     [ CenterAlignedCol <$
-       try (symbol ':' >> many1 (symbol '-') >> symbol ':')
+       (symbol ':' >> some (symbol '-') >> symbol ':')
     , LeftAlignedCol <$
-       try (symbol ':' >> many1 (symbol '-'))
+       (symbol ':' >> some (symbol '-'))
     , RightAlignedCol <$
-       try (many1 (symbol '-') >> symbol ':')
+       (some (symbol '-') >> symbol ':')
     , DefaultAlignedCol <$
-       many1 (symbol '-')
+       some (symbol '-')
     ]
-  skipMany $ satisfyTok (hasType Spaces)
+  skipWhile (hasType Spaces)
   return align
 
 pipeTableSpec :: (Monad m, IsBlock il bl, IsInline il, HasPipeTable il bl)
@@ -140,7 +139,7 @@ pipeTableBlockSpec :: (Monad m, IsBlock il bl, IsInline il,
                    => BlockSpec m il bl
 pipeTableBlockSpec = BlockSpec
      { blockType           = "PipeTable" -- :: Text
-     , blockStart          = try $ do -- :: BlockParser m il bl ()
+     , blockStart          = do -- :: BlockParser m il bl ()
          interruptsParagraph >>= guard . not
          nonindentSpaces
          pos <- getPosition
@@ -160,7 +159,7 @@ pipeTableBlockSpec = BlockSpec
      , blockCanContain     = \_ -> False -- :: BlockSpec m il bl -> Bool
      , blockContainsLines  = False -- :: Bool
      , blockParagraph      = False -- :: Bool
-     , blockContinue       = \(Node ndata children) -> try $ do
+     , blockContinue       = \(Node ndata children) -> do
          nonindentSpaces
          notFollowedBy blankLine
          let tabledata = fromDyn
@@ -179,7 +178,7 @@ pipeTableBlockSpec = BlockSpec
            else
              -- last line was first; check for separators
              -- and if not found, convert to paragraph:
-             try (do aligns <- pDividers
+             (do     aligns <- pDividers
                      guard $ length aligns ==
                              length (pipeTableHeaders tabledata)
                      let tabledata' = tabledata{ pipeTableAlignments = aligns }

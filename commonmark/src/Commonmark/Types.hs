@@ -11,7 +11,7 @@ module Commonmark.Types
   , IsInline(..)
   , IsBlock(..)
   , SourceRange(..)
-  , SourcePos
+  , SourcePos(..)
   , Rangeable(..)
   )
 where
@@ -19,8 +19,6 @@ import           Data.Data            (Data)
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 import           Data.Typeable        (Typeable)
-import           Text.Parsec.Pos      (SourcePos, sourceColumn, sourceLine,
-                                       sourceName)
 import           Data.Semigroup       (Semigroup, (<>))
 import           Data.Text.Lazy.Builder (Builder, singleton, fromText,
                                          fromString)
@@ -28,6 +26,7 @@ import           Data.Char            (isSpace)
 import           Commonmark.Html      (escapeHtmlChar, escapeHtml,
                                        escapeURI, innerText)
 import           Commonmark.Entity    (lookupEntity)
+import           Commonmark.ParserCombinators (SourcePos(..))
 
 newtype Format = Format Text
   deriving (Show, Data, Typeable)

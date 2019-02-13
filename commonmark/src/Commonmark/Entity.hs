@@ -11,12 +11,11 @@ module Commonmark.Entity
 where
 
 import Data.Char (chr)
-import Data.Functor.Identity (Identity)
 import qualified Data.Map as Map
 import Numeric (readHex)
 import Commonmark.Util
 import Commonmark.Tokens
-import Text.Parsec
+import Commonmark.ParserCombinators
 import qualified Data.Text as T
 import Data.Text (Text)
 import Control.Monad (guard, mzero)
@@ -2309,14 +2308,14 @@ htmlEntities =
     ,("zwnj;", "\x200C")
     ]
 
-charEntity :: Monad m => ParsecT [Tok] s m [Tok]
+charEntity :: Monad m => ParserT Tok s m [Tok]
 charEntity = do
   wc@(Tok WordChars _ ts) <- satisfyTok (hasType WordChars)
   semi <- symbol ';'
   guard $ isJust $ lookupEntity (T.unpack (ts <> ";"))
   return [wc, semi]
 
-numEntity :: Monad m => ParsecT [Tok] s m [Tok]
+numEntity :: Monad m => ParserT Tok s m [Tok]
 numEntity = do
   octo <- symbol '#'
   wc@(Tok WordChars _ t) <- satisfyTok (hasType WordChars)
@@ -2335,11 +2334,11 @@ numEntity = do
 
 unEntity :: [Tok] -> Text
 unEntity ts = untokenize $
-  case parse (many (pEntity' <|> anyTok)) "" ts of
+  case runParser (many (pEntity' <|> anyTok)) () ts of
         Left _    -> ts
         Right ts' -> ts'
-  where pEntity' :: ParsecT [Tok] () Identity Tok
-        pEntity' = try $ do
+  where pEntity' :: Parser Tok () Tok
+        pEntity' = do
           pos <- getPosition
           symbol '&'
           ent <- untokenize <$> (numEntity <|> charEntity)

@@ -13,7 +13,7 @@ import           Commonmark.Inlines
 import           Commonmark.Tokens
 import           Commonmark.Types
 import           Commonmark.Syntax (SyntaxSpec(..), defaultSyntaxSpec)
-import           Text.Parsec.Error (ParseError)
+import           Commonmark.ParserCombinators (ParseError(..))
 import           Data.Functor.Identity   (runIdentity)
 
 -- | Parse a tokenized commonmark document using the core syntax
@@ -35,7 +35,7 @@ import           Data.Functor.Identity   (runIdentity)
 -- @
 parseCommonmark :: IsBlock il bl
                 => [Tok] -- ^ Tokenized commonmark input
-                -> Either ParseError bl  -- ^ Result or error
+                -> Either [ParseError Tok] bl  -- ^ Result or error
 parseCommonmark = runIdentity . parseCommonmarkWith defaultSyntaxSpec
 
 -- | Parse a tokenized commonmark document using specified
@@ -43,7 +43,7 @@ parseCommonmark = runIdentity . parseCommonmarkWith defaultSyntaxSpec
 parseCommonmarkWith :: (Monad m, IsBlock il bl, IsInline il)
                     => SyntaxSpec m il bl -- ^ Defines syntax
                     -> [Tok] -- ^ Tokenized commonmark input
-                    -> m (Either ParseError bl)  -- ^ Result or error
+                    -> m (Either [ParseError Tok] bl)  -- ^ Result or error
 parseCommonmarkWith syntax =
     mkBlockParser (syntaxBlockSpecs syntax)
       (syntaxFinalParsers syntax)

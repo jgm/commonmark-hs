@@ -36,8 +36,9 @@ import           Commonmark.Tag             (htmlTag)
 import           Commonmark.Tokens
 import           Commonmark.Util
 import           Commonmark.ReferenceMap
+import           Commonmark.ParserCombinators
 import           Commonmark.Types
-import           Control.Monad              (guard, mzero)
+import           Control.Monad              (guard, mzero, msum)
 import           Control.Monad.Trans.State.Strict (State, evalState,
                                              get, gets, modify)
 import           Data.Char                  (isAscii, isLetter)
@@ -52,8 +53,6 @@ import           Data.Monoid                ((<>))
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import           Commonmark.Entity          (unEntity, charEntity, numEntity)
-import           Text.Parsec                hiding (State, space)
-import           Text.Parsec.Pos
 
 mkInlineParser :: (Monad m, IsInline a)
                => [BracketedSpec a]
@@ -61,7 +60,7 @@ mkInlineParser :: (Monad m, IsInline a)
                -> [InlineParser m a]
                -> ReferenceMap
                -> [Tok]
-               -> m (Either ParseError a)
+               -> m (Either [ParseError Tok] a)
 mkInlineParser bracketedSpecs formattingSpecs ilParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
   res <- parseChunks bracketedSpecs formattingSpecs ilParsers rm
@@ -110,10 +109,10 @@ parseChunks :: (Monad m, IsInline a)
             -> [InlineParser m a]
             -> ReferenceMap
             -> [Tok]
-            -> m (Either ParseError [Chunk a])
+            -> m (Either [ParseError Tok] [Chunk a])
 parseChunks _ _ _ _ []             = return (Right [])
 parseChunks bspecs specs ilParsers rm (t:ts) =
-  runParserT (setPosition (tokPos t) >> many (pChunk specmap ilParsers) <* eof)
+  runParserT (many (pChunk specmap ilParsers) <* eof)
           IPState{ afterPunct = initialPos "",
                    afterSpace = tokPos t,
                    backtickSpans = getBacktickSpans (t:ts),
@@ -122,7 +121,7 @@ parseChunks bspecs specs ilParsers rm (t:ts) =
                      '[' : ']' : suffixchars ++ prefixchars
                                   ++ M.keys specmap,
                    ipReferenceMap = rm }
-          "source" (t:ts)
+          (t:ts)
   where specmap = mkFormattingSpecMap specs
         prefixchars = mapMaybe bracketedPrefix bspecs
         suffixchars = mapMaybe bracketedSuffixEnd bspecs
@@ -154,7 +153,7 @@ data IPState = IPState
      , ipReferenceMap       :: ReferenceMap
      } deriving Show
 
-type InlineParser m = ParsecT [Tok] IPState m
+type InlineParser m = ParserT Tok IPState m
 
 --- Formatting specs:
 
@@ -197,7 +196,7 @@ data BracketedSpec il = BracketedSpec
      , bracketedSuffixEnd :: Maybe Char -- ^ Suffix character.
      , bracketedSuffix    :: ReferenceMap
                           -> Text
-                          -> Parsec [Tok] () (il -> il)
+                          -> Parser Tok () (il -> il)
                           -- ^ Parser for suffix after
                           -- brackets.  Returns a constructor.
                           -- Second parameter is the raw key.
@@ -233,13 +232,13 @@ imageSpec = BracketedSpec
             }
 
 pLinkSuffix :: IsInline il
-            => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
+            => ReferenceMap -> Text -> Parser Tok s (il -> il)
 pLinkSuffix rm key = do
   LinkInfo target title <- pLink rm key
   return $ link target title
 
 pImageSuffix :: IsInline il
-             => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
+             => ReferenceMap -> Text -> Parser Tok s (il -> il)
 pImageSuffix rm key = do
   LinkInfo target title <- pLink rm key
   return $ image target title
@@ -272,7 +271,7 @@ pChunk :: (IsInline a, Monad m)
        -> InlineParser m (Chunk a)
 pChunk specmap ilParsers =
       (do pos <- getPosition
-          (ils, ts) <- withRaw $ many1 (pInline ilParsers)
+          (ils, ts) <- withRaw $ some (pInline ilParsers)
           return $ Chunk (Parsed (mconcat ils)) pos ts)
    <|> pDelimChunk specmap
 
@@ -293,7 +292,7 @@ pNonDelimTok = do
 pDelimChunk :: (IsInline a, Monad m)
             => FormattingSpecMap a
             -> InlineParser m (Chunk a)
-pDelimChunk specmap = try $ do
+pDelimChunk specmap = do
   tok@(Tok (Symbol c) pos _) <- pDelimTok
   let mbspec = M.lookup c specmap
   more <- if isJust mbspec
@@ -350,7 +349,7 @@ pInline :: (IsInline a, Monad m)
         => [InlineParser m a]
         -> InlineParser m a
 pInline ilParsers = do
-  (res, toks) <- withRaw $ choice ilParsers <|> pSymbol
+  (res, toks) <- withRaw $ msum ilParsers <|> pSymbol
   newpos <- getPosition
   guard $ not (null toks)
   case tokType (head toks) of
@@ -385,7 +384,7 @@ pEscapedChar = do
    return (str "\\")
 
 pEntity :: (IsInline a, Monad m) => InlineParser m a
-pEntity = try $ do
+pEntity = do
   symbol '&'
   ent <- numEntity <|> charEntity
   return (entity ("&" <> untokenize ent))
@@ -394,7 +393,7 @@ pBacktickSpan :: Monad m
               => InlineParser m (Either [Tok] [Tok])
 pBacktickSpan = do
   let backtick = symbol '`'
-  ts <- many1 backtick
+  ts <- some backtick
   pos' <- getPosition
   let numticks = length ts
   bspans <- backtickSpans <$> getState
@@ -403,8 +402,7 @@ pBacktickSpan = do
           toks <- getInput
           let (codetoks, rest) = span ((< pos'') . tokPos) toks
           setInput rest
-          setPosition pos''
-          _ <- count numticks (symbol '`')
+          _ <- sequence $ replicate numticks (symbol '`')
           notFollowedBy (symbol '`')
           updateState $ \st ->
             st{ backtickSpans = IntMap.insert numticks ps (backtickSpans st) }
@@ -428,19 +426,19 @@ pCodeSpan =
              | otherwise = s
 
 pHtml :: (IsInline a, Monad m) => InlineParser m a
-pHtml = try $ do
+pHtml = do
   t <- symbol '<'
   rawInline (Format "html") . untokenize . (t:) <$> htmlTag
 
 pAutolink :: (IsInline a, Monad m) => InlineParser m a
-pAutolink = try $ do
+pAutolink = do
   symbol '<'
   (target, lab) <- pUri <|> pEmail
   symbol '>'
   return $ link target "" (str lab)
 
 pUri :: Monad m => InlineParser m (Text, Text)
-pUri = try $ do
+pUri = do
   s <- pScheme
   _ <- symbol ':'
   let isURITok t =
@@ -454,7 +452,7 @@ pUri = try $ do
   return (uri, uri)
 
 pScheme :: Monad m => InlineParser m Text
-pScheme = try $ do
+pScheme = do
   t <- satisfyWord (\t -> case T.uncons t of
                                Nothing -> False
                                Just (c,rest) -> isAscii c && isLetter c &&
@@ -466,7 +464,7 @@ pScheme = try $ do
   return s
 
 pEmail :: Monad m => InlineParser m (Text, Text)
-pEmail = try $ do
+pEmail = do
   let isEmailSymbolTok (Tok (Symbol c) _ _) =
          c == '.' || c == '!' || c == '#' || c == '$' || c == '%' ||
          c == '&' || c == '\'' || c == '*' || c == '+' || c == '/' ||
@@ -474,7 +472,7 @@ pEmail = try $ do
          c == '{' || c == '|' || c == '}' || c == '~' || c == '-' ||
          c == ']'
       isEmailSymbolTok _ = False
-  name <- many1 $ satisfyWord (T.all isAscii)
+  name <- some $ satisfyWord (T.all isAscii)
                <|> satisfyTok isEmailSymbolTok
   _ <- symbol '@'
   let domainPart = do
@@ -754,14 +752,14 @@ processBs bracketedSpecs = do
                          , maybe True  (< chunkPos opener)
                             (M.lookup (bracketedName s) bottoms) ]
 
-          case parse
+          case runParser
                  (withRaw
-                   (do (spec, constructor) <- choice $
+                   (do (spec, constructor) <- msum $
                            map (\s -> (s,) <$> bracketedSuffix s rm key)
                            specs
                        pos <- getPosition
                        return (spec, constructor, pos)))
-                 ""
+                 ()
                  (mconcat (map chunkToks (afters right))) of
                    Left _ -> -- match but no link/image
                          modify $ \st ->
@@ -833,12 +831,11 @@ fixSingleQuote
   Cursor (Just (Chunk d{ delimCanOpen = False } pos toks)) xs ys
 fixSingleQuote cursor = cursor
 
-pLink :: ReferenceMap -> Text -> Parsec [Tok] s LinkInfo
-pLink rm key = do
-  pInlineLink <|> pReferenceLink rm key
+pLink :: ReferenceMap -> Text -> Parser Tok s LinkInfo
+pLink rm key = pInlineLink <|> pReferenceLink rm key
 
-pInlineLink :: Parsec [Tok] s LinkInfo
-pInlineLink = try $ do
+pInlineLink :: Parser Tok s LinkInfo
+pInlineLink = do
   _ <- symbol '('
   optional whitespace
   target <- unEntity <$> pLinkDestination
@@ -848,18 +845,18 @@ pInlineLink = try $ do
   _ <- symbol ')'
   return $ LinkInfo { linkDestination = target, linkTitle = title }
 
-pLinkDestination :: Parsec [Tok] s [Tok]
+pLinkDestination :: Parser Tok s [Tok]
 pLinkDestination = pAngleDest <|> pNormalDest
   where
-    pAngleDest = try $ do
+    pAngleDest = do
       _ <- symbol '<'
       res <- many (noneOfToks [Symbol '<', Symbol '>', Symbol '\\',
                                 LineEnd] <|> pEscaped)
       _ <- symbol '>'
       return res
-    pNormalDest = try $ do
+    pNormalDest = do
       res <- many $
-                  many1 (satisfyTok (\case
+                  some (satisfyTok (\case
                        Tok (Symbol c) _ _ -> c /= '(' && c /= ')' && c /= '\\'
                        Tok Spaces _ _     -> False
                        Tok LineEnd _ _    -> False
@@ -872,7 +869,7 @@ pLinkDestination = pAngleDest <|> pNormalDest
       return $ concat res
 
 -- parses backslash + escapable character, or just backslash
-pEscaped :: Monad m => ParsecT [Tok] s m Tok
+pEscaped :: Monad m => ParserT Tok s m Tok
 pEscaped = do
   bs <- symbol '\\'
   option bs $ satisfyTok asciiSymbol <|> lineEnd
@@ -881,24 +878,24 @@ asciiSymbol :: Tok -> Bool
 asciiSymbol (Tok (Symbol c) _ _) = isAscii c
 asciiSymbol _                    = False
 
-pLinkTitle :: Parsec [Tok] s [Tok]
+pLinkTitle :: Parser Tok s [Tok]
 pLinkTitle = inbetween '"' '"' <|> inbetween '\'' '\'' <|> inbetween '(' ')'
 
-inbetween :: Char -> Char -> Parsec [Tok] s [Tok]
+inbetween :: Char -> Char -> Parser Tok s [Tok]
 inbetween op cl =
-  try $ between (symbol op) (symbol cl)
+  between (symbol op) (symbol cl)
      (many (pEscaped <|> noneOfToks [Symbol cl]))
 
-pLinkLabel :: Monad m => ParsecT [Tok] s m Text
-pLinkLabel = try $ do
+pLinkLabel :: Monad m => ParserT Tok s m Text
+pLinkLabel = do
   lab <- untokenize
-      <$> try (between (symbol '[') (symbol ']')
+      <$> (between (symbol '[') (symbol ']')
             (snd <$> withRaw (many
               (pEscaped <|> noneOfToks [Symbol ']', Symbol '[']))))
   guard $ T.length lab <= 999
   return lab
 
-pReferenceLink :: ReferenceMap -> Text -> Parsec [Tok] s LinkInfo
+pReferenceLink :: ReferenceMap -> Text -> Parser Tok s LinkInfo
 pReferenceLink rm key = do
   lab <- option key pLinkLabel
   let key' = if T.null lab

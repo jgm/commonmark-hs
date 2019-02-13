@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-import           Commonmark.Parser
+import           Commonmark.Parser hiding (SourcePos(..))
 import           Commonmark.Extensions.Autolink
 import           Commonmark.Extensions.PipeTable
 import           Commonmark.Extensions.Smart
@@ -20,7 +20,7 @@ import           Data.Text.Lazy.Builder (toLazyText, Builder)
 import           Test.Tasty
 import           Test.Tasty.HUnit
 import           Test.Tasty.QuickCheck
-import           Text.Parsec
+import           Text.Parsec hiding (ParseError)
 import           Text.Parsec.Pos
 
 main :: IO ()
@@ -88,7 +88,7 @@ data SpecTest = SpecTest
      , html       :: Text }
   deriving (Show)
 
-toSpecTest :: ([Tok] -> Either ParseError Builder)
+toSpecTest :: ([Tok] -> Either [ParseError Tok] Builder)
            -> SpecTest -> TestTree
 toSpecTest parser st =
   testCase name (actual @?= expected)
@@ -99,7 +99,7 @@ toSpecTest parser st =
           actual = normalizeHtml .  TL.toStrict . toLazyText .
                    fromRight mempty $
                      (parser (tokenize "" (markdown st))
-                      :: Either ParseError Builder)
+                      :: Either [ParseError Tok] Builder)
 
 normalizeHtml :: Text -> Text
 normalizeHtml = T.replace "\n</li>" "</li>" .

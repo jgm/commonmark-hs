@@ -17,6 +17,7 @@ import Commonmark.Syntax
 import Commonmark.Blocks
 import Commonmark.Inlines
 import Commonmark.SourceMap
+import Commonmark.ParserCombinators
 import Commonmark.Util
 import Commonmark.ReferenceMap
 import Control.Monad.Trans.Class (lift)
@@ -29,14 +30,13 @@ import Data.Monoid
 #endif
 import Data.Dynamic
 import Data.Tree
-import Text.Parsec
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Map as M
 import Data.Text.Lazy.Builder (Builder)
 
 data FootnoteDef bl m =
-  FootnoteDef Int Text (ReferenceMap -> m (Either ParseError bl))
+  FootnoteDef Int Text (ReferenceMap -> m (Either [ParseError Tok] bl))
   deriving Typeable
 
 instance Eq (FootnoteDef bl m) where
@@ -63,7 +63,7 @@ footnoteBlockSpec :: (Monad m, Typeable m, Typeable il, Typeable bl,
                   => BlockSpec m il bl
 footnoteBlockSpec = BlockSpec
      { blockType           = "Footnote"
-     , blockStart          = try $ do
+     , blockStart          = do
              nonindentSpaces
              pos <- getPosition
              lab' <- pFootnoteLabel
@@ -81,7 +81,7 @@ footnoteBlockSpec = BlockSpec
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = \n -> try $ do
+     , blockContinue       = \n -> do
              () <$ (gobbleSpaces 4)
                <|> (skipWhile (hasType Spaces) >> () <$ lookAhead lineEnd)
              pos <- getPosition
@@ -97,7 +97,7 @@ footnoteBlockSpec = BlockSpec
                runParserT
                  (blockConstructor (blockSpec root) (Node root children))
                  st{ referenceMap = refmap }
-                 "source" []
+                 []
          updateState $ \s -> s{
              referenceMap = insertReference lab'
                               (FootnoteDef num lab' mkNoteContents)
@@ -106,8 +106,8 @@ footnoteBlockSpec = BlockSpec
          return parent
      }
 
-pFootnoteLabel :: Monad m => ParsecT [Tok] u m Text
-pFootnoteLabel = try $ do
+pFootnoteLabel :: Monad m => ParserT Tok u m Text
+pFootnoteLabel = do
   lab <- pLinkLabel
   case T.uncons lab of
         Just ('^', t') -> return t'
@@ -116,14 +116,14 @@ pFootnoteLabel = try $ do
 pFootnoteRef :: (Monad m, Typeable m, Typeable a,
                  Typeable b, IsInline a, IsBlock a b, HasFootnote a b)
              => InlineParser m a
-pFootnoteRef = try $ do
+pFootnoteRef = do
   lab <- pFootnoteLabel
   rm <- ipReferenceMap <$> getState
   case lookupReference lab rm of
         Just (FootnoteDef num _ mkContents) -> do
           res <- lift $ mkContents rm
           case res of
-               Left err -> mkPT (\_ -> return (Empty (return (Error err))))
+               Left errs -> raiseParseErrors errs
                Right contents -> return $
                  footnoteRef (T.pack (show num)) lab contents
         Nothing -> mzero
@@ -138,7 +138,7 @@ addFootnoteList = do
   let renderNote (FootnoteDef num lab mkContents) = do
         res <- lift $ mkContents rm
         case res of
-             Left err -> mkPT (\_ -> return (Empty (return (Error err))))
+             Left errs -> raiseParseErrors errs
              Right contents -> return $ footnote num lab contents
   if null notes
      then return mempty

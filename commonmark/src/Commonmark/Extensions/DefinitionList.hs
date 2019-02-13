@@ -16,6 +16,7 @@ import Commonmark.Syntax
 import Commonmark.Blocks
 import Commonmark.SourceMap
 import Commonmark.Util
+import Commonmark.ParserCombinators
 import Control.Monad (mzero)
 import Data.Semigroup (Semigroup)
 #if !MIN_VERSION_base(4,11,0)
@@ -23,7 +24,6 @@ import Data.Monoid
 #endif
 import Data.Dynamic
 import Data.Tree
-import Text.Parsec
 import Data.Text.Lazy.Builder (Builder)
 
 definitionListSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
@@ -60,7 +60,7 @@ definitionListItemBlockSpec ::
    => BlockSpec m il bl
 definitionListItemBlockSpec = BlockSpec
      { blockType           = "DefinitionListItem"
-     , blockStart          = try $ do
+     , blockStart          = do
          n <- gobbleUpToSpaces 3
          symbol ':' <|> symbol '~'
          gobbleSpaces (min 1 (3 - n))

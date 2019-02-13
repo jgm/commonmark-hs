@@ -11,8 +11,7 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import           Data.Text.Lazy.Builder (Builder, singleton,
-                                         toLazyText, fromString,
-                                         fromLazyText)
+                                         toLazyText, fromString)
 import           Data.Text.Encoding   (encodeUtf8)
 import qualified Data.ByteString.Char8 as B
 import           Data.Semigroup       ((<>))
@@ -20,8 +19,8 @@ import           Text.Printf          (printf)
 import           Data.Char            (ord, isAlphaNum, isAscii)
 import           Commonmark.Entity    (unEntity)
 import           Commonmark.Tokens    (tokenize)
-import           Text.Parsec
 import           Commonmark.Util      (skipManyTill)
+import           Commonmark.ParserCombinators
 
 escapeHtml :: Text -> Builder
 escapeHtml = foldMap escapeHtmlChar . T.unpack
@@ -47,29 +46,38 @@ escapeURIChar c
                                      ';','=']
 
 innerText :: Builder -> Builder
-innerText = getInnerText . toLazyText
+innerText = getInnerText . TL.unpack . toLazyText
 
-pInnerText :: Parsec TL.Text () Builder
+pInnerText :: Parser Char () Builder
 pInnerText = (mconcat <$> many (pTag <|> pNonTag)) <* eof
 
-pTag :: Parsec TL.Text () Builder
+char :: Char -> Parser Char () Char
+char c = satisfy (== c)
+
+anyChar :: Parser Char () Char
+anyChar = satisfy (const True)
+
+string :: String -> Parser Char () String
+string s = sequence $ map char s
+
+pTag :: Parser Char () Builder
 pTag = do
   char '<'
   cs <- many (satisfy isAlphaNum)
   if cs == "img" || cs == "IMG"
      then do
-       alt <- option "" $ try $ do
-                skipManyTill anyChar (try (string "alt=\""))
+       alt <- option "" $ do
+                skipManyTill anyChar (string "alt=\"")
                 manyTill anyChar (char '"')
        skipManyTill anyChar (char '>')
        return $ fromString alt
      else mempty <$ skipManyTill anyChar (char '>')
 
-pNonTag :: Parsec TL.Text () Builder
-pNonTag = fromString <$> many1 (satisfy (/='<'))
+pNonTag :: Parser Char () Builder
+pNonTag = fromString <$> some (satisfy (/='<'))
 
-getInnerText :: TL.Text -> Builder
+getInnerText :: String -> Builder
 getInnerText t =
-  case parse pInnerText "" t of
-    Left _  -> fromLazyText t
+  case runParser pInnerText () t of
+    Left _  -> fromString t
     Right b -> b

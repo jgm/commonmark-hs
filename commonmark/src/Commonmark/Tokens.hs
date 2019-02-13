@@ -13,7 +13,10 @@ import           Data.List       (mapAccumL)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Data.Data       (Data, Typeable)
-import           Text.Parsec.Pos
+import           Commonmark.ParserCombinators
+                                 (SourcePos(..), initialPos,
+                                  incSourceLine, incSourceColumn,
+                                  HasSourcePos(..))
 
 data Tok = Tok { tokType     :: TokType
                , tokPos      :: SourcePos
@@ -28,6 +31,9 @@ data TokType =
      | WordChars
      | Symbol !Char
      deriving (Show, Eq, Ord, Data, Typeable)
+
+instance HasSourcePos Tok where
+  tokenSourcePos = tokPos
 
 -- | Convert a 'Text' into a list of 'Tok'. The first parameter
 -- species the source name.
@@ -54,7 +60,7 @@ labelTok pos t =
          | otherwise    -> (nextcol, Tok (Symbol c)   pos t)
   where
     c = T.head t
-    nextline = setSourceColumn (incSourceLine pos 1) 1
+    nextline = (incSourceLine pos 1){ sourceColumn = 1 }
     advancetab = incSourceColumn pos (4 - ((sourceColumn pos - 1) `mod` 4))
     advancecols = incSourceColumn pos (T.length t)
     nextcol = incSourceColumn pos 1

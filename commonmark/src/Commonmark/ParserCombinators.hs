@@ -151,8 +151,10 @@ instance Monad m => Monad (ParserT t u m) where
     case res of
       Left err -> return $ Left err
       Right (x, newst) -> unParserT (f x) newst
+  fail msg = ParserT $ \_ -> return $ Left [ParseFailure msg]
   {-# INLINE return #-}
   {-# INLINE (>>=) #-}
+  {-# INLINE fail #-}
 
 instance Monad m => MonadPlus (ParserT t u m)
 

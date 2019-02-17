@@ -58,6 +58,7 @@ library
     , bytestring
     , containers
     , transformers
+    , attoparsec
     , parsec
   if !impl(ghc >= 8.0)
     build-depends: semigroups == 0.18.*

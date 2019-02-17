@@ -150,11 +150,7 @@ instance Monad m => Monad (ParserT t u m) where
     res <- a st
     case res of
       Left err -> return $ Left err
-      Right (x, newst) -> do
-        res' <- unParserT (f x) newst
-        case res' of
-          Left err' -> return $ Left err'
-          Right (y, newst') -> return $ Right (y, newst')
+      Right (x, newst) -> unParserT (f x) newst
   {-# INLINE return #-}
   {-# INLINE (>>=) #-}
 

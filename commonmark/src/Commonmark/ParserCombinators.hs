@@ -59,15 +59,15 @@ instance Show SourcePos where
 
 initialPos :: String -> SourcePos
 initialPos name = SourcePos name 1 1
-{-# INLINE initialPos #-}
+{-# INLINABLE initialPos #-}
 
 incSourceLine :: SourcePos -> Int -> SourcePos
 incSourceLine (SourcePos name line col) n = SourcePos name (line + n) col
-{-# INLINE incSourceLine #-}
+{-# INLINABLE incSourceLine #-}
 
 incSourceColumn :: SourcePos -> Int -> SourcePos
 incSourceColumn (SourcePos name line col) n = SourcePos name line (col + n)
-{-# INLINE incSourceColumn #-}
+{-# INLINABLE incSourceColumn #-}
 
 class HasSourcePos t where
   tokenSourcePos :: t -> SourcePos

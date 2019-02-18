@@ -14,7 +14,6 @@ module Commonmark.Util
   , gobbleUpToSpaces
   , hasType
   , textIs
-  , whileM_
   , blankLine
   , restOfLine
   , isOneOfCI
@@ -22,7 +21,7 @@ module Commonmark.Util
   , skipManyTill
   )
   where
-import           Control.Monad   (mzero, when, void)
+import           Control.Monad   (mzero, void)
 import           Data.Maybe                (maybeToList)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
@@ -110,16 +109,6 @@ hasType ty (Tok ty' _ _) = ty == ty'
 -- | Filters tokens with certain contents.
 textIs :: (Text -> Bool) -> Tok -> Bool
 textIs f (Tok _ _ t) = f t
-
--- from monad-loops:
--- | Execute an action repeatedly as long as the given boolean expression
--- returns True.  The condition is evaluated before the loop body.
--- Discards results.
-whileM_ :: (Monad m) => m Bool -> m a -> m ()
-whileM_ p f = go
-    where go = do
-            x <- p
-            when x $ f >> go
 
 -- | Gobble up to 3 spaces (may be part of a tab).
 nonindentSpaces :: Monad m => ParserT Tok u m ()

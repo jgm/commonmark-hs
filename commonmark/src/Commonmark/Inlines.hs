@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
 
@@ -296,7 +297,6 @@ pDelimChunk specmap = do
              then many $ symbol c
              else return []
   let toks = tok:more
-  newpos <- getPosition
   next <- (tokType <$> lookAhead anyTok) <|> return LineEnd
   let precededByWhitespace =
         case mbLastTok of
@@ -354,7 +354,6 @@ pInline :: (IsInline a, Monad m)
         -> InlineParser m a
 pInline ilParsers = do
   (res, toks) <- withRaw $ msum ilParsers <|> pSymbol
-  newpos <- getPosition
   guard $ not (null toks)
   return $ ranged (rangeFromToks toks) res
 
@@ -527,19 +526,18 @@ processEmphasis xs =
                _ -> False) xs of
        (_,[]) -> xs
        (ys,z:zs) ->
-         evalState processEmphasis'
-            DState{ leftCursor = startcursor
-                  , rightCursor = startcursor
-                  , refmap = emptyReferenceMap
-                  , stackBottoms = mempty
-                  , absoluteBottom = chunkPos z }
+            let st = processEm
+                       DState{ leftCursor = startcursor
+                             , rightCursor = startcursor
+                             , refmap = emptyReferenceMap
+                             , stackBottoms = mempty
+                             , absoluteBottom = chunkPos z }
+            in  reverse $
+                case center (rightCursor st) of
+                   Nothing -> befores (rightCursor st)
+                   Just c  -> c : befores (rightCursor st)
          where
            startcursor = Cursor (Just z) (reverse ys) zs
-           processEmphasis' = do
-               whileM_ (gets (isJust . center . rightCursor)) processEm
-               st <- get
-               return $ reverse (maybe id (:) (center (rightCursor st))
-                                $ befores (rightCursor st))
 
 {- for debugging:
 prettyCursors :: (IsInline a) => Cursor (Chunk a) -> Cursor (Chunk a) -> String
@@ -555,18 +553,18 @@ prettyCursors left right =
        inBrs x = "{" ++ x ++ "}"
 -}
 
-processEm :: IsInline a => State (DState a) ()
-processEm = do
-  left <- gets leftCursor
-  right <- gets rightCursor
-  bottoms <- gets stackBottoms
-  -- trace (prettyCursors left right) $ return $! ()
-  case (center left, center right) of
-       (_, Nothing) -> return ()
+processEm :: IsInline a => DState a -> DState a
+processEm st =
+  let left = leftCursor st
+      right = rightCursor st
+      bottoms = stackBottoms st
+      -- trace (prettyCursors left right) $ return $! ()
+  in case (center left, center right) of
+       (_, Nothing) -> st
 
        (Nothing, Just (Chunk Delim{ delimType = c
                                   , delimCanClose = True } pos ts)) ->
-         modify $ \st ->
+           processEm $!
            st{ leftCursor   = right
              , rightCursor  = moveRight right
              , stackBottoms = M.insert
@@ -574,7 +572,7 @@ processEm = do
                    $ stackBottoms st
              }
 
-       (Nothing, Just _) -> modify $ \st ->
+       (Nothing, Just _) -> processEm $!
            st{ leftCursor = right
              , rightCursor = moveRight right
              }
@@ -582,51 +580,51 @@ processEm = do
        (Just chunk, Just closedelim@(Chunk Delim{ delimType = c,
                                                   delimCanClose = True,
                                                   delimSpec = Just spec} _ ts))
-         | delimsMatch chunk closedelim -> do
+         | delimsMatch chunk closedelim ->
            let closelen = length ts
-           let opendelim = chunk
-           let contents = take
+               opendelim = chunk
+               contents = take
                  (length (afters left) - (length (afters right) + 1))
                  (afters left)
-           let openlen = length (chunkToks opendelim)
-           let fallbackConstructor x = str (T.singleton c) <> x <>
+               openlen = length (chunkToks opendelim)
+               fallbackConstructor x = str (T.singleton c) <> x <>
                                        str (T.singleton c)
-           let (constructor, numtoks)
-                = case (formattingSingleMatch spec, formattingDoubleMatch spec) of
+               (constructor, numtoks) =
+                case (formattingSingleMatch spec, formattingDoubleMatch spec) of
                         (_, Just c2)
                           | min openlen closelen >= 2 -> (c2, 2)
                         (Just c1, _)     -> (c1, 1)
                         _                -> (fallbackConstructor, 1)
-           let (openrest, opentoks) =
+               (openrest, opentoks) =
                  splitAt (openlen - numtoks) (chunkToks opendelim)
-           let (closetoks, closerest) =
+               (closetoks, closerest) =
                  splitAt numtoks (chunkToks closedelim)
-           let addnewopen = if null openrest
+               addnewopen = if null openrest
                                then id
                                else (opendelim{ chunkToks = openrest } :)
-           let addnewclose = if null closerest
+               addnewclose = if null closerest
                                 then id
                                 else (closedelim{ chunkToks = closerest } :)
-           let emphtoks = opentoks ++ concatMap chunkToks contents ++ closetoks
-           let newelt = Chunk
+               emphtoks = opentoks ++ concatMap chunkToks contents ++ closetoks
+               newelt = Chunk
                          (Parsed $
                            ranged (rangeFromToks emphtoks) $
                              constructor $ mconcat $
                                 map unChunk contents)
                          (chunkPos chunk)
                          emphtoks
-           let newcursor = Cursor (Just newelt)
+               newcursor = Cursor (Just newelt)
                               (addnewopen (befores left))
                               (addnewclose (afters right))
-           modify $ \st -> st{
-               rightCursor = moveRight newcursor
-             , leftCursor = newcursor
-             }
+           in processEm $!
+              st{ rightCursor = moveRight newcursor
+                , leftCursor = newcursor
+                }
 
          | Just (chunkPos chunk) <=
              M.lookup (T.pack (c: show (length ts `mod` 3))) bottoms ->
-             modify $ \st -> st{
-                      leftCursor   = right
+                  processEm $!
+                  st{ leftCursor   = right
                     , rightCursor  = moveRight right
                     , stackBottoms =  M.insert
                         (T.pack (c : show (length ts `mod` 3)))
@@ -634,11 +632,11 @@ processEm = do
                         $ stackBottoms st
                     }
 
-         | otherwise -> modify $ \st -> st{ leftCursor = moveLeft left }
+         | otherwise -> processEm $! st{ leftCursor = moveLeft left }
 
-       _ -> modify $ \st -> st{
-                  rightCursor = moveRight right
-                , leftCursor  = moveRight left }
+       _ -> processEm $!
+            st{ rightCursor = moveRight right
+              , leftCursor  = moveRight left }
 
 -- This only applies to emph delims, not []:
 delimsMatch :: IsInline a

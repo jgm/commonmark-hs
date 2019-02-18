@@ -24,9 +24,9 @@ module Commonmark.ParserCombinators
   , manyTill
   , between
   , option
-  , guardLastToken
   , notFollowedBy
   , lookAhead
+  , peekBehind
   , eof
   , withRaw
   , (<?>)
@@ -271,16 +271,9 @@ lookAhead (ParserT parser) = ParserT $ \st -> do
     Right (x, _) -> return $ Right (x, st)
 {-# INLINABLE lookAhead #-}
 
-guardLastToken :: Monad m => (Maybe t -> Bool) -> ParserT t u m ()
-guardLastToken f = ParserT $ \st ->
-  return $
-    if f (lastToken st)
-       then Right ((), st)
-       else case lastToken st of
-              Nothing  -> Left [ExpectedPrecedingToken]
-              Just t   -> Left [UnexpectedPrecedingToken t]
-{-# INLINABLE guardLastToken #-}
-
+peekBehind :: Monad m => ParserT t u m (Maybe t)
+peekBehind = ParserT $ \st -> return (Right (lastToken st, st))
+{-# INLINABLE peekBehind #-}
 
 eof :: Monad m => ParserT t u m ()
 eof = ParserT $ \st ->

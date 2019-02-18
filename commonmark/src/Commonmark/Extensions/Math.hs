@@ -14,7 +14,7 @@ import Commonmark.SourceMap
 import Commonmark.Util
 import Commonmark.ParserCombinators
 import Commonmark.Html (escapeHtml)
-import Control.Monad (msum)
+import Control.Monad (msum, guard)
 import Data.Text (Text)
 import Data.Semigroup (Semigroup(..))
 import Data.Text.Lazy.Builder (Builder)
@@ -46,10 +46,6 @@ instance (HasMath i, Monoid i) => HasMath (WithSourceMap i) where
 parseMath :: (Monad m, HasMath a) => InlineParser m a
 parseMath = pDisplayMath <|> pInlineMath
 
-isWhitespace :: Maybe Tok -> Bool
-isWhitespace (Just t) = hasType Spaces t || hasType LineEnd t
-isWhitespace Nothing  = True
-
 pInlineMath :: (Monad m, HasMath a) => InlineParser m a
 pInlineMath = do
   symbol '$'
@@ -58,7 +54,11 @@ pInlineMath = do
                   msum   [ () <$ symbol '\\' >> anyTok
                          , noneOfToks [Symbol '$']
                          ]
-  guardLastToken (not . isWhitespace)
+  mblast <- peekBehind
+  guard $ case mblast of
+            Just (Tok Spaces _ _) -> False
+            Just (Tok LineEnd _ _) -> False
+            _ -> True
   symbol '$'
   return $ inlineMath (untokenize toks)
 

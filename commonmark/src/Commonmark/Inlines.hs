@@ -113,9 +113,7 @@ parseChunks :: (Monad m, IsInline a)
 parseChunks _ _ _ _ []             = return (Right [])
 parseChunks bspecs specs ilParsers rm (t:ts) =
   runParserT (many (pChunk specmap ilParsers) <* eof)
-          IPState{ afterPunct = initialPos "",
-                   afterSpace = tokPos t,
-                   backtickSpans = getBacktickSpans (t:ts),
+          IPState{ backtickSpans = getBacktickSpans (t:ts),
                    userState = undefined,
                    formattingDelimChars = Set.fromList $
                      '[' : ']' : suffixchars ++ prefixchars
@@ -143,9 +141,7 @@ data ChunkType a =
      deriving Show
 
 data IPState = IPState
-     { afterPunct           :: SourcePos -- pos of next token after punctuation
-     , afterSpace           :: SourcePos  -- pos of next token after space
-     , backtickSpans        :: IntMap.IntMap [SourcePos]
+     { backtickSpans        :: IntMap.IntMap [SourcePos]
                                -- record of lengths of
                                -- backtick spans so we don't scan in vain
      , userState            :: Dynamic
@@ -293,6 +289,7 @@ pDelimChunk :: (IsInline a, Monad m)
             => FormattingSpecMap a
             -> InlineParser m (Chunk a)
 pDelimChunk specmap = do
+  mbLastTok <- peekBehind
   tok@(Tok (Symbol c) pos _) <- pDelimTok
   let mbspec = M.lookup c specmap
   more <- if isJust mbspec
@@ -300,10 +297,18 @@ pDelimChunk specmap = do
              else return []
   let toks = tok:more
   newpos <- getPosition
-  st <- getState
   next <- (tokType <$> lookAhead anyTok) <|> return LineEnd
-  let precededByWhitespace = afterSpace st == pos
-  let precededByPunctuation = afterPunct st == pos
+  let precededByWhitespace =
+        case mbLastTok of
+          Just (Tok Spaces _ _) -> True
+          Just (Tok LineEnd _ _) -> True
+          Just (Tok UnicodeSpace _ _) -> True
+          Nothing -> True
+          _ -> False
+  let precededByPunctuation =
+        case mbLastTok of
+          Just (Tok (Symbol _) _ _) -> True
+          _ -> False
   let followedByWhitespace = next == Spaces ||
                              next == LineEnd ||
                              next == UnicodeSpace
@@ -327,7 +332,6 @@ pDelimChunk specmap = do
           (maybe True formattingIntraWord mbspec ||
            not leftFlanking ||
            followedByPunctuation)
-  updateState $ \s -> s{ afterPunct = newpos }
   let toks' = case mbspec of
                     Nothing -> toks
                     -- change tokens to unmatched fallback
@@ -352,12 +356,6 @@ pInline ilParsers = do
   (res, toks) <- withRaw $ msum ilParsers <|> pSymbol
   newpos <- getPosition
   guard $ not (null toks)
-  case tokType (head toks) of
-       Spaces       -> updateState $ \st -> st{ afterSpace = newpos }
-       UnicodeSpace -> updateState $ \st -> st{ afterSpace = newpos }
-       LineEnd      -> updateState $ \st -> st{ afterSpace = newpos }
-       Symbol _     -> updateState $ \st -> st{ afterPunct = newpos }
-       _            -> return ()
   return $ ranged (rangeFromToks toks) res
 
 rangeFromToks :: [Tok] -> SourceRange

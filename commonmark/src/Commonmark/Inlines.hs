@@ -525,16 +525,11 @@ processEmphasis xs =
        (_,[]) -> xs
        (ys,z:zs) ->
             let startcursor = Cursor (Just z) (reverse ys) zs
-                st = processEm
-                       DState{ leftCursor = startcursor
-                             , rightCursor = startcursor
-                             , refmap = emptyReferenceMap
-                             , stackBottoms = mempty
-                             , absoluteBottom = chunkPos z }
-            in  reverse $
-                case center (rightCursor st) of
-                   Nothing -> befores (rightCursor st)
-                   Just c  -> c : befores (rightCursor st)
+            in  processEm DState{ leftCursor = startcursor
+                                , rightCursor = startcursor
+                                , refmap = emptyReferenceMap
+                                , stackBottoms = mempty
+                                , absoluteBottom = chunkPos z }
 
 {- for debugging:
 prettyCursors :: (IsInline a) => Cursor (Chunk a) -> Cursor (Chunk a) -> String
@@ -550,14 +545,17 @@ prettyCursors left right =
        inBrs x = "{" ++ x ++ "}"
 -}
 
-processEm :: IsInline a => DState a -> DState a
+processEm :: IsInline a => DState a -> [Chunk a]
 processEm st =
   let left = leftCursor st
       right = rightCursor st
       bottoms = stackBottoms st
       -- trace (prettyCursors left right) $ return $! ()
   in case (center left, center right) of
-       (_, Nothing) -> st
+       (_, Nothing) -> reverse $
+                        case center (rightCursor st) of
+                           Nothing -> befores (rightCursor st)
+                           Just c  -> c : befores (rightCursor st)
 
        (Nothing, Just (Chunk Delim{ delimType = c
                                   , delimCanClose = True } pos ts)) ->
@@ -657,17 +655,13 @@ processBrackets bracketedSpecs rm xs =
        (_,[]) -> xs
        (ys,z:zs) ->
           let startcursor = Cursor (Just z) (reverse ys) zs
-              st = processBs bracketedSpecs
+          in  processBs bracketedSpecs
                      DState{ leftCursor = startcursor
                             , rightCursor = startcursor
                             , refmap = rm
                             , stackBottoms = mempty
                             , absoluteBottom = chunkPos z
                             }
-          in  reverse $
-                case center (rightCursor st) of
-                   Nothing -> befores (rightCursor st)
-                   Just c  -> c : befores (rightCursor st)
 
 data Cursor a = Cursor
      { center  :: Maybe a
@@ -689,7 +683,7 @@ moveRight (Cursor (Just x) zs [])     = Cursor Nothing  (x:zs) []
 moveRight (Cursor (Just x) zs (y:ys)) = Cursor (Just y) (x:zs) ys
 
 processBs :: IsInline a
-          => [BracketedSpec a] -> DState a -> DState a
+          => [BracketedSpec a] -> DState a -> [Chunk a]
 processBs bracketedSpecs st =
   let left = leftCursor st
       right = rightCursor st
@@ -697,7 +691,10 @@ processBs bracketedSpecs st =
       bottom = absoluteBottom st
   -- trace (prettyCursors left right) $ return $! ()
   in case (center left, center right) of
-       (_, Nothing) -> st
+       (_, Nothing) -> reverse $
+                         case center (rightCursor st) of
+                            Nothing -> befores (rightCursor st)
+                            Just c  -> c : befores (rightCursor st)
 
        (Nothing, Just chunk) ->
           processBs bracketedSpecs $!

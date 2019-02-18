@@ -399,9 +399,7 @@ pBacktickSpan = do
   bspans <- backtickSpans <$> getState
   case dropWhile (<= pos') <$> IntMap.lookup numticks bspans of
      Just (pos'':ps) -> do
-          toks <- getInput
-          let (codetoks, rest) = span ((< pos'') . tokPos) toks
-          setInput rest
+          codetoks <- many (satisfyTok (\tok -> tokPos tok < pos''))
           _ <- sequence $ replicate numticks (symbol '`')
           notFollowedBy (symbol '`')
           updateState $ \st ->

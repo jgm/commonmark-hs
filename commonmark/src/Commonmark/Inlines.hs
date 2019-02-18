@@ -558,7 +558,7 @@ processEm st =
 
        (Nothing, Just (Chunk Delim{ delimType = c
                                   , delimCanClose = True } pos ts)) ->
-           processEm $!
+           processEm
            st{ leftCursor   = right
              , rightCursor  = moveRight right
              , stackBottoms = M.insert
@@ -566,7 +566,7 @@ processEm st =
                    $ stackBottoms st
              }
 
-       (Nothing, Just _) -> processEm $!
+       (Nothing, Just _) -> processEm
            st{ leftCursor = right
              , rightCursor = moveRight right
              }
@@ -610,14 +610,14 @@ processEm st =
                newcursor = Cursor (Just newelt)
                               (addnewopen (befores left))
                               (addnewclose (afters right))
-           in processEm $!
+           in processEm
               st{ rightCursor = moveRight newcursor
                 , leftCursor = newcursor
                 }
 
          | Just (chunkPos chunk) <=
              M.lookup (T.pack (c: show (length ts `mod` 3))) bottoms ->
-                  processEm $!
+                  processEm
                   st{ leftCursor   = right
                     , rightCursor  = moveRight right
                     , stackBottoms =  M.insert
@@ -626,9 +626,9 @@ processEm st =
                         $ stackBottoms st
                     }
 
-         | otherwise -> processEm $! st{ leftCursor = moveLeft left }
+         | otherwise -> processEm st{ leftCursor = moveLeft left }
 
-       _ -> processEm $!
+       _ -> processEm
             st{ rightCursor = moveRight right
               , leftCursor  = moveRight left }
 
@@ -696,7 +696,7 @@ processBs bracketedSpecs st =
                             Just c  -> c : befores (rightCursor st)
 
        (Nothing, Just chunk) ->
-          processBs bracketedSpecs $!
+          processBs bracketedSpecs
                        st{ leftCursor = moveRight right
                          , rightCursor = moveRight right
                          , absoluteBottom = chunkPos chunk
@@ -704,7 +704,7 @@ processBs bracketedSpecs st =
 
        (Just chunk, Just chunk')
          | chunkPos chunk < bottom ->
-            processBs bracketedSpecs $!
+            processBs bracketedSpecs
                        st { leftCursor = moveRight right
                           , rightCursor = moveRight right
                           , absoluteBottom = chunkPos chunk'
@@ -747,7 +747,7 @@ processBs bracketedSpecs st =
                  ()
                  (mconcat (map chunkToks (afters right))) of
                    Left _ -> -- match but no link/image
-                         processBs bracketedSpecs $!
+                         processBs bracketedSpecs
                             st{ leftCursor = moveLeft (leftCursor st)
                               , rightCursor = fixSingleQuote $
                                     moveRight (rightCursor st) }
@@ -772,12 +772,12 @@ processBs bracketedSpecs st =
                          afterchunks = dropWhile ((< newpos) . chunkPos)
                                          (afters right)
                      in case afterchunks of
-                           []     -> processBs bracketedSpecs $!
+                           []     -> processBs bracketedSpecs
                                       st{ rightCursor = Cursor Nothing
                                           (eltchunk : befores left') [] }
                            (y:ys) ->
                              let lbs = befores left'
-                             in processBs bracketedSpecs $! st{
+                             in processBs bracketedSpecs st{
                                   leftCursor =
                                     Cursor (Just eltchunk) lbs (y:ys)
                                 , rightCursor = fixSingleQuote $
@@ -794,14 +794,14 @@ processBs bracketedSpecs st =
 
 
        (_, Just (Chunk Delim{ delimCanClose = True, delimType = ']' } _ _))
-          -> processBs bracketedSpecs $! st{ leftCursor = moveLeft left }
+          -> processBs bracketedSpecs st{ leftCursor = moveLeft left }
 
        (Just _, Just (Chunk Delim{ delimCanOpen = True, delimType = '[' } _ _))
-          -> processBs bracketedSpecs $!
+          -> processBs bracketedSpecs
                 st{ leftCursor = right
                   , rightCursor = moveRight right }
 
-       (_, _) -> processBs bracketedSpecs $!
+       (_, _) -> processBs bracketedSpecs
                 st{ rightCursor = moveRight right }
 
 -- This just changes a single quote Delim that occurs

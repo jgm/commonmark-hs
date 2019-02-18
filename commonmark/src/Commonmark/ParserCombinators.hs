@@ -154,7 +154,7 @@ instance Monad m => Monad (ParserT t u m) where
     case res of
       Left err -> return $ Left err
       Right (x, newst) -> unParserT (f x) newst
-  fail msg = ParserT $ \_ -> return $ Left [ParseFailure msg]
+  fail = Control.Monad.Fail.fail
   {-# INLINE return #-}
   {-# INLINE (>>=) #-}
   {-# INLINE fail #-}

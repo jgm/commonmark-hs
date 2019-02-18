@@ -393,19 +393,15 @@ pEntity = try $ do
 pBacktickSpan :: Monad m
               => InlineParser m (Either [Tok] [Tok])
 pBacktickSpan = do
-  let backtick = symbol '`'
-  ts <- many1 backtick
+  ts <- many1 (symbol '`')
   pos' <- getPosition
   let numticks = length ts
-  bspans <- backtickSpans <$> getState
-  case dropWhile (<= pos') <$> IntMap.lookup numticks bspans of
+  st' <- getState
+  case dropWhile (<= pos') <$> IntMap.lookup numticks (backtickSpans st') of
      Just (pos'':ps) -> do
-          toks <- getInput
-          let (codetoks, rest) = span ((< pos'') . tokPos) toks
-          setInput rest
-          setPosition pos''
-          _ <- count numticks (symbol '`')
-          notFollowedBy (symbol '`')
+          codetoks <- tokensWhile (\tok -> tokPos tok < pos'')
+          backticks <- tokensWhile (hasType (Symbol '`'))
+          guard $ length backticks == numticks
           updateState $ \st ->
             st{ backtickSpans = IntMap.insert numticks ps (backtickSpans st) }
           return $ Right codetoks

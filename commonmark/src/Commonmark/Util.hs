@@ -22,6 +22,7 @@ module Commonmark.Util
   , nonindentSpaces
   , skipManyTill
   , skipWhile
+  , tokensWhile
   )
   where
 import           Control.Monad   (mzero, when, void)
@@ -151,6 +152,23 @@ isOneOfCI ts t = T.toLower t `elem` ts
 skipManyTill :: ParsecT s u m a -> ParsecT s u m b -> ParsecT s u m ()
 skipManyTill p stop = scan
     where scan = (() <$ stop) <|> (p >> scan)
+
+-- | Efficiently parse 'Tok's satisfying a certain condition.
+tokensWhile :: Monad m => (Tok -> Bool) -> ParsecT [Tok] u m [Tok]
+tokensWhile f = do
+  (State inp _pos user) <- getParserState
+  case inp of
+      (i:is) | f i -> do
+       x <- anyTok -- otherwise parsec doesn't think we parsed anything
+       let (xs, rest) = span f is
+       case rest of
+         Tok _ newpos _ : _ -> void $ setParserState $ State rest newpos user
+         [] -> case reverse inp of
+                 (Tok _ lastpos t : _) -> void $ setParserState $
+                   State [] (incSourceColumn lastpos (T.length t)) user
+                 [] -> return () -- shouldn't happen
+       return (x:xs)
+      _ -> return []
 
 -- | Efficiently skip 'Tok's satisfying a certain condition.
 skipWhile :: Monad m => (Tok -> Bool) -> ParsecT [Tok] u m ()

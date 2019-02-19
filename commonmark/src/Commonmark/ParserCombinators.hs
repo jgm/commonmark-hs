@@ -36,13 +36,15 @@ module Commonmark.ParserCombinators
   , putState
   , getState
   , updateState
+  , many
+  , some
   , module Control.Applicative
   ) where
 
 import Control.Monad
 import Control.Monad.Fail
 import Control.Monad.Trans.Class
-import Control.Applicative
+import Control.Applicative hiding (many, some)
 import Data.Typeable (Typeable)
 import Data.Data (Data)
 import Data.Functor.Identity (Identity, runIdentity)
@@ -323,3 +325,18 @@ updateState :: Monad m => (u -> u) -> ParserT t u m ()
 updateState f = ParserT $ \st ->
   return $ Right ((), st{ userState = f (userState st) })
 {-# INLINABLE updateState #-}
+
+many :: Monad m => ParserT t u m a -> ParserT t u m [a]
+many (ParserT parser) = ParserT $ \st -> Right <$> go st
+  where
+    go st' = do
+      res <- parser st'
+      case res of
+        Right (x, st'') -> (\(ys, stt) -> (x:ys, stt)) <$> go st''
+        Left err        -> return ([], st')
+
+some :: Monad m => ParserT t u m a -> ParserT t u m [a]
+some pa = do
+  x <- pa
+  xs <- many pa
+  return (x:xs)

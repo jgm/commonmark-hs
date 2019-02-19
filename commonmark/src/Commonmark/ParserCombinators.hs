@@ -121,15 +121,11 @@ instance Monad m => Functor (ParserT t u m) where
 
 instance Monad m => Applicative (ParserT t u m) where
   pure x = ParserT $ \st -> return $ Right (x, st)
-  ParserT f' <*> ParserT x' = ParserT $ \st -> do
-    res <- f' st
+  fp <*> xp = ParserT $ \st -> do
+    res <- unParserT fp st
     case res of
-      Right (f, newst) -> do
-        res' <- x' newst
-        case res' of
-          Right (x, newst') -> return $ Right (f x, newst')
-          Left err          -> return $ Left err
-      Left err        -> return $ Left err
+      Right (f, newst) -> unParserT (f <$> xp) newst
+      Left err         -> return $ Left err
   {-# INLINE pure #-}
   {-# INLINE (<*>) #-}
 

@@ -333,7 +333,7 @@ many (ParserT parser) = ParserT $ \st -> Right <$> go st
       res <- parser st'
       case res of
         Right (x, st'') -> (\(ys, stt) -> (x:ys, stt)) <$> go st''
-        Left err        -> return ([], st')
+        Left _err       -> return ([], st')
 
 some :: Monad m => ParserT t u m a -> ParserT t u m [a]
 some pa = do

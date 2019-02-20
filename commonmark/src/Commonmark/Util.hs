@@ -25,7 +25,7 @@ module Commonmark.Util
   , tokensWhile
   )
   where
-import           Control.Monad   (mzero, when, void)
+import           Control.Monad   (mzero, when, void, guard)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Text.Parsec
@@ -197,11 +197,7 @@ blankLine = try $ do
 -- (if there is one).
 restOfLine :: Monad m => ParsecT [Tok] s m ([Tok], SourcePos)
 restOfLine = do
-  inp <- getInput
-  case break (hasType LineEnd) inp of
-       (_, [])       -> (,) <$> many1 anyTok <*> getPosition
-       (ts, le@(Tok _ pos _):rest) -> do
-         setPosition pos
-         setInput (le:rest)
-         lineEnd
-         return (ts ++ [le], pos)
+  ts <- tokensWhile (not . hasType LineEnd)
+  pos <- getPosition
+  le <- ((:[]) <$> lineEnd) <|> ([] <$ guard (not (null ts)))
+  return (ts ++ le, pos)

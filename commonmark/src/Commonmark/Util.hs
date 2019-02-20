@@ -119,7 +119,7 @@ withRaw parser = do
   res <- parser
   newpos <- getPosition
   let rawtoks = takeWhile ((< newpos) . tokPos) toks
-  return $ rawtoks `seq` res `seq` (res, rawtoks)
+  return (res, rawtoks)
 
 -- | Filters tokens of a certain type.
 hasType :: TokType -> Tok -> Bool

@@ -28,6 +28,9 @@ import           Data.Version (showVersion)
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid
 #endif
+import           Control.Exception          (AsyncException(StackOverflow),
+                                             catch, throwIO)
+import           GHC.Stack                  (currentCallStack)
 
 data Opt =
        Help
@@ -56,7 +59,7 @@ usageMessage :: String -> [OptDescr Opt] -> String
 usageMessage programName = usageInfo (programName ++ " [OPTIONS] [FILES]")
 
 main :: IO ()
-main = do
+main = catch (do
   (opts, files, errs) <- getOpt Permute options <$> getArgs
   when (not (null errs)) $ do
     mapM_ (hPutStrLn stderr) errs
@@ -112,7 +115,13 @@ main = do
         spec <- specFromExtensionNames [x | Extension x <- opts]
         case runIdentity (parseCommonmarkWith spec toks) of
              Left e -> errExit e
-             Right (r :: Builder) -> TLIO.putStr . toLazyText $ r
+             Right (r :: Builder) -> TLIO.putStr . toLazyText $ r)
+   (\e -> case e of
+            StackOverflow -> do
+             currentCallStack >>= mapM_ (hPutStrLn stderr)
+             throwIO e
+            _ -> throwIO e)
+
 
 errExit :: ParseError -> IO a
 errExit err = do

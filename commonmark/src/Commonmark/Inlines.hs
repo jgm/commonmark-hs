@@ -271,8 +271,8 @@ pChunk :: (IsInline a, Monad m)
        -> InlineParser m (Chunk a)
 pChunk specmap ilParsers =
       (do pos <- getPosition
-          (ils, ts) <- withRaw $ many1 (pInline ilParsers)
-          return $ Chunk (Parsed (mconcat ils)) pos ts)
+          (ils, ts) <- unzip <$> many1 (pInline ilParsers)
+          return $ Chunk (Parsed (mconcat ils)) pos (mconcat ts))
    <|> pDelimChunk specmap
 
 pDelimTok :: Monad m => InlineParser m Tok
@@ -347,7 +347,7 @@ pDelimChunk specmap = try $ do
 
 pInline :: (IsInline a, Monad m)
         => [InlineParser m a]
-        -> InlineParser m a
+        -> InlineParser m (a, [Tok])
 pInline ilParsers = do
   (res, toks) <- withRaw $ choice ilParsers <|> pSymbol
   newpos <- getPosition
@@ -358,7 +358,7 @@ pInline ilParsers = do
        LineEnd      -> updateState $ \st -> st{ afterSpace = newpos }
        Symbol _     -> updateState $ \st -> st{ afterPunct = newpos }
        _            -> return ()
-  return $ ranged (rangeFromToks toks) res
+  return (ranged (rangeFromToks toks) res, toks)
 
 rangeFromToks :: [Tok] -> SourceRange
 rangeFromToks = SourceRange . go

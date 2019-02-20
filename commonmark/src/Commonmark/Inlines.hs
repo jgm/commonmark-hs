@@ -39,8 +39,6 @@ import           Commonmark.Util
 import           Commonmark.ReferenceMap
 import           Commonmark.Types
 import           Control.Monad              (guard, mzero)
-import           Control.Monad.Trans.State.Strict (State, evalState,
-                                             get, gets, modify)
 import           Data.Char                  (isAscii, isLetter)
 import           Data.Dynamic               (Dynamic)
 import qualified Data.IntMap.Strict         as IntMap
@@ -530,18 +528,12 @@ processEmphasis xs =
                _ -> False) xs of
        (_,[]) -> xs
        (ys,z:zs) ->
-            let st = processEm
-                       DState{ leftCursor = startcursor
-                             , rightCursor = startcursor
-                             , refmap = emptyReferenceMap
-                             , stackBottoms = mempty
-                             , absoluteBottom = chunkPos z }
-            in  reverse $
-                case center (rightCursor st) of
-                   Nothing -> befores (rightCursor st)
-                   Just c  -> c : befores (rightCursor st)
-         where
-           startcursor = Cursor (Just z) (reverse ys) zs
+           let startcursor = Cursor (Just z) (reverse ys) zs
+           in  processEm DState{ leftCursor = startcursor
+                               , rightCursor = startcursor
+                               , refmap = emptyReferenceMap
+                               , stackBottoms = mempty
+                               , absoluteBottom = chunkPos z }
 
 {- for debugging:
 prettyCursors :: (IsInline a) => Cursor (Chunk a) -> Cursor (Chunk a) -> String
@@ -557,18 +549,21 @@ prettyCursors left right =
        inBrs x = "{" ++ x ++ "}"
 -}
 
-processEm :: IsInline a => DState a -> DState a
+processEm :: IsInline a => DState a -> [Chunk a]
 processEm st =
   let left = leftCursor st
       right = rightCursor st
       bottoms = stackBottoms st
       -- trace (prettyCursors left right) $ return $! ()
   in case (center left, center right) of
-       (_, Nothing) -> st
+       (_, Nothing) -> reverse $
+                         case center (rightCursor st) of
+                            Nothing -> befores (rightCursor st)
+                            Just c  -> c : befores (rightCursor st)
 
        (Nothing, Just (Chunk Delim{ delimType = c
                                   , delimCanClose = True } pos ts)) ->
-           processEm $!
+           processEm
            st{ leftCursor   = right
              , rightCursor  = moveRight right
              , stackBottoms = M.insert
@@ -576,7 +571,7 @@ processEm st =
                    $ stackBottoms st
              }
 
-       (Nothing, Just _) -> processEm $!
+       (Nothing, Just _) -> processEm
            st{ leftCursor = right
              , rightCursor = moveRight right
              }
@@ -620,14 +615,14 @@ processEm st =
                newcursor = Cursor (Just newelt)
                               (addnewopen (befores left))
                               (addnewclose (afters right))
-           in processEm $!
+           in processEm
               st{ rightCursor = moveRight newcursor
                 , leftCursor = newcursor
                 }
 
          | Just (chunkPos chunk) <=
              M.lookup (T.pack (c: show (length ts `mod` 3))) bottoms ->
-                  processEm $!
+                  processEm
                   st{ leftCursor   = right
                     , rightCursor  = moveRight right
                     , stackBottoms =  M.insert
@@ -636,9 +631,9 @@ processEm st =
                         $ stackBottoms st
                     }
 
-         | otherwise -> processEm $! st{ leftCursor = moveLeft left }
+         | otherwise -> processEm st{ leftCursor = moveLeft left }
 
-       _ -> processEm $!
+       _ -> processEm
             st{ rightCursor = moveRight right
               , leftCursor  = moveRight left }
 
@@ -663,22 +658,14 @@ processBrackets bracketedSpecs rm xs =
                _ -> False) xs of
        (_,[]) -> xs
        (ys,z:zs) ->
-          evalState go
-            DState{ leftCursor = startcursor
-                   , rightCursor = startcursor
-                   , refmap = rm
-                   , stackBottoms = mempty
-                   , absoluteBottom = chunkPos z
-                   }
-          where
-            startcursor = Cursor (Just z) (reverse ys) zs
-            go = do
-              whileM_ (gets (isJust . center . rightCursor))
-                       (processBs bracketedSpecs)
-              st <- get
-              return $ reverse (maybe id (:) (center (rightCursor st))
-                              $ befores (rightCursor st))
-
+          let  startcursor = Cursor (Just z) (reverse ys) zs
+          in   processBs bracketedSpecs
+                 DState{ leftCursor = startcursor
+                       , rightCursor = startcursor
+                       , refmap = rm
+                       , stackBottoms = mempty
+                       , absoluteBottom = chunkPos z
+                       }
 
 data Cursor a = Cursor
      { center  :: Maybe a
@@ -700,57 +687,62 @@ moveRight (Cursor (Just x) zs [])     = Cursor Nothing  (x:zs) []
 moveRight (Cursor (Just x) zs (y:ys)) = Cursor (Just y) (x:zs) ys
 
 processBs :: IsInline a
-          => [BracketedSpec a] -> State (DState a) ()
-processBs bracketedSpecs = do
-  left <- gets leftCursor
-  right <- gets rightCursor
-  bottoms <- gets stackBottoms
-  bottom <- gets absoluteBottom
+          => [BracketedSpec a] -> DState a -> [Chunk a]
+processBs bracketedSpecs st =
+  let left = leftCursor st
+      right = rightCursor st
+      bottoms = stackBottoms st
+      bottom = absoluteBottom st
   -- trace (prettyCursors left right) $ return $! ()
-  case (center left, center right) of
-       (_, Nothing) -> return ()
+  in case (center left, center right) of
+       (_, Nothing) -> reverse $
+                         case center (rightCursor st) of
+                            Nothing -> befores (rightCursor st)
+                            Just c  -> c : befores (rightCursor st)
 
        (Nothing, Just chunk) ->
-          modify $ \st -> st{ leftCursor = moveRight right
+          processBs bracketedSpecs
+                       st{ leftCursor = moveRight right
                          , rightCursor = moveRight right
                          , absoluteBottom = chunkPos chunk
                          }
 
        (Just chunk, Just chunk')
          | chunkPos chunk < bottom ->
-           modify $ \st -> st { leftCursor = moveRight right
-                              , rightCursor = moveRight right
-                              , absoluteBottom = chunkPos chunk'
-                              }
+            processBs bracketedSpecs
+                       st { leftCursor = moveRight right
+                          , rightCursor = moveRight right
+                          , absoluteBottom = chunkPos chunk'
+                          }
 
        (Just opener@(Chunk Delim{ delimCanOpen = True, delimType = '[' } _ _),
-        Just closer@(Chunk Delim{ delimCanClose = True, delimType = ']'} _ _)) -> do
+        Just closer@(Chunk Delim{ delimCanClose = True, delimType = ']'} _ _)) ->
           let chunksinside = take
                            (length (afters left) - (length (afters right) + 1))
                            (afters left)
-          let isBracket (Chunk Delim{ delimType = c' } _ _) =
+              isBracket (Chunk Delim{ delimType = c' } _ _) =
                  c' == '[' || c' == ']'
               isBracket _ = False
-          let key = if any isBracket chunksinside
+              key = if any isBracket chunksinside
                        then ""
                        else
                          case untokenize (concatMap chunkToks chunksinside) of
                               ks | T.length ks <= 999 -> ks
                               _  -> ""
-          let prefixChar = case befores left of
+              prefixChar = case befores left of
                                  Chunk Delim{delimType = c} _ [_] : _
                                     -> Just c
                                  _  -> Nothing
-          rm <- gets refmap
+              rm = refmap st
 
-          let specs = [s | s <- bracketedSpecs
+              specs = [s | s <- bracketedSpecs
                          , case bracketedPrefix s of
                                 Just c  -> Just c == prefixChar
                                 Nothing -> True
                          , maybe True  (< chunkPos opener)
                             (M.lookup (bracketedName s) bottoms) ]
 
-          case parse
+          in case parse
                  (withRaw
                    (do (spec, constructor) <- choice $
                            map (\s -> (s,) <$> bracketedSuffix s rm key)
@@ -760,37 +752,37 @@ processBs bracketedSpecs = do
                  ""
                  (mconcat (map chunkToks (afters right))) of
                    Left _ -> -- match but no link/image
-                         modify $ \st ->
+                         processBs bracketedSpecs
                             st{ leftCursor = moveLeft (leftCursor st)
                               , rightCursor = fixSingleQuote $
                                     moveRight (rightCursor st) }
-                   Right ((spec, constructor, newpos), desttoks) -> do
+                   Right ((spec, constructor, newpos), desttoks) ->
                      let left' = case bracketedPrefix spec of
                                       Just _  -> moveLeft left
                                       Nothing -> left
-                     let openers = case bracketedPrefix spec of
+                         openers = case bracketedPrefix spec of
                                         Just _ -> maybe id (:) (center left')
                                                    [opener]
                                         Nothing -> [opener]
-                     let openerPos = case openers of
+                         openerPos = case openers of
                                           (x:_) -> chunkPos x
                                           _     -> chunkPos opener
-                     let elttoks = concatMap chunkToks
+                         elttoks = concatMap chunkToks
                                      (openers ++ chunksinside ++ [closer])
                                       ++ desttoks
-                     let elt = ranged (rangeFromToks elttoks)
+                         elt = ranged (rangeFromToks elttoks)
                                   $ constructor $ unChunks $
                                        processEmphasis chunksinside
-                     let eltchunk = Chunk (Parsed elt) openerPos elttoks
-                     let afterchunks = dropWhile ((< newpos) . chunkPos)
+                         eltchunk = Chunk (Parsed elt) openerPos elttoks
+                         afterchunks = dropWhile ((< newpos) . chunkPos)
                                          (afters right)
-                     case afterchunks of
-                           []     -> modify $ \st -> st{
-                                       rightCursor = Cursor Nothing
+                     in case afterchunks of
+                           []     -> processBs bracketedSpecs
+                                      st{ rightCursor = Cursor Nothing
                                           (eltchunk : befores left') [] }
-                           (y:ys) -> do
+                           (y:ys) ->
                              let lbs = befores left'
-                             modify $ \st -> st{
+                             in processBs bracketedSpecs st{
                                   leftCursor =
                                     Cursor (Just eltchunk) lbs (y:ys)
                                 , rightCursor = fixSingleQuote $
@@ -807,15 +799,17 @@ processBs bracketedSpecs = do
 
 
        (_, Just (Chunk Delim{ delimCanClose = True, delimType = ']' } _ _))
-          -> modify $ \st -> st{ leftCursor = moveLeft left }
+          -> processBs bracketedSpecs st{ leftCursor = moveLeft left }
 
        (Just _, Just (Chunk Delim{ delimCanOpen = True, delimType = '[' } _ _))
-          ->
-             modify $ \st -> st{ leftCursor = right
-                         , rightCursor = moveRight right }
+          -> processBs bracketedSpecs
+                st{ leftCursor = right
+                  , rightCursor = moveRight right }
 
-       (_, _) ->
-             modify $ \st -> st{ rightCursor = moveRight right }
+       (_, _) -> processBs bracketedSpecs
+                st{ rightCursor = moveRight right }
+
+
 
 -- This just changes a single quote Delim that occurs
 -- after ) or ] so that canOpen = False.  This is an ad hoc

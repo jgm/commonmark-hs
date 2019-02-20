@@ -398,8 +398,8 @@ pBacktickSpan = do
   st' <- getState
   case dropWhile (<= pos') <$> IntMap.lookup numticks (backtickSpans st') of
      Just (pos'':ps) -> do
-          codetoks <- tokensWhile (\tok -> tokPos tok < pos'')
-          backticks <- tokensWhile (hasType (Symbol '`'))
+          codetoks <- many $ satisfyTok (\tok -> tokPos tok < pos'')
+          backticks <- many $ satisfyTok (hasType (Symbol '`'))
           guard $ length backticks == numticks
           updateState $ \st ->
             st{ backtickSpans = IntMap.insert numticks ps (backtickSpans st) }

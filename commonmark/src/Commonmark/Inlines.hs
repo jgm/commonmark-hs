@@ -136,7 +136,7 @@ data ChunkType a =
        Delim{ delimType     :: !Char
             , delimCanOpen  :: !Bool
             , delimCanClose :: !Bool
-            , delimLength   :: Int
+            , delimLength   :: !Int
             , delimSpec     :: Maybe (FormattingSpec a)
             }
      | Parsed a

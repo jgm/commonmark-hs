@@ -349,10 +349,9 @@ pInline :: (IsInline a, Monad m)
         => [InlineParser m a]
         -> InlineParser m (a, [Tok])
 pInline ilParsers = do
-  (res, toks) <- withRaw $ choice ilParsers <|> pSymbol
+  (res, (t:_)@toks) <- withRaw $ choice ilParsers <|> pSymbol
   newpos <- getPosition
-  guard $ not (null toks)
-  case tokType (head toks) of
+  case tokType t of
        Spaces       -> updateState $ \st -> st{ afterSpace = newpos }
        UnicodeSpace -> updateState $ \st -> st{ afterSpace = newpos }
        LineEnd      -> updateState $ \st -> st{ afterSpace = newpos }

@@ -159,9 +159,9 @@ type InlineParser m = ParsecT [Tok] IPState m
 
 -- ^ Specifies delimiters for formatting, e.g. strong emphasis.
 data FormattingSpec il = FormattingSpec
-    { formattingDelimChar     :: Char
+    { formattingDelimChar     :: !Char
                               -- ^ Character that triggers formatting
-    , formattingIntraWord     :: Bool
+    , formattingIntraWord     :: !Bool
                               -- ^ True if formatting can start/end in a word
     , formattingSingleMatch   :: Maybe (il -> il)
                               -- ^ Constructor to use for text between
@@ -169,7 +169,7 @@ data FormattingSpec il = FormattingSpec
     , formattingDoubleMatch   :: Maybe (il -> il)
                               -- ^ Constructor to use for text between
                               -- double delimiters.
-    , formattingWhenUnmatched :: Char -- ^ Fallback when not matched.
+    , formattingWhenUnmatched :: !Char -- ^ Fallback when not matched.
     }
 
 instance Show (FormattingSpec il) where
@@ -190,8 +190,8 @@ mkFormattingSpecMap fs = M.fromList [(formattingDelimChar s, s) | s <- fs]
 
 -- ^ Defines an inline element between square brackets.
 data BracketedSpec il = BracketedSpec
-     { bracketedName      :: Text  -- ^ Name of bracketed text type.
-     , bracketedNests     :: Bool  -- ^ True if this can be nested.
+     { bracketedName      :: !Text  -- ^ Name of bracketed text type.
+     , bracketedNests     :: !Bool  -- ^ True if this can be nested.
      , bracketedPrefix    :: Maybe Char -- ^ Prefix character.
      , bracketedSuffixEnd :: Maybe Char -- ^ Suffix character.
      , bracketedSuffix    :: ReferenceMap

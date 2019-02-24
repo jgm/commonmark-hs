@@ -678,12 +678,14 @@ moveLeft (Cursor Nothing  []     zs) = Cursor Nothing  [] zs
 moveLeft (Cursor Nothing  (x:xs) zs) = Cursor (Just x) xs zs
 moveLeft (Cursor (Just x) []     zs) = Cursor Nothing  [] (x:zs)
 moveLeft (Cursor (Just x) (y:ys) zs) = Cursor (Just y) ys (x:zs)
+{-# INLINE moveLeft #-}
 
 moveRight :: Cursor a -> Cursor a
 moveRight (Cursor Nothing zs  [])     = Cursor Nothing  zs     []
 moveRight (Cursor Nothing zs  (x:xs)) = Cursor (Just x) zs     xs
 moveRight (Cursor (Just x) zs [])     = Cursor Nothing  (x:zs) []
 moveRight (Cursor (Just x) zs (y:ys)) = Cursor (Just y) (x:zs) ys
+{-# INLINE moveRight #-}
 
 processBs :: IsInline a
           => [BracketedSpec a] -> DState a -> [Chunk a]

@@ -14,9 +14,9 @@ import qualified Data.Text       as T
 import           Data.Data       (Data, Typeable)
 import           Text.Parsec.Pos
 
-data Tok = Tok { tokType     :: {-# UNPACK #-} TokType
-               , tokPos      :: SourcePos
-               , tokContents :: Text
+data Tok = Tok { tokType     :: {-# UNPACK #-} !TokType
+               , tokPos      :: {-# UNPACK #-} !SourcePos
+               , tokContents :: {-# UNPACK #-} !Text
                }
                deriving (Show, Eq, Data, Typeable)
 

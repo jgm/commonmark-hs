@@ -128,7 +128,7 @@ parseChunks bspecs specs ilParsers rm (t:ts) =
 
 data Chunk a = Chunk
      { chunkType :: ChunkType a
-     , chunkPos  :: SourcePos
+     , chunkPos  :: !SourcePos
      , chunkToks :: [Tok]
      } deriving Show
 

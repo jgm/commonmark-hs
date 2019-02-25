@@ -33,7 +33,6 @@ import Text.Parsec
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Map as M
-import Data.Text.Lazy.Builder (Builder)
 
 data FootnoteDef bl m =
   FootnoteDef Int Text (ReferenceMap -> m (Either ParseError bl))
@@ -149,15 +148,15 @@ class IsBlock il bl => HasFootnote il bl | il -> bl where
   footnoteList :: [bl] -> bl
   footnoteRef :: Text -> Text -> bl -> il
 
-instance HasFootnote Builder Builder where
+instance HasFootnote Html5 Html5 where
   footnote num lab' x = "<div class=\"footnote\" id=\""
-    <> escapeHtml ("fn-" <> lab')
+    <> Html5 (escapeHtml ("fn-" <> lab'))
     <> "\">\n"
     <> "<div class=\"footnote-number\">\n"
     <> "<a href=\""
-    <> escapeHtml ("#fnref-" <> lab')
+    <> Html5 (escapeHtml ("#fnref-" <> lab'))
     <> "\">"
-    <> escapeHtml (T.pack (show num))
+    <> Html5 (escapeHtml (T.pack (show num)))
     <> "</a>\n"
     <> "</div>\n"
     <> "<div class=\"footnote-contents\">\n"
@@ -167,9 +166,9 @@ instance HasFootnote Builder Builder where
     mconcat items <> "</section>\n"
   footnoteRef x lab _ = "<sup class=\"footnote-ref\">"
     <> "<a href=\""
-    <> escapeHtml ("#fn-" <> lab)
+    <> Html5 (escapeHtml ("#fn-" <> lab))
     <> "\" id=\""
-    <> escapeHtml ("fnref-" <> lab)
+    <> Html5 (escapeHtml ("fnref-" <> lab))
     <> "\">"
     <> str x
     <> "</a></sup>"

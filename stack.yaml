@@ -4,6 +4,5 @@ ghc-options:
    "$locals": -fhide-source-paths
 packages:
 - commonmark
-- commonmark-cli
-- commonmark-lucid
-- commonmark-pandoc
+#- commonmark-cli
+#- commonmark-pandoc

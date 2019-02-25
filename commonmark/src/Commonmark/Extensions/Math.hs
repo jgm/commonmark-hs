@@ -16,7 +16,6 @@ import Commonmark.Html (escapeHtml)
 import Text.Parsec
 import Data.Text (Text)
 import Data.Semigroup (Semigroup(..))
-import Data.Text.Lazy.Builder (Builder)
 
 mathSpec :: (Monad m, IsBlock il bl, IsInline il, HasMath il)
          => SyntaxSpec m il bl
@@ -32,11 +31,11 @@ class HasMath a where
   inlineMath :: Text -> a
   displayMath :: Text -> a
 
-instance HasMath Builder where
+instance HasMath Html5 where
   inlineMath t = "<span class=\"math inline\">" <>
-    "\\(" <> escapeHtml t <> "\\)" <> "</span>"
+    "\\(" <> Html5 (escapeHtml t) <> "\\)" <> "</span>"
   displayMath t = "<span class=\"math display\">" <>
-    "\\[" <> escapeHtml t <> "\\]" <> "</span>"
+    "\\[" <> Html5 (escapeHtml t) <> "\\]" <> "</span>"
 
 instance (HasMath i, Monoid i) => HasMath (WithSourceMap i) where
   inlineMath t = (inlineMath t) <* addName "inlineMath"

@@ -21,11 +21,11 @@ import Commonmark.Util
 import Commonmark.Blocks
 import Commonmark.SourceMap
 import Text.Parsec
+import Data.String
 import Data.Dynamic
 import Data.Tree
 import Data.Data
 import Data.Semigroup (Semigroup(..))
-import Data.Text.Lazy.Builder (Builder, fromText)
 
 data ColAlignment = LeftAlignedCol
                   | CenterAlignedCol
@@ -42,7 +42,7 @@ data PipeTableData = PipeTableData
 class HasPipeTable il bl where
   pipeTable :: [ColAlignment] -> [il] -> [[il]] -> bl
 
-instance HasPipeTable Builder Builder where
+instance HasPipeTable Html5 Html5 where
   pipeTable aligns headerCells rows =
     "<table>\n" <>
     (if null headerCells
@@ -64,8 +64,8 @@ instance HasPipeTable Builder Builder where
             "<tr>\n" <> mconcat (zipWith (toCell constructor) aligns' cells)
               <> "</tr>\n"
           toCell constructor align cell =
-            "<" <> fromText constructor <> alignToAttr align <> ">" <>
-            cell <> "</" <> fromText constructor <> ">" <> "\n"
+            "<" <> fromString constructor <> alignToAttr align <> ">" <>
+            cell <> "</" <> fromString constructor <> ">" <> "\n"
 
 instance (HasPipeTable i b, Monoid b)
         => HasPipeTable (WithSourceMap i) (WithSourceMap b) where

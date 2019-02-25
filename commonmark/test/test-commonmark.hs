@@ -23,6 +23,7 @@ import           Test.Tasty.QuickCheck
 import           Text.Parsec
 import           Text.Parsec.Pos
 
+import Data.Text.Lazy.Builder (Builder)
 main :: IO ()
 main = do
   spectests <- getSpecTestTree "test/spec.txt" defaultSyntaxSpec
@@ -56,7 +57,7 @@ main = do
     ]
 
 getSpecTestTree :: FilePath
-                -> SyntaxSpec Identity Builder Builder
+                -> SyntaxSpec Identity Html5 Html5
                 -> IO TestTree
 getSpecTestTree fp syntaxspec = do
   spectests <- getSpecTests fp
@@ -88,7 +89,7 @@ data SpecTest = SpecTest
      , html       :: Text }
   deriving (Show)
 
-toSpecTest :: ([Tok] -> Either ParseError Builder)
+toSpecTest :: ([Tok] -> Either ParseError Html5)
            -> SpecTest -> TestTree
 toSpecTest parser st =
   testCase name (actual @?= expected)
@@ -96,10 +97,10 @@ toSpecTest parser st =
                  " (" ++ show (start_line st) ++ "-" ++
                  show (end_line st) ++ ")"
           expected = normalizeHtml $ html st
-          actual = normalizeHtml .  TL.toStrict . toLazyText .
+          actual = normalizeHtml .  TL.toStrict . toLazyText . unHtml5 .
                    fromRight mempty $
                      (parser (tokenize "" (markdown st))
-                      :: Either ParseError Builder)
+                      :: Either ParseError Html5)
 
 normalizeHtml :: Text -> Text
 normalizeHtml = T.replace "\n</li>" "</li>" .

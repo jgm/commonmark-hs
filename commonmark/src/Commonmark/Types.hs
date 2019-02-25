@@ -6,6 +6,8 @@
 
 module Commonmark.Types
   ( Format(..)
+  , Html5(..)
+  , RangedHtml5(..)
   , ListSpacing(..)
   , ListType(..)
   , IsInline(..)
@@ -18,12 +20,13 @@ where
 import           Data.Data            (Data)
 import           Data.Text            (Text)
 import qualified Data.Text            as T
+import           Data.String          (IsString(..))
 import           Data.Typeable        (Typeable)
 import           Text.Parsec.Pos      (SourcePos, sourceColumn, sourceLine,
                                        sourceName)
 import           Data.Semigroup       (Semigroup, (<>))
-import           Data.Text.Lazy.Builder (Builder, singleton, fromText,
-                                         fromString)
+import           Data.Text.Lazy.Builder (Builder, fromText)
+import qualified Data.Text.Lazy.Builder as Builder
 import           Data.Char            (isSpace)
 import           Commonmark.Html      (escapeHtmlChar, escapeHtml,
                                        escapeURI, innerText)
@@ -45,6 +48,18 @@ data ListType =
      | OrderedList !Int !Char
      deriving (Show, Ord, Eq, Data, Typeable)
 
+newtype Html5 = Html5 {unHtml5 :: Builder}
+  deriving (Show, Semigroup, Monoid)
+
+instance IsString Html5 where
+  fromString = Html5 . Builder.fromString
+
+newtype RangedHtml5 = RangedHtml5 {unRangedHtml5 :: Builder}
+  deriving (Show, Semigroup, Monoid)
+
+instance IsString RangedHtml5 where
+  fromString = RangedHtml5 . Builder.fromString
+
 class (Monoid a, Show a, Rangeable a) => IsInline a where
   lineBreak :: a
   softBreak :: a
@@ -65,31 +80,32 @@ class (Monoid a, Show a, Rangeable a) => IsInline a where
   rawInline :: Format -> Text -> a
 
 -- This instance mirrors what is expected in the spec tests.
-instance IsInline Builder where
+instance IsInline Html5 where
   lineBreak = "<br />\n"
   softBreak = "\n"
-  str t = escapeHtml t
-  entity t = case lookupEntity (drop 1 $ T.unpack t) of
+  str t = Html5 $ escapeHtml t
+  entity t = Html5 $
+              case lookupEntity (drop 1 $ T.unpack t) of
                    Just t' -> escapeHtml (T.pack t')
                    Nothing -> fromText t
-  escapedChar c = escapeHtmlChar c
+  escapedChar c = Html5 $ escapeHtmlChar c
   emph ils = "<em>" <> ils <> "</em>"
   strong ils = "<strong>" <> ils <> "</strong>"
-  link target title ils = "<a href=\"" <> escapeURI target <> "\"" <>
+  link target title ils = "<a href=\"" <> Html5 (escapeURI target) <> "\"" <>
     (if T.null title
         then mempty
-        else " title=\"" <> escapeHtml title <> "\"") <>
+        else " title=\"" <> Html5 (escapeHtml title) <> "\"") <>
     ">" <> ils <> "</a>"
   image target title ils = "<img src=\"" <>
-    escapeURI target <> "\"" <>
-    " alt=\"" <> innerText ils <> "\"" <>
+    Html5 (escapeURI target) <> "\"" <>
+    " alt=\"" <> Html5 (innerText $ unHtml5 ils) <> "\"" <>
     (if T.null title
         then mempty
-        else " title=\"" <> escapeHtml title <> "\"") <>
+        else " title=\"" <> Html5 (escapeHtml title) <> "\"") <>
     " />"
-  code t = "<code>" <> escapeHtml t <> "</code>"
+  code t = "<code>" <> Html5 (escapeHtml t) <> "</code>"
   rawInline f t
-    | f == Format "html" = fromText t
+    | f == Format "html" = Html5 $ fromText t
     | otherwise          = mempty
 
 class (Monoid b, Show b, Rangeable b, IsInline il)
@@ -108,7 +124,7 @@ class (Monoid b, Show b, Rangeable b, IsInline il)
                           -> b
   list :: ListType -> ListSpacing -> [b] -> b
 
-instance IsBlock Builder Builder where
+instance IsBlock Html5 Html5 where
   paragraph ils = "<p>" <> ils <> "</p>" <> nl
   plain ils = ils <> nl
   thematicBreak = "<hr />" <> nl
@@ -117,11 +133,10 @@ instance IsBlock Builder Builder where
   codeBlock info t = "<pre><code" <>
     (if T.null lang
         then ">"
-        else fromText (" class=\"language-" <> lang <> "\">")) <>
-    escapeHtml t <> "</code></pre>" <> nl
+        else Html5 (fromText (" class=\"language-" <> lang <> "\">"))) <>
+    Html5 (escapeHtml t) <> "</code></pre>" <> nl
     where lang = T.takeWhile (not . isSpace) info
-  header level ils = singleton '<' <> h <> singleton '>' <>
-    ils <> "</" <> h <> singleton '>' <> nl
+  header level ils = "<" <> h <> ">" <> ils <> "</" <> h <> ">" <> nl
     where h = case level of
                    1 -> "h1"
                    2 -> "h2"
@@ -131,7 +146,7 @@ instance IsBlock Builder Builder where
                    6 -> "h6"
                    _ -> "p"
   rawBlock f t
-    | f == Format "html" = fromText t
+    | f == Format "html" = Html5 $ fromText t
     | otherwise          = mempty
   referenceLinkDefinition _ _ = mempty
   list (BulletList _) lSpacing items = "<ul>" <> nl <>
@@ -148,8 +163,8 @@ instance IsBlock Builder Builder where
                 (if lSpacing == TightList then mempty else nl) <> x <>
                 "</li>" <> nl
 
-nl :: Builder
-nl = "\n"
+nl :: IsString a => a
+nl = fromString "\n"
 
 newtype SourceRange = SourceRange
         { unSourceRange :: [(SourcePos, SourcePos)] }
@@ -177,7 +192,7 @@ instance Show SourceRange where
 class Rangeable a where
   ranged :: SourceRange -> a -> a
 
-instance Rangeable Builder where
+instance Rangeable Html5 where
   ranged _ x = x
 
 prettyRange :: SourceRange -> String

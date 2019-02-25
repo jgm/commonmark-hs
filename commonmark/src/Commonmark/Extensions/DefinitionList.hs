@@ -24,7 +24,6 @@ import Data.Monoid
 import Data.Dynamic
 import Data.Tree
 import Text.Parsec
-import Data.Text.Lazy.Builder (Builder)
 
 definitionListSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
                        Typeable il, Typeable bl, HasDefinitionList il bl)
@@ -153,11 +152,11 @@ definitionListDefinitionBlockSpec = BlockSpec
 class IsBlock il bl => HasDefinitionList il bl | il -> bl where
   definitionList :: [(il,[bl])] -> bl
 
-instance HasDefinitionList Builder Builder where
+instance HasDefinitionList Html5 Html5 where
   definitionList items =
     "<dl>\n" <> mconcat (map definitionListItem items) <> "</dl>\n"
 
-definitionListItem :: (Builder, [Builder]) -> Builder
+definitionListItem :: (Html5, [Html5]) -> Html5
 definitionListItem (term, defns) =
   "<dt>" <> term <> "</dt>\n" <>
   mconcat (map (\defn -> "<dd>\n" <> defn <> "</dd>\n") defns)

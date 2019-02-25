@@ -14,7 +14,6 @@ module Commonmark.Types
   , IsBlock(..)
   , SourceRange(..)
   , SourcePos
-  , Rangeable(..)
   )
 where
 import           Data.Data            (Data)
@@ -60,83 +59,119 @@ newtype RangedHtml5 = RangedHtml5 {unRangedHtml5 :: Builder}
 instance IsString RangedHtml5 where
   fromString = RangedHtml5 . Builder.fromString
 
-class (Monoid a, Show a, Rangeable a) => IsInline a where
-  lineBreak :: a
-  softBreak :: a
-  str :: Text -> a
-  entity :: Text -> a
-  escapedChar :: Char -> a
-  emph :: a -> a
-  strong :: a -> a
-  link :: Text -- ^ Destination
+class (Monoid a, Show a) => IsInline a where
+  lineBreak :: SourceRange -> a
+  softBreak :: SourceRange -> a
+  str :: SourceRange -> Text -> a
+  entity :: SourceRange -> Text -> a
+  escapedChar :: SourceRange -> Char -> a
+  emph :: SourceRange -> a -> a
+  strong :: SourceRange -> a -> a
+  link :: SourceRange
+       -> Text -- ^ Destination
        -> Text -- ^ Title
        -> a    -- ^ Link description
        -> a
-  image :: Text -- ^ Source
+  image :: SourceRange
+        -> Text -- ^ Source
         -> Text -- ^ Title
         -> a    -- ^ Description
         -> a
-  code :: Text -> a
-  rawInline :: Format -> Text -> a
+  code :: SourceRange -> Text -> a
+  rawInline :: SourceRange -> Format -> Text -> a
+
+openTag :: SourceRange -> Text -> [(Text, Builder)] -> Html5
+openTag sr tagname attr =
+  Html5 $ "<" <> fromText tagname <> attribs sr attr <> ">"
+{-# INLINE openTag #-}
+
+selfClosingTag :: SourceRange -> Text -> [(Text, Builder)] -> Html5
+selfClosingTag sr tagname attr =
+  Html5 $ "<" <> fromText tagname <> attribs sr attr <> " />"
+{-# INLINE selfClosingTag #-}
+
+inTags :: SourceRange -> Text -> [(Text, Builder)] -> Html5 -> Html5
+inTags sr tagname attr contents =
+  openTag sr tagname attr <> contents <> closeTag tagname
+{-# INLINE inTags #-}
+
+htmlText :: SourceRange -> Builder -> Html5
+htmlText (SourceRange []) txt = Html5 txt
+htmlText sr txt = inTags sr "span" [] (Html5 txt)
+{-# INLINE htmlText #-}
+
+closeTag :: Text -> Html5
+closeTag tagname =
+  Html5 $ "</" <> fromText tagname <> ">"
+{-# INLINE closeTag #-}
+
+attribs :: SourceRange -> [(Text, Builder)] -> Builder
+attribs (SourceRange []) [] = mempty
+attribs sr attrs =
+  let addSrAttrib = case sr of
+                     SourceRange [] -> id
+                     SourceRange r  -> (("data-sourcepos",
+                                         fromText (T.pack (show r))):)
+      renderAttrib (k,v) = " " <> fromText k <> "=\"" <> v <> "\""
+  in  mconcat $ map renderAttrib $ addSrAttrib attrs
+{-# INLINE attribs #-}
 
 -- This instance mirrors what is expected in the spec tests.
 instance IsInline Html5 where
-  lineBreak = "<br />\n"
-  softBreak = "\n"
-  str t = Html5 $ escapeHtml t
-  entity t = Html5 $
-              case lookupEntity (drop 1 $ T.unpack t) of
-                   Just t' -> escapeHtml (T.pack t')
-                   Nothing -> fromText t
-  escapedChar c = Html5 $ escapeHtmlChar c
-  emph ils = "<em>" <> ils <> "</em>"
-  strong ils = "<strong>" <> ils <> "</strong>"
-  link target title ils = "<a href=\"" <> Html5 (escapeURI target) <> "\"" <>
-    (if T.null title
-        then mempty
-        else " title=\"" <> Html5 (escapeHtml title) <> "\"") <>
-    ">" <> ils <> "</a>"
-  image target title ils = "<img src=\"" <>
-    Html5 (escapeURI target) <> "\"" <>
-    " alt=\"" <> Html5 (innerText $ unHtml5 ils) <> "\"" <>
-    (if T.null title
-        then mempty
-        else " title=\"" <> Html5 (escapeHtml title) <> "\"") <>
-    " />"
-  code t = "<code>" <> Html5 (escapeHtml t) <> "</code>"
-  rawInline f t
-    | f == Format "html" = Html5 $ fromText t
+  lineBreak sr = selfClosingTag sr "br" [] <> "\n"
+  softBreak _sr = "\n"
+  str sr t = htmlText sr (escapeHtml t)
+  entity sr t = htmlText sr $
+                     case lookupEntity (drop 1 $ T.unpack t) of
+                          Just t' -> escapeHtml (T.pack t')
+                          Nothing -> fromText t
+  escapedChar sr c = htmlText sr (escapeHtmlChar c)
+  emph sr ils = inTags sr "em" [] ils
+  strong sr ils = inTags sr "strong" [] ils
+  link sr target title ils = inTags sr "a"
+    ([("href", escapeURI target)] <>
+     [("title", escapeHtml title) | not (T.null title)]) ils
+  image sr target title ils = selfClosingTag sr "img"
+    ([("src", escapeURI target),
+      ("alt", innerText (unHtml5 ils))] <>
+     [("title", escapeHtml title) | not (T.null title)])
+  code sr t = inTags sr "code" [] (Html5 (escapeHtml t))
+  rawInline sr f t
+    | f == Format "html" = htmlText sr (fromText t)
     | otherwise          = mempty
 
-class (Monoid b, Show b, Rangeable b, IsInline il)
+class (Monoid b, Show b, IsInline il)
       => IsBlock il b | b -> il where
-  paragraph :: il -> b
-  plain :: il -> b
-  thematicBreak :: b
-  blockQuote :: b -> b
-  codeBlock :: Text -> Text -> b
-  header :: Int -- ^ Level
+  paragraph :: SourceRange -> il -> b
+  plain :: SourceRange -> il -> b
+  thematicBreak :: SourceRange -> b
+  blockQuote :: SourceRange -> b -> b
+  codeBlock :: SourceRange -> Text -> Text -> b
+  header :: SourceRange
+         -> Int -- ^ Level
          -> il  -- ^ text
          -> b
-  rawBlock :: Format -> Text -> b
-  referenceLinkDefinition :: Text -- ^ Label
+  rawBlock :: SourceRange -> Format -> Text -> b
+  referenceLinkDefinition :: SourceRange
+                          -> Text -- ^ Label
                           -> (Text, Text) -- ^ Destination, title
                           -> b
-  list :: ListType -> ListSpacing -> [b] -> b
+  list :: SourceRange -> ListType -> ListSpacing -> [b] -> b
 
 instance IsBlock Html5 Html5 where
-  paragraph ils = "<p>" <> ils <> "</p>" <> nl
-  plain ils = ils <> nl
-  thematicBreak = "<hr />" <> nl
-  blockQuote bs = "<blockquote>" <> nl <> bs <>
-    "</blockquote>" <> nl
-  codeBlock info t = "<pre><code" <>
-    (if T.null lang
-        then ">"
-        else Html5 (fromText (" class=\"language-" <> lang <> "\">"))) <>
-    Html5 (escapeHtml t) <> "</code></pre>" <> nl
+  paragraph sr ils = inTags sr "p" [] ils <> "\n"
+  plain sr ils
+    = case sr of
+        SourceRange [] -> ils <> "\n"
+        _ -> inTags sr "div" [] ils <> "\n"
+  thematicBreak sr = selfClosingTag sr "hr" [] <> "\n"
+  blockQuote sr bs = inTags sr "blockquote" [] bs <> "\n"
+  codeBlock sr info t = inTags sr "pre" [] $
+    inTags mempty "code" [("class", "language-" <> escapeHtml lang)
+                           | not (T.null lang)]
+      (Html5 (escapeHtml t)) <> "\n"
     where lang = T.takeWhile (not . isSpace) info
-  header level ils = "<" <> h <> ">" <> ils <> "</" <> h <> ">" <> nl
+  header sr level ils = inTags sr h [] ils <> "\n"
     where h = case level of
                    1 -> "h1"
                    2 -> "h2"
@@ -145,26 +180,25 @@ instance IsBlock Html5 Html5 where
                    5 -> "h5"
                    6 -> "h6"
                    _ -> "p"
-  rawBlock f t
-    | f == Format "html" = Html5 $ fromText t
+  rawBlock sr f t
+    | f == Format "html" =
+      case sr of
+        SourceRange [] -> Html5 $ fromText t
+        _ -> inTags sr "div" [] (Html5 $ fromText t)
     | otherwise          = mempty
-  referenceLinkDefinition _ _ = mempty
-  list (BulletList _) lSpacing items = "<ul>" <> nl <>
-    mconcat (map li items) <> "</ul>" <> nl
-   where li x = "<li>" <>
-                (if lSpacing == TightList then mempty else nl) <> x <>
-                "</li>" <> nl
-  list (OrderedList startnum _) lSpacing items = "<ol" <>
-    (if startnum /= 1
-        then " start=\"" <> fromString (show startnum) <> "\""
-        else mempty) <> ">" <> nl <>
-    mconcat (map li items) <> "</ol>" <> nl
-   where li x = "<li>" <>
-                (if lSpacing == TightList then mempty else nl) <> x <>
-                "</li>" <> nl
-
-nl :: IsString a => a
-nl = fromString "\n"
+  referenceLinkDefinition _ _ _ = mempty
+  list sr (BulletList _) lSpacing items =
+    inTags sr "ul" [] ("\n" <> mconcat (map li items)) <> "\n"
+   where li x = inTags mempty "li" []
+                ((if lSpacing == TightList then mempty else "\n") <> x)
+                <> "\n"
+  list sr (OrderedList startnum _) lSpacing items =
+    inTags sr "ol" attrs ("\n" <> mconcat (map li items)) <> "\n"
+    where attrs = [("start", escapeHtml (fromString (show startnum)))
+                     | startnum /= 1]
+          li x = inTags mempty "li" []
+                ((if lSpacing == TightList then mempty else "\n") <> x)
+                <> "\n"
 
 newtype SourceRange = SourceRange
         { unSourceRange :: [(SourcePos, SourcePos)] }
@@ -188,12 +222,6 @@ consolidateRanges xs@(_:_) ((s2,e2):ys) =
 
 instance Show SourceRange where
   show = prettyRange
-
-class Rangeable a where
-  ranged :: SourceRange -> a -> a
-
-instance Rangeable Html5 where
-  ranged _ x = x
 
 prettyRange :: SourceRange -> String
 prettyRange (SourceRange []) = ""

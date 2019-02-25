@@ -5,8 +5,6 @@ module Main where
 
 import           Commonmark
 import           Commonmark.Pandoc
-import           Commonmark.Lucid
-import qualified Lucid                      as Lucid
 import           Data.Aeson                 (encode)
 import qualified Data.ByteString.Lazy       as BL
 import qualified Text.Pandoc.Builder        as B
@@ -85,7 +83,7 @@ main = catch (do
       case runWithSourceMap <$>
               runIdentity (parseCommonmarkWith spec toks) of
            Left e -> errExit e
-           Right ((_ :: Builder), sm) -> do
+           Right ((_ :: Html5), sm) -> do
              TLIO.putStr $ toLazyText $
                "<!DOCTYPE html>\n<head>\n" <>
                "<title>" <> (case files of
@@ -98,11 +96,12 @@ main = catch (do
                "</body>\n"
   else
     if SourcePos `elem` opts then do
-       spec <- specFromExtensionNames [x | Extension x <- opts]
+       (spec :: SyntaxSpec Identity RangedHtml5 RangedHtml5) <-
+          specFromExtensionNames [x | Extension x <- opts]
        case runIdentity (parseCommonmarkWith spec toks) of
             Left e -> errExit e
             Right (r :: RangedHtml5)
-                   -> TLIO.putStr . Lucid.renderText . unRangedHtml5 $ r
+                   -> TLIO.putStr . toLazyText . unRangedHtml5 $ r
     else
       if PandocJSON `elem` opts then do
         spec <- specFromExtensionNames [x | Extension x <- opts]
@@ -115,7 +114,7 @@ main = catch (do
         spec <- specFromExtensionNames [x | Extension x <- opts]
         case runIdentity (parseCommonmarkWith spec toks) of
              Left e -> errExit e
-             Right (r :: Builder) -> TLIO.putStr . toLazyText $ r)
+             Right (r :: Html5) -> TLIO.putStr . toLazyText . unHtml5 $ r)
    (\e -> case e of
             StackOverflow -> do
              currentCallStack >>= mapM_ (hPutStrLn stderr)
@@ -146,7 +145,7 @@ extensions =
 
 extensionList :: [String]
 extensionList = map fst
-  (extensions :: [(String, SyntaxSpec IO Builder Builder)])
+  (extensions :: [(String, SyntaxSpec IO Html5 Html5)])
 
 listExtensions :: IO ()
 listExtensions =

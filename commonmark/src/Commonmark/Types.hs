@@ -49,13 +49,13 @@ data ListType =
      deriving (Show, Ord, Eq, Data, Typeable)
 
 newtype Html5 = Html5 {unHtml5 :: Builder}
-  deriving (Show, Semigroup, Monoid)
+  deriving (Show, Semigroup, Monoid, Typeable)
 
 instance IsString Html5 where
   fromString = Html5 . Builder.fromString
 
 newtype RangedHtml5 = RangedHtml5 {unRangedHtml5 :: Builder}
-  deriving (Show, Semigroup, Monoid)
+  deriving (Show, Semigroup, Monoid, Typeable)
 
 instance IsString RangedHtml5 where
   fromString = RangedHtml5 . Builder.fromString

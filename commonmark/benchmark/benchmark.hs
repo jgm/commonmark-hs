@@ -74,6 +74,9 @@ pathtests =
   , ("nested brackets", \n ->
     let num = n `div` 2 in
      T.replicate num "[" <> "a" <> T.replicate num "]")
+  , ("inline link openers without closers", \n ->
+    let num = n `div` 3 in
+    T.replicate num "[](")
   , ("nested block quotes", \n ->
     let num = n `div` 2 in
      T.replicate num "> " <> "a")

@@ -848,6 +848,7 @@ pLinkDestination = pAngleDest <|> pNormalDest 0
                                 LineEnd] <|> pEscaped)
       _ <- symbol '>'
       return res
+    pNormalDest :: Int -> Parsec [Tok] s [Tok]
     pNormalDest numparens = (do
       t <- satisfyTok (\case
                        Tok (Symbol '\\') _ _ -> True

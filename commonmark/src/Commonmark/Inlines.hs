@@ -840,7 +840,7 @@ pInlineLink = try $ do
   return $ LinkInfo { linkDestination = target, linkTitle = title }
 
 pLinkDestination :: Parsec [Tok] s [Tok]
-pLinkDestination = pAngleDest <|> pNormalDest
+pLinkDestination = pAngleDest <|> pNormalDest 0
   where
     pAngleDest = try $ do
       _ <- symbol '<'
@@ -848,19 +848,21 @@ pLinkDestination = pAngleDest <|> pNormalDest
                                 LineEnd] <|> pEscaped)
       _ <- symbol '>'
       return res
-    pNormalDest = try $ do
-      res <- many $
-                  many1 (satisfyTok (\case
-                       Tok (Symbol c) _ _ -> c /= '(' && c /= ')' && c /= '\\'
-                       Tok Spaces _ _     -> False
-                       Tok LineEnd _ _    -> False
-                       _ -> True)
-                    <|> pEscaped)
-                 <|> (do op <- symbol '('
-                         mid <- pNormalDest
-                         cl <- symbol ')'
-                         return (op : mid ++ [cl]))
-      return $ concat res
+    pNormalDest numparens = (do
+      t <- satisfyTok (\case
+                       Tok (Symbol '\\') _ _ -> True
+                       Tok (Symbol ')') _ _  -> numparens >= 1
+                       Tok Spaces _ _        -> False
+                       Tok LineEnd _ _       -> False
+                       _                     -> True)
+      case t of
+        Tok (Symbol '\\') _ _ -> do
+          t' <- option t $ satisfyTok asciiSymbol
+          (t':) <$> pNormalDest numparens
+        Tok (Symbol '(') _ _ -> (t:) <$> pNormalDest (numparens + 1)
+        Tok (Symbol ')') _ _ -> (t:) <$> pNormalDest (numparens - 1)
+        _                    -> (t:) <$> pNormalDest numparens)
+      <|> return []
 
 -- parses backslash + escapable character, or just backslash
 pEscaped :: Monad m => ParsecT [Tok] s m Tok

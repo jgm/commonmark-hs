@@ -106,3 +106,11 @@ City:
 <meta itemprop="name" content="Springfield">
 </span></p>
 ````````````````````````````````
+
+Double-encoding.
+
+```````````````````````````````` example
+[XSS](javascript&amp;colon;alert%28&#039;XSS&#039;%29)
+.
+<p><a href="javascript&amp;colon;alert%28'XSS'%29">XSS</a></p>
+````````````````````````````````

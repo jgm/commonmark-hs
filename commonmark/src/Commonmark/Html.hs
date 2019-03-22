@@ -18,8 +18,6 @@ import qualified Data.ByteString.Char8 as B
 import           Data.Semigroup       ((<>))
 import           Text.Printf          (printf)
 import           Data.Char            (ord, isAlphaNum, isAscii)
-import           Commonmark.Entity    (unEntity)
-import           Commonmark.Tokens    (tokenize)
 import           Text.Parsec
 import           Commonmark.Util      (skipManyTill)
 
@@ -34,11 +32,11 @@ escapeHtmlChar '"' = "&quot;"
 escapeHtmlChar c   = singleton c
 
 escapeURI :: Text -> Builder
-escapeURI = foldMap escapeURIChar . B.unpack .
-  encodeUtf8 . unEntity . tokenize "URI"
+escapeURI = foldMap escapeURIChar . B.unpack .  encodeUtf8
 
 escapeURIChar :: Char -> Builder
 escapeURIChar c
+  | c == '&'      = "&amp;"
   | isEscapable c = singleton '%' <> fromString (printf "%02X" (ord c))
   | otherwise     = escapeHtmlChar c
   where isEscapable d = not (isAscii d && isAlphaNum d)

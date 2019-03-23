@@ -720,10 +720,9 @@ processBs bracketedSpecs st =
                           }
 
        (Just opener@(Chunk Delim{ delimCanOpen = True, delimType = '[' } _ _),
-        Just closer@(Chunk Delim{ delimCanClose = True, delimType = ']'} _ _)) ->
-          let chunksinside = take
-                           (length (afters left) - (length (afters right) + 1))
-                           (afters left)
+        Just closer@(Chunk Delim{ delimCanClose = True, delimType = ']'} closePos _)) ->
+          let chunksinside = takeWhile (\ch -> chunkPos ch /= closePos)
+                               (afters left)
               isBracket (Chunk Delim{ delimType = c' } _ _) =
                  c' == '[' || c' == ']'
               isBracket _ = False

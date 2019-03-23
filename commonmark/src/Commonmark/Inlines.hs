@@ -54,6 +54,8 @@ import           Commonmark.Entity          (unEntity, charEntity, numEntity)
 import           Text.Parsec                hiding (State, space)
 import           Text.Parsec.Pos
 
+-- import Debug.Trace
+
 mkInlineParser :: (Monad m, IsInline a)
                => [BracketedSpec a]
                -> [FormattingSpec a]
@@ -553,8 +555,8 @@ processEm st =
   let left = leftCursor st
       right = rightCursor st
       bottoms = stackBottoms st
-      -- trace (prettyCursors left right) $ return $! ()
-  in case (center left, center right) of
+  in case -- trace (prettyCursors left right)
+          (center left, center right) of
        (_, Nothing) -> reverse $
                          case center (rightCursor st) of
                             Nothing -> befores (rightCursor st)

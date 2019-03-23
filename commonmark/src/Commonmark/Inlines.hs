@@ -644,7 +644,8 @@ delimsMatch (Chunk open@Delim{} _ opents) (Chunk close@Delim{} _ closets) =
       (delimType open == delimType close &&
            if (delimCanOpen open && delimCanClose open) ||
                 (delimCanOpen close && delimCanClose close)
-                then (delimLength open + delimLength close) `mod` 3 /= 0
+                then delimLength close `mod` 3 == 0 ||
+                     (delimLength open + delimLength close) `mod` 3 /= 0
                 else True) &&
     opents /= closets
 delimsMatch _ _ = False

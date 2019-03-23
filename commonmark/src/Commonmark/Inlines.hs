@@ -851,22 +851,25 @@ pLinkDestination = pAngleDest <|> pNormalDest 0
                                 LineEnd] <|> pEscaped)
       _ <- symbol '>'
       return res
+
     pNormalDest :: Int -> Parsec [Tok] s [Tok]
-    pNormalDest numparens = (do
-      t <- satisfyTok (\case
-                       Tok (Symbol '\\') _ _ -> True
-                       Tok (Symbol ')') _ _  -> numparens >= 1
-                       Tok Spaces _ _        -> False
-                       Tok LineEnd _ _       -> False
-                       _                     -> True)
-      case t of
-        Tok (Symbol '\\') _ _ -> do
-          t' <- option t $ satisfyTok asciiSymbol
-          (t':) <$> pNormalDest numparens
-        Tok (Symbol '(') _ _ -> (t:) <$> pNormalDest (numparens + 1)
-        Tok (Symbol ')') _ _ -> (t:) <$> pNormalDest (numparens - 1)
-        _                    -> (t:) <$> pNormalDest numparens)
-      <|> return []
+    pNormalDest numparens
+     | numparens > 32 = mzero
+     | otherwise = (do
+          t <- satisfyTok (\case
+                           Tok (Symbol '\\') _ _ -> True
+                           Tok (Symbol ')') _ _  -> numparens >= 1
+                           Tok Spaces _ _        -> False
+                           Tok LineEnd _ _       -> False
+                           _                     -> True)
+          case t of
+            Tok (Symbol '\\') _ _ -> do
+              t' <- option t $ satisfyTok asciiSymbol
+              (t':) <$> pNormalDest numparens
+            Tok (Symbol '(') _ _ -> (t:) <$> pNormalDest (numparens + 1)
+            Tok (Symbol ')') _ _ -> (t:) <$> pNormalDest (numparens - 1)
+            _                    -> (t:) <$> pNormalDest numparens)
+          <|> return []
 
 -- parses backslash + escapable character, or just backslash
 pEscaped :: Monad m => ParsecT [Tok] s m Tok

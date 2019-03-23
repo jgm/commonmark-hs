@@ -295,8 +295,10 @@ data ListData = ListData
      } deriving (Show, Eq)
 
 data ListItemData = ListItemData
-     { listItemType   :: ListType
-     , listItemIndent :: Int
+     { listItemType         :: ListType
+     , listItemIndent       :: Int
+     , listItemBlanksInside :: Bool
+     , listItemBlanksAtEnd  :: Bool
      } deriving (Show, Eq)
 
 runInlineParser :: Monad m
@@ -610,7 +612,8 @@ listItemSpec = BlockSpec
      , blockParagraph      = False
      , blockContinue       = \node@(Node ndata children) -> do
              let lidata = fromDyn (blockData ndata)
-                             (ListItemData undefined undefined)
+                             (ListItemData undefined undefined
+                                           undefined undefined)
              -- a marker followed by two blanks is just an empty item:
              guard $ null (blockBlanks ndata) ||
                      not (null children)
@@ -622,7 +625,25 @@ listItemSpec = BlockSpec
    <$> mapM (\n ->
               blockConstructor (blockSpec (rootLabel n)) n)
          (reverse (subForest node))
-     , blockFinalize       = defaultFinalizer
+     , blockFinalize       = \(Node cdata children) parent -> do
+          let lidata = fromDyn (blockData cdata)
+                                 (ListItemData undefined undefined
+                                               undefined undefined)
+          let blanks = removeConsecutive $ sort $
+                         concat (blockBlanks cdata :
+                                    map (blockBlanks . rootLabel) children)
+          curline <- sourceLine <$> getPosition
+          let blanksAtEnd = case blanks of
+                                   (l:_) | l < curline - 1 -> True
+                                   _ -> False
+          let blanksInside = case length blanks of
+                                n | n > 1     -> True
+                                  | n == 1    -> not blanksAtEnd
+                                  | otherwise -> False
+          let lidata' = toDyn lidata{ listItemBlanksInside = blanksInside
+                                    , listItemBlanksAtEnd  = blanksAtEnd }
+          defaultFinalizer (Node cdata{ blockData = lidata' } children)
+                           parent
      }
 
 itemStart :: Monad m => BlockParser m il bl (SourcePos, ListItemData)
@@ -639,6 +660,8 @@ itemStart = do
   return (pos, ListItemData{
            listItemType = ty
           , listItemIndent = (aftercol - beforecol) + numspaces
+          , listItemBlanksInside = False
+          , listItemBlanksAtEnd = False
           })
 
 bulletListMarker :: Monad m => BlockParser m il bl ListType
@@ -670,9 +693,6 @@ listSpec = BlockSpec
      , blockFinalize       = \(Node cdata children) parent -> do
           let ListData lt _ = fromDyn (blockData cdata)
                                  (ListData undefined undefined)
-          let removeConsecutive (x:y:zs)
-                | x == y + 1 = removeConsecutive (y:zs)
-              removeConsecutive xs = xs
           -- we might have any number of blanks at end of list,
           -- so we remove consecutive lines to get the last one
           -- in a series...
@@ -959,6 +979,11 @@ getBlockText transform =
 
 removeIndent :: [Tok] -> [Tok]
 removeIndent = dropWhile (hasType Spaces)
+
+removeConsecutive :: [Int] -> [Int]
+removeConsecutive (x:y:zs)
+  | x == y + 1 = removeConsecutive (y:zs)
+removeConsecutive xs = xs
 
 -------------------------------------------------------------------------
 

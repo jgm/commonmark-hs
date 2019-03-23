@@ -579,13 +579,13 @@ processEm st =
 
        (Just chunk, Just closedelim@(Chunk Delim{ delimType = c,
                                                   delimCanClose = True,
-                                                  delimSpec = Just spec} _ ts))
+                                                  delimSpec = Just spec}
+                                           closePos ts))
          | delimsMatch chunk closedelim ->
            let closelen = length ts
                opendelim = chunk
-               contents = take
-                 (length (afters left) - (length (afters right) + 1))
-                 (afters left)
+               contents = takeWhile (\ch -> chunkPos ch /= closePos)
+                          (afters left)
                openlen = length (chunkToks opendelim)
                fallbackConstructor x = str (T.singleton c) <> x <>
                                        str (T.singleton c)

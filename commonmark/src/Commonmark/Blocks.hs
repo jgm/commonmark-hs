@@ -177,8 +177,7 @@ processLine specs = do
                if blockContainsLines (bspec cur)
                   then curdata{ blockLines = toks : blockLines curdata }
                   else
-                    if isblank &&
-                       blockCanContain (bspec cur) paraSpec
+                    if isblank
                        then curdata{ blockBlanks = sourceLine endpos :
                                         blockBlanks curdata }
                        else curdata
@@ -630,18 +629,20 @@ listItemSpec = BlockSpec
                                  (ListItemData undefined undefined
                                                undefined undefined)
           let blanks = removeConsecutive $ sort $
-                         concat (blockBlanks cdata :
-                                    map (blockBlanks . rootLabel) children)
+                         concat $ blockBlanks cdata :
+                                  map (blockBlanks . rootLabel)
+                                  (filter ((== "List") . blockType .
+                                   blockSpec . rootLabel) children)
           curline <- sourceLine <$> getPosition
           let blanksAtEnd = case blanks of
-                                   (l:_) | l < curline - 1 -> True
-                                   _ -> False
+                                   (l:_) -> l >= curline - 1
+                                   _     -> False
           let blanksInside = case length blanks of
                                 n | n > 1     -> True
                                   | n == 1    -> not blanksAtEnd
                                   | otherwise -> False
-          let lidata' = toDyn lidata{ listItemBlanksInside = blanksInside
-                                    , listItemBlanksAtEnd  = blanksAtEnd }
+          let lidata' = toDyn $ lidata{ listItemBlanksInside = blanksInside
+                                      , listItemBlanksAtEnd  = blanksAtEnd }
           defaultFinalizer (Node cdata{ blockData = lidata' } children)
                            parent
      }
@@ -693,15 +694,21 @@ listSpec = BlockSpec
      , blockFinalize       = \(Node cdata children) parent -> do
           let ListData lt _ = fromDyn (blockData cdata)
                                  (ListData undefined undefined)
-          -- we might have any number of blanks at end of list,
-          -- so we remove consecutive lines to get the last one
-          -- in a series...
-          let blanks = removeConsecutive
-                       $ sort $ concatMap (getBlanks 1) children
-          curline <- sourceLine <$> getPosition
-          let ls = case blanks of
-                         (l:_) | l < curline - 1 -> LooseList
-                         _     -> TightList
+          let getListItemData (Node d _) =
+                fromDyn (blockData d)
+                  (ListItemData undefined undefined undefined undefined)
+          let childrenData = map getListItemData children
+          let ls = case childrenData of
+                          c:cs | any listItemBlanksInside (c:cs) ||
+                                 (not (null cs) &&
+                                  any listItemBlanksAtEnd cs)
+                               -> LooseList
+                          _    -> TightList
+          blockBlanks' <- case childrenData of
+                             c:_ | listItemBlanksAtEnd c -> do
+                                 curline <- sourceLine <$> getPosition
+                                 return $ curline - 1 : blockBlanks cdata
+                             _ -> return $ blockBlanks cdata
           let ldata' = toDyn (ListData lt ls)
           -- need to transform paragraphs on tight lists
           let totight (Node nd cs)
@@ -713,26 +720,10 @@ listSpec = BlockSpec
                  if ls == TightList
                     then map childrenToTight children
                     else children
-          defaultFinalizer (Node cdata{ blockData = ldata' } children')
+          defaultFinalizer (Node cdata{ blockData = ldata'
+                                      , blockBlanks = blockBlanks' } children')
                            parent
      }
-
-getBlanks :: Int -> BlockNode m il bl -> [Int]
-getBlanks iteration (Node bdata cs) =
-  let endline = case blockEndPos bdata of
-                     []    -> 0
-                     (p:_) -> sourceLine p
-  in  (case blockBlanks bdata of
-           (x:xs)
-             | iteration == 1 -> x:xs
-             | x == endline ->
-               case findIndex (> 1) (zipWith (-) (x:xs) xs) of
-                    Nothing -> x:xs
-                    Just i  -> take i (x:xs)
-           _ -> [])
-        ++  concatMap
-              (concatMap (getBlanks (iteration + 1)) . subForest)
-              [c | c <- cs, blockType (bspec c) == "List"]
 
 thematicBreakSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl

@@ -41,7 +41,7 @@ toPathBench (name, ptest) =
   bgroup name
   [ bgroup "commonmark"
     (map (\n -> benchCommonmark defaultSyntaxSpec (show n, ptest n))
-      [800, 1200, 1600, 2000])
+      [1000, 2000, 3000])
   ]
 
 pathtests :: [(String, Int -> T.Text)]

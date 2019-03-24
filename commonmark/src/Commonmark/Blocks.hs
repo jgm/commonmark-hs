@@ -53,6 +53,7 @@ import           Control.Monad.Trans.Class (lift)
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid
 #endif
+import           Data.Maybe                (isJust)
 import           Data.Char                 (isAsciiUpper, isDigit, isSpace)
 import           Data.Dynamic
 import           Data.List                 (findIndex, sort, partition)
@@ -62,6 +63,8 @@ import qualified Data.Text                 as T
 import qualified Data.Text.Read            as TR
 import           Data.Tree
 import           Text.Parsec
+
+import Debug.Trace
 
 mkBlockParser :: (Monad m, IsBlock il bl)
              => [BlockSpec m il bl] -- ^ Defines block syntax
@@ -151,7 +154,29 @@ processLine specs = do
 
   isblank <- option False $ True <$ (do getState >>= guard . maybeBlank
                                         lookAhead blankLine)
-  (skipMany1 (choice (map blockStart specs)) >> optional (blockStart paraSpec))
+  let doBlockStarts [] = mzero
+      doBlockStarts (spec:otherSpecs) = do
+        st' <- getState
+        initPos <- getPosition
+        inp <- getInput
+        case M.lookup (blockType spec) (killPositions st') of
+           Just pos' | initPos < pos' -> mzero
+           _ -> (do
+             res <- blockStart spec
+             case res of
+               Right () -> return ()
+               Left pos -> do
+                 unless (pos == initPos) $ do
+                   updateState $ \st ->
+                      st{ killPositions =
+                           M.insert (blockType spec)
+                           pos (killPositions st) }
+                   -- rewind:
+                   setInput inp
+                   setPosition initPos
+                 doBlockStarts otherSpecs)
+                <|> doBlockStarts otherSpecs
+  (skipMany1 (doBlockStarts specs) >> optional (blockStart paraSpec))
       <|>
     (do getState >>= guard . maybeLazy
         guard $ not isblank
@@ -162,7 +187,7 @@ processLine specs = do
         updateState $ \st -> st{ nodeStack =
              map addStartPos (reverse unmatched) ++ reverse matched })
       <|>
-    blockStart paraSpec
+    void (blockStart paraSpec)
       <|>
     return ()
 
@@ -206,11 +231,18 @@ showNodeStack = do
 -- | Defines a block-level element type.
 data BlockSpec m il bl = BlockSpec
      { blockType           :: Text  -- ^ Descriptive name of block type
-     , blockStart          :: BlockParser m il bl () -- ^ Parses beginning
+     , blockStart          :: BlockParser m il bl (Either SourcePos ())
+                           -- ^ Parses beginning
                            -- of block.  The parser should verify any
                            -- preconditions, parse the opening of the block,
-                           -- and the new block to the block stack using
-                           -- 'addNodeToStack'.
+                           -- and add the new block to the block stack using
+                           -- 'addNodeToStack', returning 'Right' () on
+                           -- success. If the match fails, the parser can
+                           -- either fail or return 'Left' and the
+                           -- 'SourcePos' where the match failed. In the
+                           -- latter case, the SourcePos will be stored so
+                           -- that future matches won't be attempted until
+                           -- after that position.
      , blockCanContain     :: BlockSpec m il bl -> Bool -- ^ Returns True if
                            -- this kind of block can contain the specified
                            -- block type.
@@ -390,6 +422,7 @@ paraSpec = BlockSpec
              addNodeToStack $
                Node (defBlockData paraSpec){
                        blockStartPos = [pos] } []
+             return $ Right ()
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = True
@@ -502,6 +535,7 @@ atxHeaderSpec = BlockSpec
                             blockLines = [raw'],
                             blockData = toDyn level,
                             blockStartPos = [pos] } []
+             return $ Right ()
      , blockCanContain     = const False
      , blockContainsLines  = False
      , blockParagraph      = False
@@ -535,7 +569,7 @@ setextHeaderSpec = BlockSpec
                           blockData = toDyn level,
                           blockStartPos =
                                blockStartPos (rootLabel cur) ++ [pos] } []
-
+             return $ Right ()
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = False
@@ -558,6 +592,7 @@ blockQuoteSpec = BlockSpec
              addNodeToStack $
                 Node (defBlockData blockQuoteSpec){
                           blockStartPos = [pos] } []
+             return $ Right ()
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False
@@ -610,6 +645,7 @@ listItemSpec = BlockSpec
                            listItemType lidata
                     -> addNodeToStack linode
                   _ -> addNodeToStack listnode >> addNodeToStack linode
+             return $ Right ()
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False
@@ -734,17 +770,20 @@ thematicBreakSpec :: (Monad m, IsBlock il bl)
 thematicBreakSpec = BlockSpec
      { blockType           = "ThematicBreak"
      , blockStart          = try $ do
-             nonindentSpaces
-             pos <- getPosition
-             Tok (Symbol c) _ _ <- symbol '-' <|> symbol '_' <|> symbol '*'
-             skipWhile (hasType Spaces)
-             let tbchar c = symbol c <* skipWhile (hasType Spaces)
-             count 2 (tbchar c)
-             skipMany (tbchar c)
-             void $ lookAhead lineEnd
-             addNodeToStack $
-                Node (defBlockData thematicBreakSpec){
+            nonindentSpaces
+            pos <- getPosition
+            Tok (Symbol c) _ _ <- symbol '-'
+                              <|> symbol '_'
+                              <|> symbol '*'
+            skipWhile (hasType Spaces)
+            let tbchar c = symbol c <* skipWhile (hasType Spaces)
+            count 2 (tbchar c)
+            skipMany (tbchar c)
+            lookAhead lineEnd
+            addNodeToStack $
+                    Node (defBlockData thematicBreakSpec){
                           blockStartPos = [pos] } []
+            return $ Right ()
      , blockCanContain     = const False
      , blockContainsLines  = False
      , blockParagraph      = False
@@ -766,6 +805,7 @@ indentedCodeSpec = BlockSpec
              notFollowedBy blankLine
              addNodeToStack $ Node (defBlockData indentedCodeSpec){
                           blockStartPos = [pos] } []
+             return $ Right ()
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = False
@@ -814,6 +854,7 @@ fencedCodeSpec = BlockSpec
                           blockData = toDyn
                                (c, fencelength, indentspaces, info),
                           blockStartPos = [pos] } []
+             return $ Right ()
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = False
@@ -873,7 +914,7 @@ rawHtmlSpec = BlockSpec
                       blockData = toDyn rawHtmlType,
                       blockLines = [toks],
                       blockStartPos = [pos] } []
-
+         return $ Right ()
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = False

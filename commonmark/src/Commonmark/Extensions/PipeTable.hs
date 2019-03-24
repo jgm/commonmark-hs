@@ -157,6 +157,7 @@ pipeTableBlockSpec = BlockSpec
                        , blockData = toDyn tabledata
                        , blockLines = [toks ++ [nl]]
                        } []
+         return $ Right ()
      , blockCanContain     = \_ -> False -- :: BlockSpec m il bl -> Bool
      , blockContainsLines  = False -- :: Bool
      , blockParagraph      = False -- :: Bool

@@ -85,10 +85,13 @@ pathtests =
      T.replicate num "> " <> "a")
   , ("nested list", \n ->
     let num = floor (sqrt (fromIntegral n)) in
-     mconcat (map (\ind -> T.replicate ind " " <> "- a\n") [0..(num - 1)]))
+    mconcat (map (\ind -> T.replicate ind " " <> "- a\n") [0..(num - 1)]))
+  , ("nested list 2", \n ->
+    let num = n `div` 2 in
+    T.replicate num "* " <> "a\n")
   , ("backticks", \n ->
     let num = floor (sqrt (9 + (8 * (fromIntegral n :: Double))) / 2) in
-     mconcat $ map (\x -> "e" <> T.replicate x "`") [1..num])
+    mconcat $ map (\x -> "e" <> T.replicate x "`") [1..num])
   ]
 
 benchCommonmark :: SyntaxSpec Identity Builder Builder

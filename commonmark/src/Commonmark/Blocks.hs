@@ -73,13 +73,14 @@ mkBlockParser :: (Monad m, IsBlock il bl)
 mkBlockParser _ _ _ [] = return $ Right mempty
 mkBlockParser specs finalParsers ilParser (t:ts) =
   runParserT (setPosition (tokPos t) >> processLines specs finalParsers)
-          BPState{ referenceMap = emptyReferenceMap
-                 , inlineParser = ilParser
-                 , nodeStack    = [Node (defBlockData docSpec) []]
-                 , blockMatched = False
-                 , maybeLazy    = False
-                 , maybeBlank   = True
-                 , counters     = M.empty
+          BPState{ referenceMap  = emptyReferenceMap
+                 , inlineParser  = ilParser
+                 , nodeStack     = [Node (defBlockData docSpec) []]
+                 , blockMatched  = False
+                 , maybeLazy     = False
+                 , maybeBlank    = True
+                 , counters      = M.empty
+                 , killPositions = M.empty
                  }
           "source" (t:ts)
 
@@ -125,7 +126,8 @@ processLine specs = do
            else return (False, nd)
   updateState $ \st -> st{ blockMatched = True
                          , maybeLazy = False
-                         , maybeBlank = True }
+                         , maybeBlank = True
+                         , killPositions = M.empty }
   conts <- getState >>= mapM checkContinue . reverse . nodeStack
   let (contsmatched, contsunmatched) = partition fst conts
   let (matched, unmatched) = (map snd contsmatched, map snd contsunmatched)
@@ -277,13 +279,15 @@ defBlockData spec = BlockData
 type BlockNode m il bl = Tree (BlockData m il bl)
 
 data BPState m il bl = BPState
-     { referenceMap :: ReferenceMap
-     , inlineParser :: ReferenceMap -> [Tok] -> m (Either ParseError il)
-     , nodeStack    :: [BlockNode m il bl]   -- reverse order, head is tip
-     , blockMatched :: Bool
-     , maybeLazy    :: Bool
-     , maybeBlank   :: Bool
-     , counters     :: M.Map Text Dynamic
+     { referenceMap  :: ReferenceMap
+     , inlineParser  :: ReferenceMap -> [Tok] -> m (Either ParseError il)
+     , nodeStack     :: [BlockNode m il bl]   -- reverse order, head is tip
+     , blockMatched  :: Bool
+     , maybeLazy     :: Bool
+     , maybeBlank    :: Bool
+     , counters      :: M.Map Text Dynamic
+     , killPositions :: M.Map Text SourcePos  -- record known positions
+                           -- where parsers fail to avoid repetition
      }
 
 type BlockParser m il bl = ParsecT [Tok] (BPState m il bl) m

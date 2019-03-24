@@ -732,9 +732,11 @@ thematicBreakSpec = BlockSpec
      , blockStart          = try $ do
              nonindentSpaces
              pos <- getPosition
+             Tok (Symbol c) _ _ <- symbol '-' <|> symbol '_' <|> symbol '*'
+             skipWhile (hasType Spaces)
              let tbchar c = symbol c <* skipWhile (hasType Spaces)
-             cs <- choice $ map (many1 . tbchar) ['-', '_', '*']
-             guard $ length cs >= 3
+             count 2 (tbchar c)
+             skipMany (tbchar c)
              void $ lookAhead lineEnd
              addNodeToStack $
                 Node (defBlockData thematicBreakSpec){

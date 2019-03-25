@@ -234,11 +234,12 @@ data BlockSpec m il bl = BlockSpec
                            -- and add the new block to the block stack using
                            -- 'addNodeToStack', returning 'Right' () on
                            -- success. If the match fails, the parser can
-                           -- either fail or return 'Left' and the
-                           -- 'SourcePos' where the match failed. In the
-                           -- latter case, the SourcePos will be stored so
+                           -- either fail or return 'Left' and a
+                           -- 'SourcePos' before which the parser is known
+                           -- not to succeed (this will be stored in
+                           -- 'failurePositions' for the line, to ensure
                            -- that future matches won't be attempted until
-                           -- after that position.
+                           -- after that position).
      , blockCanContain     :: BlockSpec m il bl -> Bool -- ^ Returns True if
                            -- this kind of block can contain the specified
                            -- block type.

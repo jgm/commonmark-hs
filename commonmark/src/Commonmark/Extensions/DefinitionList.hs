@@ -106,7 +106,7 @@ definitionListItemBlockSpec = BlockSpec
                 -> addNodeToStack linode >> addNodeToStack defnode
               _ -> addNodeToStack listnode >> addNodeToStack linode >>
                    addNodeToStack defnode
-         return $ Right ()
+         return BlockStartMatch
      , blockCanContain     = \sp -> blockType sp == "DefinitionListDefinition"
      , blockContainsLines  = False
      , blockParagraph      = False

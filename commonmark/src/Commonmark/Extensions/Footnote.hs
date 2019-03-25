@@ -78,7 +78,7 @@ footnoteBlockSpec = BlockSpec
                 Node (defBlockData footnoteBlockSpec){
                             blockData = toDyn (num, lab')
                           , blockStartPos = [pos] } []
-             return $ Right ()
+             return BlockStartMatch
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False

@@ -9,6 +9,7 @@
 module Commonmark.Blocks
   ( mkBlockParser
   , defaultBlockSpecs
+  , BlockStartResult(..)
   , BlockSpec(..)
   , BlockData(..)
   , defBlockData
@@ -162,8 +163,8 @@ processLine specs = do
              pst <- getParserState
              res <- blockStart spec
              case res of
-               Right () -> return ()
-               Left pos -> do
+               BlockStartMatch -> return ()
+               BlockStartNoMatchBefore pos -> do
                  setParserState pst
                  unless (pos == initPos) $
                    updateState $ \st ->
@@ -224,17 +225,22 @@ showNodeStack = do
            , show (length  children) ]
 -}
 
+data BlockStartResult =
+    BlockStartMatch
+  | BlockStartNoMatchBefore SourcePos
+  deriving (Show, Eq)
+
 -- | Defines a block-level element type.
 data BlockSpec m il bl = BlockSpec
      { blockType           :: Text  -- ^ Descriptive name of block type
-     , blockStart          :: BlockParser m il bl (Either SourcePos ())
+     , blockStart          :: BlockParser m il bl BlockStartResult
                            -- ^ Parses beginning
                            -- of block.  The parser should verify any
                            -- preconditions, parse the opening of the block,
                            -- and add the new block to the block stack using
-                           -- 'addNodeToStack', returning 'Right' () on
+                           -- 'addNodeToStack', returning 'BlockStartMatch' on
                            -- success. If the match fails, the parser can
-                           -- either fail or return 'Left' and a
+                           -- either fail or return 'BlockStartNoMatchBefore' and a
                            -- 'SourcePos' before which the parser is known
                            -- not to succeed (this will be stored in
                            -- 'failurePositions' for the line, to ensure
@@ -419,7 +425,7 @@ paraSpec = BlockSpec
              addNodeToStack $
                Node (defBlockData paraSpec){
                        blockStartPos = [pos] } []
-             return $ Right ()
+             return BlockStartMatch
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = True
@@ -532,7 +538,7 @@ atxHeaderSpec = BlockSpec
                             blockLines = [raw'],
                             blockData = toDyn level,
                             blockStartPos = [pos] } []
-             return $ Right ()
+             return BlockStartMatch
      , blockCanContain     = const False
      , blockContainsLines  = False
      , blockParagraph      = False
@@ -566,7 +572,7 @@ setextHeaderSpec = BlockSpec
                           blockData = toDyn level,
                           blockStartPos =
                                blockStartPos (rootLabel cur) ++ [pos] } []
-             return $ Right ()
+             return BlockStartMatch
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = False
@@ -589,7 +595,7 @@ blockQuoteSpec = BlockSpec
              addNodeToStack $
                 Node (defBlockData blockQuoteSpec){
                           blockStartPos = [pos] } []
-             return $ Right ()
+             return BlockStartMatch
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False
@@ -642,7 +648,7 @@ listItemSpec = BlockSpec
                            listItemType lidata
                     -> addNodeToStack linode
                   _ -> addNodeToStack listnode >> addNodeToStack linode
-             return $ Right ()
+             return BlockStartMatch
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False
@@ -778,10 +784,11 @@ thematicBreakSpec = BlockSpec
             skipMany (tbchar c)
             nextTok <- lookAhead anyTok
             case tokType nextTok of
-              LineEnd -> Right <$>
+              LineEnd -> do
                 addNodeToStack (Node (defBlockData thematicBreakSpec){
                                    blockStartPos = [pos] } [])
-              _ -> Left <$> getPosition
+                return BlockStartMatch
+              _ -> BlockStartNoMatchBefore <$> getPosition
      , blockCanContain     = const False
      , blockContainsLines  = False
      , blockParagraph      = False
@@ -803,7 +810,7 @@ indentedCodeSpec = BlockSpec
              notFollowedBy blankLine
              addNodeToStack $ Node (defBlockData indentedCodeSpec){
                           blockStartPos = [pos] } []
-             return $ Right ()
+             return BlockStartMatch
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = False
@@ -852,7 +859,7 @@ fencedCodeSpec = BlockSpec
                           blockData = toDyn
                                (c, fencelength, indentspaces, info),
                           blockStartPos = [pos] } []
-             return $ Right ()
+             return BlockStartMatch
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = False
@@ -912,7 +919,7 @@ rawHtmlSpec = BlockSpec
                       blockData = toDyn rawHtmlType,
                       blockLines = [toks],
                       blockStartPos = [pos] } []
-         return $ Right ()
+         return BlockStartMatch
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = False

@@ -8,7 +8,7 @@ else
   BENCHARGS?="--output $(LOGS)/benchmark-$(DATE).html --time-limit=2"
 endif
 SOURCEFILES?=$(shell find app src test -name '*.hs')
-GHC_OPTS=-O0 -Wall -fno-warn-unused-do-bind -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -Wincomplete-uni-patterns -Werror=missing-home-modules -Widentities -Wcpp-undef -fhide-source-paths
+GHC_OPTS=-Wall -fno-warn-unused-do-bind -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -Wincomplete-uni-patterns -Werror=missing-home-modules -Widentities -Wcpp-undef -fhide-source-paths
 
 all:
 	stack install --ghc-options="$(GHC_OPTS)" --test --haddock --no-haddock-deps --bench --no-run-benchmarks

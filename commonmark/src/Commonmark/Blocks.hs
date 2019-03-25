@@ -64,8 +64,6 @@ import qualified Data.Text.Read            as TR
 import           Data.Tree
 import           Text.Parsec
 
-import Debug.Trace
-
 mkBlockParser :: (Monad m, IsBlock il bl)
              => [BlockSpec m il bl] -- ^ Defines block syntax
              -> [BlockParser m il bl bl] -- ^ Parsers to run at end
@@ -155,25 +153,23 @@ processLine specs = do
   isblank <- option False $ True <$ (do getState >>= guard . maybeBlank
                                         lookAhead blankLine)
   let doBlockStarts [] = mzero
-      doBlockStarts (spec:otherSpecs) = do
+      doBlockStarts (spec:otherSpecs) = try $ do
         st' <- getState
         initPos <- getPosition
-        inp <- getInput
         case M.lookup (blockType spec) (killPositions st') of
-           Just pos' | initPos < pos' -> mzero
+           Just pos' | initPos < pos' -> doBlockStarts otherSpecs
            _ -> (do
+             pst <- getParserState
              res <- blockStart spec
              case res of
                Right () -> return ()
                Left pos -> do
-                 unless (pos == initPos) $ do
+                 setParserState pst
+                 unless (pos == initPos) $
                    updateState $ \st ->
                       st{ killPositions =
                            M.insert (blockType spec)
                            pos (killPositions st) }
-                   -- rewind:
-                   setInput inp
-                   setPosition initPos
                  doBlockStarts otherSpecs)
                 <|> doBlockStarts otherSpecs
   (skipMany1 (doBlockStarts specs) >> optional (blockStart paraSpec))
@@ -779,11 +775,12 @@ thematicBreakSpec = BlockSpec
             let tbchar c = symbol c <* skipWhile (hasType Spaces)
             count 2 (tbchar c)
             skipMany (tbchar c)
-            lookAhead lineEnd
-            addNodeToStack $
-                    Node (defBlockData thematicBreakSpec){
-                          blockStartPos = [pos] } []
-            return $ Right ()
+            nextTok <- lookAhead anyTok
+            case tokType nextTok of
+              LineEnd -> Right <$>
+                addNodeToStack (Node (defBlockData thematicBreakSpec){
+                                   blockStartPos = [pos] } [])
+              _ -> Left <$> getPosition
      , blockCanContain     = const False
      , blockContainsLines  = False
      , blockParagraph      = False

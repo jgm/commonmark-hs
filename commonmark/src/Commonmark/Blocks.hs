@@ -782,13 +782,11 @@ thematicBreakSpec = BlockSpec
             let tbchar c = symbol c <* skipWhile (hasType Spaces)
             count 2 (tbchar c)
             skipMany (tbchar c)
-            nextTok <- lookAhead anyTok
-            case tokType nextTok of
-              LineEnd -> do
+            (do lookAhead lineEnd
                 addNodeToStack (Node (defBlockData thematicBreakSpec){
                                    blockStartPos = [pos] } [])
-                return BlockStartMatch
-              _ -> BlockStartNoMatchBefore <$> getPosition
+                return BlockStartMatch) <|>
+              (BlockStartNoMatchBefore <$> getPosition)
      , blockCanContain     = const False
      , blockContainsLines  = False
      , blockParagraph      = False

@@ -74,14 +74,14 @@ mkBlockParser :: (Monad m, IsBlock il bl)
 mkBlockParser _ _ _ [] = return $ Right mempty
 mkBlockParser specs finalParsers ilParser (t:ts) =
   runParserT (setPosition (tokPos t) >> processLines specs finalParsers)
-          BPState{ referenceMap  = emptyReferenceMap
-                 , inlineParser  = ilParser
-                 , nodeStack     = [Node (defBlockData docSpec) []]
-                 , blockMatched  = False
-                 , maybeLazy     = False
-                 , maybeBlank    = True
-                 , counters      = M.empty
-                 , killPositions = M.empty
+          BPState{ referenceMap     = emptyReferenceMap
+                 , inlineParser     = ilParser
+                 , nodeStack        = [Node (defBlockData docSpec) []]
+                 , blockMatched     = False
+                 , maybeLazy        = False
+                 , maybeBlank       = True
+                 , counters         = M.empty
+                 , failurePositions = M.empty
                  }
           "source" (t:ts)
 
@@ -128,7 +128,7 @@ processLine specs = do
   updateState $ \st -> st{ blockMatched = True
                          , maybeLazy = False
                          , maybeBlank = True
-                         , killPositions = M.empty }
+                         , failurePositions = M.empty }
   conts <- getState >>= mapM checkContinue . reverse . nodeStack
   let (contsmatched, contsunmatched) = partition fst conts
   let (matched, unmatched) = (map snd contsmatched, map snd contsunmatched)
@@ -156,7 +156,7 @@ processLine specs = do
       doBlockStarts (spec:otherSpecs) = try $ do
         st' <- getState
         initPos <- getPosition
-        case M.lookup (blockType spec) (killPositions st') of
+        case M.lookup (blockType spec) (failurePositions st') of
            Just pos' | initPos < pos' -> doBlockStarts otherSpecs
            _ -> (do
              pst <- getParserState
@@ -167,9 +167,9 @@ processLine specs = do
                  setParserState pst
                  unless (pos == initPos) $
                    updateState $ \st ->
-                      st{ killPositions =
+                      st{ failurePositions =
                            M.insert (blockType spec)
-                           pos (killPositions st) }
+                           pos (failurePositions st) }
                  doBlockStarts otherSpecs)
                 <|> doBlockStarts otherSpecs
   (skipMany1 (doBlockStarts specs) >> optional (blockStart paraSpec))
@@ -307,14 +307,14 @@ defBlockData spec = BlockData
 type BlockNode m il bl = Tree (BlockData m il bl)
 
 data BPState m il bl = BPState
-     { referenceMap  :: ReferenceMap
-     , inlineParser  :: ReferenceMap -> [Tok] -> m (Either ParseError il)
-     , nodeStack     :: [BlockNode m il bl]   -- reverse order, head is tip
-     , blockMatched  :: Bool
-     , maybeLazy     :: Bool
-     , maybeBlank    :: Bool
-     , counters      :: M.Map Text Dynamic
-     , killPositions :: M.Map Text SourcePos  -- record known positions
+     { referenceMap     :: ReferenceMap
+     , inlineParser     :: ReferenceMap -> [Tok] -> m (Either ParseError il)
+     , nodeStack        :: [BlockNode m il bl]   -- reverse order, head is tip
+     , blockMatched     :: Bool
+     , maybeLazy        :: Bool
+     , maybeBlank       :: Bool
+     , counters         :: M.Map Text Dynamic
+     , failurePositions :: M.Map Text SourcePos  -- record known positions
                            -- where parsers fail to avoid repetition
      }
 

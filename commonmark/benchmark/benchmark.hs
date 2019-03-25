@@ -5,11 +5,9 @@ import Criterion.Main
 import Data.Text (Text)
 import Data.Functor.Identity  -- base >= 4.8
 import Commonmark.Parser
-import Commonmark.ReferenceMap (emptyReferenceMap)
 import Commonmark.Extensions.PipeTable
 import Commonmark.Extensions.Smart
 import Commonmark.Extensions.Autolink
-import Commonmark.Inlines
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 #if !MIN_VERSION_base(4,11,0)
@@ -84,7 +82,7 @@ pathtests =
     let num = n `div` 2 in
      T.replicate num "> " <> "a")
   , ("nested list", \n ->
-    let num = floor (sqrt (fromIntegral n)) in
+    let num = floor (sqrt (fromIntegral n :: Double)) in
     mconcat (map (\ind -> T.replicate ind " " <> "- a\n") [0..(num - 1)]))
   , ("nested list 2", \n ->
     let num = n `div` 2 in

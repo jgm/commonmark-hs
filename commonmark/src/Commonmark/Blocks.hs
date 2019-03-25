@@ -54,10 +54,9 @@ import           Control.Monad.Trans.Class (lift)
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid
 #endif
-import           Data.Maybe                (isJust)
 import           Data.Char                 (isAsciiUpper, isDigit, isSpace)
 import           Data.Dynamic
-import           Data.List                 (findIndex, sort, partition)
+import           Data.List                 (sort, partition)
 import           Data.Text                 (Text)
 import qualified Data.Map                  as M
 import qualified Data.Text                 as T
@@ -779,9 +778,9 @@ thematicBreakSpec = BlockSpec
                               <|> symbol '_'
                               <|> symbol '*'
             skipWhile (hasType Spaces)
-            let tbchar c = symbol c <* skipWhile (hasType Spaces)
-            count 2 (tbchar c)
-            skipMany (tbchar c)
+            let tbchar = symbol c <* skipWhile (hasType Spaces)
+            count 2 tbchar
+            skipMany tbchar
             (do lookAhead lineEnd
                 addNodeToStack (Node (defBlockData thematicBreakSpec){
                                    blockStartPos = [pos] } [])

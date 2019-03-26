@@ -842,9 +842,9 @@ pInlineLink = try $ do
   return $ LinkInfo { linkDestination = target, linkTitle = title }
 
 pLinkDestination :: Parsec [Tok] s [Tok]
-pLinkDestination = pAngleDest <|> pNormalDest 0
+pLinkDestination = try $ pAngleDest <|> pNormalDest 0
   where
-    pAngleDest = try $ do
+    pAngleDest = do
       _ <- symbol '<'
       res <- many (noneOfToks [Symbol '<', Symbol '>', Symbol '\\',
                                 LineEnd] <|> pEscaped)
@@ -886,7 +886,7 @@ pLinkTitle = inbetween '"' '"' <|> inbetween '\'' '\'' <|> inbetween '(' ')'
 inbetween :: Char -> Char -> Parsec [Tok] s [Tok]
 inbetween op cl =
   try $ between (symbol op) (symbol cl)
-     (many (pEscaped <|> noneOfToks [Symbol cl]))
+     (many (pEscaped <|> noneOfToks [Symbol op, Symbol cl]))
 
 pLinkLabel :: Monad m => ParsecT [Tok] s m Text
 pLinkLabel = try $ do

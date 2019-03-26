@@ -294,7 +294,7 @@ pNonDelimTok = do
 pDelimChunk :: (IsInline a, Monad m)
             => FormattingSpecMap a
             -> InlineParser m (Chunk a)
-pDelimChunk specmap = try $ do
+pDelimChunk specmap = do
   tok@(Tok (Symbol c) pos _) <- pDelimTok
   let mbspec = M.lookup c specmap
   more <- if isJust mbspec
@@ -303,7 +303,7 @@ pDelimChunk specmap = try $ do
   let toks = tok:more
   newpos <- getPosition
   st <- getState
-  next <- (tokType <$> lookAhead anyTok) <|> return LineEnd
+  next <- option LineEnd (tokType <$> lookAhead anyTok)
   let precededByWhitespace = afterSpace st == pos
   let precededByPunctuation = afterPunct st == pos
   let followedByWhitespace = next == Spaces ||

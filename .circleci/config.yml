@@ -13,7 +13,7 @@ env: &env
 
 preinstall: &preinstall
   run: |
-      echo 'export PATH=/opt/cabal/bin:$PATH' >> $BASH_ENV
+      echo 'export PATH=/opt/cabal/bin:/opt/ghc/bin:$PATH' >> $BASH_ENV
       source $BASH_ENV
       apt-get update
 

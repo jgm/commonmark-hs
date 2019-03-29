@@ -32,7 +32,6 @@ import           Commonmark.Util      (skipManyTill)
 data ElementType =
     InlineElement
   | BlockElement
-  deriving Show
 
 data Html a =
     HtmlElement ElementType Text [HtmlAttribute] (Maybe (Html a))
@@ -40,7 +39,6 @@ data Html a =
   | HtmlRaw Text
   | HtmlNull
   | HtmlConcat (Html a) (Html a)
-  deriving Show
 
 type HtmlAttribute = (Text, Text)
 

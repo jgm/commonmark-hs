@@ -1,6 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Commonmark.Html
-  ( escapeURI
+  ( ElementType(..)
+  , Html
+  , HtmlAttribute
+  , htmlElement
+  , htmlText
+  , htmlRaw
+  , addAttribute
+  , renderHtml
+  , escapeURI
   , escapeHtml
   , escapeHtmlChar
   , innerText
@@ -10,7 +18,7 @@ where
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
-import           Data.Text.Lazy.Builder (Builder, singleton,
+import           Data.Text.Lazy.Builder (Builder, singleton, fromText,
                                          toLazyText, fromString,
                                          fromLazyText)
 import           Data.Text.Encoding   (encodeUtf8)
@@ -20,6 +28,65 @@ import           Text.Printf          (printf)
 import           Data.Char            (ord, isAlphaNum, isAscii)
 import           Text.Parsec
 import           Commonmark.Util      (skipManyTill)
+
+data ElementType =
+    InlineElement
+  | BlockElement
+  deriving Show
+
+data Html a =
+    HtmlElement ElementType Text [HtmlAttribute] (Maybe (Html a))
+  | HtmlText Text
+  | HtmlRaw Text
+  | HtmlNull
+  | HtmlConcat (Html a) (Html a)
+  deriving Show
+
+type HtmlAttribute = (Text, Text)
+
+instance Semigroup (Html a) where
+  x <> HtmlNull = x
+  HtmlNull <> x = x
+  x <> y        = HtmlConcat x y
+
+instance Monoid (Html a) where
+  mempty = HtmlNull
+  mappend = (<>)
+
+htmlElement :: ElementType -> Text -> [(Text, Text)] -> Maybe (Html a) -> Html a
+htmlElement eltType tagname attrs mbcontents =
+  HtmlElement eltType tagname attrs mbcontents
+
+htmlText :: Text -> Html a
+htmlText = HtmlText
+
+htmlRaw :: Text -> Html a
+htmlRaw = HtmlRaw
+
+addAttribute :: HtmlAttribute -> Html a -> Html a
+addAttribute attr (HtmlElement eltType tagname attrs mbcontents) =
+  HtmlElement eltType tagname (attr:attrs) mbcontents
+addAttribute _ elt = elt
+
+renderHtml :: Html a -> TL.Text
+renderHtml = toLazyText . toBuilder
+
+toBuilder :: Html a -> Builder
+toBuilder (HtmlNull) = mempty
+toBuilder (HtmlConcat x y) = toBuilder x <> toBuilder y
+toBuilder (HtmlRaw t) = fromText t
+toBuilder (HtmlText t) = escapeHtml t
+toBuilder (HtmlElement eltType tagname attrs mbcontents) =
+  "<" <> fromText tagname <> mconcat (map toAttr attrs) <> filling <> nl
+  where
+    toAttr (x,y) = " " <> fromText x <> "=\"" <> escapeHtml y <> "\""
+    nl = case eltType of
+           BlockElement -> "\n"
+           _            -> mempty
+    filling = case mbcontents of
+                 Nothing   -> " />"
+                 Just cont -> ">" <> toBuilder cont <> "</" <>
+                              fromText tagname <> ">"
 
 escapeHtml :: Text -> Builder
 escapeHtml = foldMap escapeHtmlChar . T.unpack

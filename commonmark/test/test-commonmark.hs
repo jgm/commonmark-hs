@@ -11,12 +11,10 @@ import           Commonmark.Extensions.Footnote
 import           Control.Monad         (when)
 import           Data.Functor.Identity
 import           Data.List             (groupBy)
-import           Data.Monoid           ((<>))
 import           Data.Text             (Text)
 import qualified Data.Text             as T
 import qualified Data.Text.IO          as T
 import qualified Data.Text.Lazy        as TL
-import           Data.Text.Lazy.Builder (toLazyText, Builder)
 import           Test.Tasty
 import           Test.Tasty.HUnit
 import           Test.Tasty.QuickCheck
@@ -50,13 +48,10 @@ main = do
     , footnotetests
     , mathtests
     , autolinktests
-    -- we handle these in the benchmarks now
-    -- , testGroup "Pathological tests" $
-    --    map pathologicalTest pathtests
     ]
 
 getSpecTestTree :: FilePath
-                -> SyntaxSpec Identity Builder Builder
+                -> SyntaxSpec Identity (Html ()) (Html ())
                 -> IO TestTree
 getSpecTestTree fp syntaxspec = do
   spectests <- getSpecTests fp
@@ -88,7 +83,7 @@ data SpecTest = SpecTest
      , html       :: Text }
   deriving (Show)
 
-toSpecTest :: ([Tok] -> Either ParseError Builder)
+toSpecTest :: ([Tok] -> Either ParseError (Html ()))
            -> SpecTest -> TestTree
 toSpecTest parser st =
   testCase name (actual @?= expected)
@@ -96,10 +91,10 @@ toSpecTest parser st =
                  " (" ++ show (start_line st) ++ "-" ++
                  show (end_line st) ++ ")"
           expected = normalizeHtml $ html st
-          actual = normalizeHtml .  TL.toStrict . toLazyText .
+          actual = normalizeHtml .  TL.toStrict . renderHtml .
                    fromRight mempty $
                      (parser (tokenize "" (markdown st))
-                      :: Either ParseError Builder)
+                      :: Either ParseError (Html ()))
 
 normalizeHtml :: Text -> Text
 normalizeHtml = T.replace "\n</li>" "</li>" .

@@ -13,7 +13,6 @@ import qualified Data.Text.IO as TIO
 #if !MIN_VERSION_base(4,11,0)
 import Data.Monoid
 #endif
-import Data.Text.Lazy.Builder (Builder, toLazyText)
 
 main :: IO ()
 main = do
@@ -92,12 +91,12 @@ pathtests =
     mconcat $ map (\x -> "e" <> T.replicate x "`") [1..num])
   ]
 
-benchCommonmark :: SyntaxSpec Identity Builder Builder
+benchCommonmark :: SyntaxSpec Identity (Html ()) (Html ())
                 -> (String, Text)
                 -> Benchmark
 benchCommonmark spec (name, contents) =
   bench name $
-    nf (either (error . show) toLazyText
+    nf (either (error . show) renderHtml
         . runIdentity . parseCommonmarkWith spec . tokenize name)
     contents
 

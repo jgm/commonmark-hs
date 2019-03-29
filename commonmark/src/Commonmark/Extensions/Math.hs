@@ -12,11 +12,10 @@ import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.SourceMap
 import Commonmark.Util
-import Commonmark.Html (escapeHtml)
+import Commonmark.Html
 import Text.Parsec
 import Data.Text (Text)
 import Data.Semigroup (Semigroup(..))
-import Data.Text.Lazy.Builder (Builder)
 
 mathSpec :: (Monad m, IsBlock il bl, IsInline il, HasMath il)
          => SyntaxSpec m il bl
@@ -32,11 +31,11 @@ class HasMath a where
   inlineMath :: Text -> a
   displayMath :: Text -> a
 
-instance HasMath Builder where
-  inlineMath t = "<span class=\"math inline\">" <>
-    "\\(" <> escapeHtml t <> "\\)" <> "</span>"
-  displayMath t = "<span class=\"math display\">" <>
-    "\\[" <> escapeHtml t <> "\\]" <> "</span>"
+instance HasMath (Html a) where
+  inlineMath t = addAttribute ("class", "math inline") $
+    htmlInline "span" $ Just $ htmlRaw "\\(" <> htmlText t <> htmlRaw "\\)"
+  displayMath t = addAttribute ("class", "math display") $
+    htmlInline "span" $ Just $ htmlRaw "\\[" <> htmlText t <> htmlRaw "\\]"
 
 instance (HasMath i, Monoid i) => HasMath (WithSourceMap i) where
   inlineMath t = (inlineMath t) <* addName "inlineMath"

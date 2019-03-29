@@ -5,5 +5,4 @@ ghc-options:
 packages:
 - commonmark
 - commonmark-cli
-- commonmark-lucid
 - commonmark-pandoc

@@ -24,8 +24,8 @@ import qualified Text.Pandoc.Builder as B
 import Commonmark.Types as C
 import Commonmark.Extensions.Math
 import Commonmark.Extensions.PipeTable
-import Commonmark.Extensions.DefinitionList
 import Commonmark.Extensions.Strikethrough
+import Commonmark.Extensions.DefinitionList
 import Commonmark.Extensions.Footnote
 import Data.Char (isSpace)
 import Data.Coerce (coerce)

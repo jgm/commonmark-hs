@@ -33,7 +33,6 @@ import Text.Parsec
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Map as M
-import Data.Text.Lazy.Builder (Builder)
 
 data FootnoteDef bl m =
   FootnoteDef Int Text (ReferenceMap -> m (Either ParseError bl))
@@ -150,30 +149,27 @@ class IsBlock il bl => HasFootnote il bl | il -> bl where
   footnoteList :: [bl] -> bl
   footnoteRef :: Text -> Text -> bl -> il
 
-instance HasFootnote Builder Builder where
-  footnote num lab' x = "<div class=\"footnote\" id=\""
-    <> escapeHtml ("fn-" <> lab')
-    <> "\">\n"
-    <> "<div class=\"footnote-number\">\n"
-    <> "<a href=\""
-    <> escapeHtml ("#fnref-" <> lab')
-    <> "\">"
-    <> escapeHtml (T.pack (show num))
-    <> "</a>\n"
-    <> "</div>\n"
-    <> "<div class=\"footnote-contents\">\n"
-    <> x
-    <> "</div>\n</div>\n"
-  footnoteList items = "<section class=\"footnotes\">\n" <>
-    mconcat items <> "</section>\n"
-  footnoteRef x lab _ = "<sup class=\"footnote-ref\">"
-    <> "<a href=\""
-    <> escapeHtml ("#fn-" <> lab)
-    <> "\" id=\""
-    <> escapeHtml ("fnref-" <> lab)
-    <> "\">"
-    <> str x
-    <> "</a></sup>"
+instance Rangeable (Html a) => HasFootnote (Html a) (Html a) where
+  footnote num lab' x =
+    addAttribute ("class", "footnote") $
+    addAttribute ("id", "fn-" <> lab') $
+    htmlBlock "div" $ Just $ htmlRaw "\n" <>
+      (addAttribute ("class", "footnote-number") $
+       htmlBlock "div" $ Just $ htmlRaw "\n" <>
+        (addAttribute ("href", "#fnref-" <> lab') $
+         htmlInline "a" (Just $ htmlText $ T.pack $ show num)) <>
+         htmlRaw "\n") <>
+      (addAttribute ("class", "footnote-contents") $
+        htmlBlock "div" $ Just $ htmlRaw "\n" <> x)
+  footnoteList items =
+    addAttribute ("class", "footnotes") $
+      htmlBlock "section" $ Just $ htmlRaw "\n" <> mconcat items
+  footnoteRef x lab _ =
+   addAttribute ("class", "footnote-ref") $
+     htmlInline "sup" $ Just $
+       addAttribute ("href", "#fn-" <> lab) $
+       addAttribute ("id", "fnref-" <> lab) $
+       htmlInline "a" $ Just (htmlText x)
 
 instance (HasFootnote il bl, Semigroup bl, Semigroup il)
         => HasFootnote (WithSourceMap il) (WithSourceMap bl) where

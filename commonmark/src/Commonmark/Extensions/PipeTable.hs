@@ -20,12 +20,12 @@ import Commonmark.Tokens
 import Commonmark.Util
 import Commonmark.Blocks
 import Commonmark.SourceMap
+import Commonmark.Html
 import Text.Parsec
 import Data.Dynamic
 import Data.Tree
 import Data.Data
 import Data.Semigroup (Semigroup(..))
-import Data.Text.Lazy.Builder (Builder, fromText)
 
 data ColAlignment = LeftAlignedCol
                   | CenterAlignedCol
@@ -42,30 +42,31 @@ data PipeTableData = PipeTableData
 class HasPipeTable il bl where
   pipeTable :: [ColAlignment] -> [il] -> [[il]] -> bl
 
-instance HasPipeTable Builder Builder where
+instance IsInline (Html a) => HasPipeTable (Html a) (Html a) where
   pipeTable aligns headerCells rows =
-    "<table>\n" <>
+    htmlBlock "table" $ Just $ htmlRaw "\n" <>
     (if null headerCells
-        then ""
-        else "<thead>\n" <>
-             toRow "th" aligns headerCells <>
-             "</thead>\n") <>
+        then mempty
+        else htmlBlock "thead" $ Just $ htmlRaw "\n" <>
+             toRow "th" aligns headerCells) <>
     (if null rows
-        then ""
-        else "<tbody>\n" <>
-             mconcat (map (toRow "td" aligns) rows) <>
-             "</tbody>\n") <>
-    "</table>\n"
-    where alignToAttr LeftAlignedCol    = " style=\"text-align: left;\""
-          alignToAttr CenterAlignedCol  = " style=\"text-align: center;\""
-          alignToAttr RightAlignedCol   = " style=\"text-align: right;\""
-          alignToAttr DefaultAlignedCol = ""
-          toRow constructor aligns' cells =
-            "<tr>\n" <> mconcat (zipWith (toCell constructor) aligns' cells)
-              <> "</tr>\n"
-          toCell constructor align cell =
-            "<" <> fromText constructor <> alignToAttr align <> ">" <>
-            cell <> "</" <> fromText constructor <> ">" <> "\n"
+        then mempty
+        else htmlBlock "tbody" $ Just $ htmlRaw "\n" <>
+             mconcat (map (toRow "td" aligns) rows))
+    where
+      alignToAttr LeftAlignedCol    =
+        addAttribute ("style","text-align: left;")
+      alignToAttr CenterAlignedCol  =
+        addAttribute ("style","text-align: center;")
+      alignToAttr RightAlignedCol   =
+        addAttribute ("style","text-align: right;")
+      alignToAttr DefaultAlignedCol = id
+      toRow constructor aligns' cells =
+        htmlBlock "tr" $ Just $ htmlRaw "\n" <>
+          mconcat (zipWith (toCell constructor) aligns' cells)
+      toCell constructor align cell =
+        (alignToAttr align $ htmlInline constructor $ Just cell)
+          <> htmlRaw "\n"
 
 instance (HasPipeTable i b, Monoid b)
         => HasPipeTable (WithSourceMap i) (WithSourceMap b) where

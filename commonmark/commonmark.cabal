@@ -80,8 +80,8 @@ library
       Commonmark.Extensions.Footnote
       Commonmark.Extensions.DefinitionList
   other-modules:
-      Commonmark.Tag
       Commonmark.Html
+      Commonmark.Tag
       Commonmark.Entity
   ghc-options: -Wall -fno-warn-unused-do-bind
   default-language: Haskell2010

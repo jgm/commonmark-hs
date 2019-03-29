@@ -16,6 +16,7 @@ import Commonmark.Syntax
 import Commonmark.Blocks
 import Commonmark.SourceMap
 import Commonmark.Util
+import Commonmark.Html
 import Control.Monad (mzero)
 import Data.Semigroup (Semigroup)
 #if !MIN_VERSION_base(4,11,0)
@@ -24,7 +25,6 @@ import Data.Monoid
 import Data.Dynamic
 import Data.Tree
 import Text.Parsec
-import Data.Text.Lazy.Builder (Builder)
 
 definitionListSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
                        Typeable il, Typeable bl, HasDefinitionList il bl)
@@ -154,14 +154,16 @@ definitionListDefinitionBlockSpec = BlockSpec
 class IsBlock il bl => HasDefinitionList il bl | il -> bl where
   definitionList :: [(il,[bl])] -> bl
 
-instance HasDefinitionList Builder Builder where
+instance Rangeable (Html a) => HasDefinitionList (Html a) (Html a) where
   definitionList items =
-    "<dl>\n" <> mconcat (map definitionListItem items) <> "</dl>\n"
+    htmlBlock "dl" $ Just $ htmlRaw "\n" <>
+       mconcat (map definitionListItem items)
 
-definitionListItem :: (Builder, [Builder]) -> Builder
+definitionListItem :: (Html a, [Html a]) -> Html a
 definitionListItem (term, defns) =
-  "<dt>" <> term <> "</dt>\n" <>
-  mconcat (map (\defn -> "<dd>\n" <> defn <> "</dd>\n") defns)
+  htmlBlock "dt" $ Just $
+    term <> mconcat
+      (map (\defn -> htmlBlock "dd" (Just (htmlRaw "\n" <> defn))) defns)
 
 instance (HasDefinitionList il bl, Semigroup bl, Semigroup il)
         => HasDefinitionList (WithSourceMap il) (WithSourceMap bl) where

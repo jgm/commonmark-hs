@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Commonmark.Html
-  ( ElementType(..)
-  , Html
+  ( Html
   , HtmlAttribute
-  , htmlElement
+  , htmlInline
+  , htmlBlock
   , htmlText
   , htmlRaw
   , addAttribute
@@ -18,16 +18,13 @@ where
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
-import           Data.Text.Lazy.Builder (Builder, singleton, fromText,
-                                         toLazyText, fromString,
-                                         fromLazyText)
+import           Data.Text.Lazy.Builder (Builder, fromText, toLazyText)
 import           Data.Text.Encoding   (encodeUtf8)
 import qualified Data.ByteString.Char8 as B
 import           Data.Semigroup       ((<>))
 import           Text.Printf          (printf)
 import           Data.Char            (ord, isAlphaNum, isAscii)
-import           Text.Parsec
-import           Commonmark.Util      (skipManyTill)
+import           Data.Maybe           (fromMaybe)
 
 data ElementType =
     InlineElement
@@ -40,6 +37,9 @@ data Html a =
   | HtmlNull
   | HtmlConcat (Html a) (Html a)
 
+instance Show (Html a) where
+  show = TL.unpack . renderHtml
+
 type HtmlAttribute = (Text, Text)
 
 instance Semigroup (Html a) where
@@ -51,9 +51,11 @@ instance Monoid (Html a) where
   mempty = HtmlNull
   mappend = (<>)
 
-htmlElement :: ElementType -> Text -> [(Text, Text)] -> Maybe (Html a) -> Html a
-htmlElement eltType tagname attrs mbcontents =
-  HtmlElement eltType tagname attrs mbcontents
+htmlInline :: Text -> Maybe (Html a) -> Html a
+htmlInline tagname mbcontents = HtmlElement InlineElement tagname [] mbcontents
+
+htmlBlock :: Text -> Maybe (Html a) -> Html a
+htmlBlock tagname mbcontents = HtmlElement BlockElement tagname [] mbcontents
 
 htmlText :: Text -> Html a
 htmlText = HtmlText
@@ -73,11 +75,11 @@ toBuilder :: Html a -> Builder
 toBuilder (HtmlNull) = mempty
 toBuilder (HtmlConcat x y) = toBuilder x <> toBuilder y
 toBuilder (HtmlRaw t) = fromText t
-toBuilder (HtmlText t) = escapeHtml t
+toBuilder (HtmlText t) = fromText (escapeHtml t)
 toBuilder (HtmlElement eltType tagname attrs mbcontents) =
   "<" <> fromText tagname <> mconcat (map toAttr attrs) <> filling <> nl
   where
-    toAttr (x,y) = " " <> fromText x <> "=\"" <> escapeHtml y <> "\""
+    toAttr (x,y) = " " <> fromText x <> "=\"" <> fromText (escapeHtml y) <> "\""
     nl = case eltType of
            BlockElement -> "\n"
            _            -> mempty
@@ -86,53 +88,32 @@ toBuilder (HtmlElement eltType tagname attrs mbcontents) =
                  Just cont -> ">" <> toBuilder cont <> "</" <>
                               fromText tagname <> ">"
 
-escapeHtml :: Text -> Builder
-escapeHtml = foldMap escapeHtmlChar . T.unpack
+escapeHtml :: Text -> Text
+escapeHtml = T.concatMap escapeHtmlChar
 
-escapeHtmlChar :: Char -> Builder
+escapeHtmlChar :: Char -> Text
 escapeHtmlChar '<' = "&lt;"
 escapeHtmlChar '>' = "&gt;"
 escapeHtmlChar '&' = "&amp;"
 escapeHtmlChar '"' = "&quot;"
-escapeHtmlChar c   = singleton c
+escapeHtmlChar c   = T.singleton c
 
-escapeURI :: Text -> Builder
-escapeURI = foldMap escapeURIChar . B.unpack .  encodeUtf8
+escapeURI :: Text -> Text
+escapeURI = mconcat . map escapeURIChar . B.unpack . encodeUtf8
 
-escapeURIChar :: Char -> Builder
+escapeURIChar :: Char -> Text
 escapeURIChar c
-  | c == '&'      = "&amp;"
-  | isEscapable c = singleton '%' <> fromString (printf "%02X" (ord c))
-  | otherwise     = escapeHtmlChar c
+  | isEscapable c = T.singleton '%' <> T.pack (printf "%02X" (ord c))
+  | otherwise     = T.singleton c
   where isEscapable d = not (isAscii d && isAlphaNum d)
                      && d `notElem` ['%','/','?',':','@','-','.','_','~','&',
                                      '#','!','$','\'','(',')','*','+',',',
                                      ';','=']
 
-innerText :: Builder -> Builder
-innerText = getInnerText . toLazyText
-
-pInnerText :: Parsec TL.Text () Builder
-pInnerText = (mconcat <$> many (pTag <|> pNonTag)) <* eof
-
-pTag :: Parsec TL.Text () Builder
-pTag = do
-  char '<'
-  cs <- many (satisfy isAlphaNum)
-  if cs == "img" || cs == "IMG"
-     then do
-       alt <- option "" $ try $ do
-                skipManyTill anyChar (try (string "alt=\""))
-                manyTill anyChar (char '"')
-       skipManyTill anyChar (char '>')
-       return $ fromString alt
-     else mempty <$ skipManyTill anyChar (char '>')
-
-pNonTag :: Parsec TL.Text () Builder
-pNonTag = fromString <$> many1 (satisfy (/='<'))
-
-getInnerText :: TL.Text -> Builder
-getInnerText t =
-  case parse pInnerText "" t of
-    Left _  -> fromLazyText t
-    Right b -> b
+innerText :: Html a -> Text
+innerText (HtmlElement InlineElement "img" attrs Nothing) =
+  fromMaybe mempty $ lookup "alt" attrs
+innerText (HtmlElement _ _ _ (Just x)) = innerText x
+innerText (HtmlText t)     = t
+innerText (HtmlConcat x y) = innerText x <> innerText y
+innerText _                = mempty

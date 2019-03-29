@@ -43,6 +43,7 @@ import           Data.Char                  (isAscii, isLetter)
 import           Data.Dynamic               (Dynamic)
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map                   as M
+import           Data.List                  (foldl')
 import           Data.Maybe                 (isJust, mapMaybe)
 import qualified Data.Set                   as Set
 #if !MIN_VERSION_base(4,11,0)
@@ -89,7 +90,7 @@ defaultInlineParsers =
                 ]
 
 unChunks :: IsInline a => [Chunk a] -> a
-unChunks = mconcat . map unChunk
+unChunks = foldl' mappend mempty . map unChunk
 
 unChunk :: IsInline a => Chunk a -> a
 unChunk chunk =

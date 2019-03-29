@@ -17,7 +17,6 @@ import Commonmark.Html (escapeHtml)
 import Text.Parsec
 import Data.Text (Text)
 import Data.Semigroup (Semigroup(..))
-import Data.Text.Lazy.Builder (Builder)
 
 headerAttributesSpec :: (Monad m, IsBlock il bl, IsInline il, HasAttributes bl)
                      => SyntaxSpec m il bl

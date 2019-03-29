@@ -5,8 +5,6 @@ module Main where
 
 import           Commonmark
 import           Commonmark.Pandoc
-import           Commonmark.Lucid
-import qualified Lucid                      as Lucid
 import           Data.Aeson                 (encode)
 import qualified Data.ByteString.Lazy       as BL
 import qualified Text.Pandoc.Builder        as B
@@ -85,7 +83,7 @@ main = catch (do
       case runWithSourceMap <$>
               runIdentity (parseCommonmarkWith spec toks) of
            Left e -> errExit e
-           Right ((_ :: Builder), sm) -> do
+           Right ((_ :: Html ()), sm) -> do
              TLIO.putStr $ toLazyText $
                "<!DOCTYPE html>\n<head>\n" <>
                "<title>" <> (case files of
@@ -101,8 +99,8 @@ main = catch (do
        spec <- specFromExtensionNames [x | Extension x <- opts]
        case runIdentity (parseCommonmarkWith spec toks) of
             Left e -> errExit e
-            Right (r :: RangedHtml5)
-                   -> TLIO.putStr . Lucid.renderText . unRangedHtml5 $ r
+            Right (r :: Html SourceRange)
+                   -> TLIO.putStr . renderHtml $ r
     else
       if PandocJSON `elem` opts then do
         spec <- specFromExtensionNames [x | Extension x <- opts]
@@ -115,7 +113,7 @@ main = catch (do
         spec <- specFromExtensionNames [x | Extension x <- opts]
         case runIdentity (parseCommonmarkWith spec toks) of
              Left e -> errExit e
-             Right (r :: Builder) -> TLIO.putStr . toLazyText $ r)
+             Right (r :: Html ()) -> TLIO.putStr . renderHtml $ r)
    (\e -> case e of
             StackOverflow -> do
              currentCallStack >>= mapM_ (hPutStrLn stderr)
@@ -131,22 +129,25 @@ errExit err = do
 extensions :: (Monad m, Typeable m,
                Typeable bl, Typeable il,
                IsBlock il bl, IsInline il,
-               HasPipeTable il bl, HasDefinitionList il bl,
-               HasMath il, HasStrikethrough il, HasFootnote il bl)
+               HasPipeTable il bl,
+               HasMath il,
+               HasStrikethrough il,
+               HasDefinitionList il bl,
+               HasFootnote il bl)
            => [(String, SyntaxSpec m il bl)]
 extensions =
-  [("pipe_table", pipeTableSpec)
+  [ ("autolink", autolinkSpec)
+  ,("pipe_table", pipeTableSpec)
   ,("strikethrough", strikethroughSpec)
   ,("smart", smartPunctuationSpec)
   ,("math", mathSpec)
-  ,("autolink", autolinkSpec)
   ,("footnote", footnoteSpec)
   ,("definition_list", definitionListSpec)
   ]
 
 extensionList :: [String]
 extensionList = map fst
-  (extensions :: [(String, SyntaxSpec IO Builder Builder)])
+  (extensions :: [(String, SyntaxSpec IO (Html ()) (Html ()))])
 
 listExtensions :: IO ()
 listExtensions =
@@ -154,23 +155,25 @@ listExtensions =
     unlines (map ("  " ++) extensionList)
 
 specFromExtensionNames ::
-  (Monad m, Typeable m, Typeable bl, Typeable il,
-   IsBlock il bl, IsInline il,
-   HasPipeTable il bl, HasDefinitionList il bl,
-   HasMath il, HasStrikethrough il, HasFootnote il bl)
-   => [String] -> IO (SyntaxSpec m il bl)
+ (Monad m, Typeable m, Typeable bl, Typeable il,
+  IsBlock il bl, IsInline il,
+  HasPipeTable il bl, HasMath il,
+  HasStrikethrough il,
+  HasDefinitionList il bl,
+  HasFootnote il bl)
+  => [String] -> IO (SyntaxSpec m il bl)
 specFromExtensionNames extnames = do
-  let extFromName name =
-        case lookup name extensions of
-          Just ext -> return ext
-          Nothing  -> do
-            hPutStrLn stderr $ "Unknown extension " ++ name
-            listExtensions
-            exitWith (ExitFailure 1)
-  exts <- if "all" `elem` extnames
-             then return $ mconcat (map snd extensions)
-             else mconcat <$> mapM extFromName extnames
-  return $ exts <> defaultSyntaxSpec
+ let extFromName name =
+       case lookup name extensions of
+         Just ext -> return ext
+         Nothing  -> do
+           hPutStrLn stderr $ "Unknown extension " ++ name
+           listExtensions
+           exitWith (ExitFailure 1)
+ exts <- if "all" `elem` extnames
+            then return $ mconcat (map snd extensions)
+            else mconcat <$> mapM extFromName extnames
+ return $ exts <> defaultSyntaxSpec
 
 highlightWith :: SourceMap -> [Tok] -> Builder
 highlightWith sm ts = "<pre>" <>  mconcat (map (renderTok sm) ts) <> "</pre>"

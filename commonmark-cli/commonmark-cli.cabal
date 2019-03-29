@@ -28,7 +28,6 @@ executable commonmark
   build-depends: base >=4.7 && <5
                , commonmark
                , commonmark-pandoc
-               , commonmark-lucid
                , lucid
                , pandoc-types
                , aeson

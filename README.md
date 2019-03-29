@@ -2,14 +2,11 @@
 
 [![CircleCI](https://circleci.com/gh/jgm/commonmark-hs.svg?style=svg)](https://circleci.com/gh/jgm/commonmark-hs)
 
-This repository contains four packages:
+This repository contains three packages:
 
 - [`commonmark`](commonmark/):
   a pure Haskell library for parsing commonmark,
   designed for flexibility and extensibility.
-
-- [`commonmark-lucid`](commonmark-lucid/):
-  type instances for parsing commonmark as lucid Html.
 
 - [`commonmark-pandoc`](commonmark-pandoc/):
   type instances for parsing commonmark as a Pandoc AST.

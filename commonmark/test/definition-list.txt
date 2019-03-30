@@ -237,3 +237,23 @@ orange
 </dd>
 </dl>
 ````````````````````````````````
+
+Definition terms may span multiple lines:
+
+```````````````````````````````` example
+a
+b\
+c
+
+:   foo
+.
+<dl>
+<dt>a
+b<br />
+c</dt>
+<dd>
+<p>foo</p>
+</dd>
+</dl>
+````````````````````````````````
+

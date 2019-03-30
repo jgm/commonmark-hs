@@ -46,12 +46,13 @@ definitionListBlockSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = \n -> (,n) <$> getPosition
-     , blockConstructor    = \(Node _bdata items) -> do
+     , blockConstructor    = \(Node bdata items) -> do
+         let listType = fromDyn (blockData bdata) LooseList
          let getItem item@(Node _ ds) = do
                term <- runInlineParser (getBlockText removeIndent item)
                defs <- mapM (\c -> (blockConstructor (bspec c)) c) ds
                return (term, defs)
-         definitionList <$> mapM getItem items
+         definitionList listType <$> mapM getItem items
      , blockFinalize       = defaultFinalizer
      }
 
@@ -101,7 +102,8 @@ definitionListItemBlockSpec = BlockSpec
                             blockStartPos = blockStartPos (rootLabel linode) } []
          let defnode = Node (defBlockData definitionListDefinitionBlockSpec){
                             blockStartPos = blockStartPos (rootLabel linode) } []
-         case blockType (blockSpec bdata) of
+         (Node bdata' _ : _) <- nodeStack <$> getState
+         case blockType (blockSpec bdata') of
               "DefinitionList"
                 -> addNodeToStack linode >> addNodeToStack defnode
               _ -> addNodeToStack listnode >> addNodeToStack linode >>
@@ -152,19 +154,22 @@ definitionListDefinitionBlockSpec = BlockSpec
      }
 
 class IsBlock il bl => HasDefinitionList il bl | il -> bl where
-  definitionList :: [(il,[bl])] -> bl
+  definitionList :: ListSpacing -> [(il,[bl])] -> bl
 
-instance Rangeable (Html a) => HasDefinitionList (Html a) (Html a) where
-  definitionList items =
+instance Rangeable (Html a) =>
+         HasDefinitionList (Html a) (Html a) where
+  definitionList spacing items =
     htmlBlock "dl" $ Just $ htmlRaw "\n" <>
-       mconcat (map definitionListItem items)
+       mconcat (map (definitionListItem spacing) items)
 
-definitionListItem :: (Html a, [Html a]) -> Html a
-definitionListItem (term, defns) =
-  htmlBlock "dt" $ Just $
-    term <> mconcat
-      (map (\defn -> htmlBlock "dd" (Just (htmlRaw "\n" <> defn))) defns)
+definitionListItem :: ListSpacing -> (Html a, [Html a]) -> Html a
+definitionListItem spacing (term, defns) =
+  htmlBlock "dt" (Just term) <>
+   mconcat (map (\defn ->
+            case spacing of
+              LooseList -> htmlBlock "dd" (Just (htmlRaw "\n" <> defn))
+              TightList -> htmlInline "dd" (Just defn)) defns)
 
 instance (HasDefinitionList il bl, Semigroup bl, Semigroup il)
         => HasDefinitionList (WithSourceMap il) (WithSourceMap bl) where
-  definitionList items = definitionList items
+  definitionList spacing items = definitionList spacing items

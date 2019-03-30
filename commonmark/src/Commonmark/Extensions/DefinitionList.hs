@@ -26,7 +26,6 @@ import Data.Dynamic
 import Data.Tree
 import Text.Parsec
 
-import Debug.Trace
 
 definitionListSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
                        Typeable il, Typeable bl, HasDefinitionList il bl)
@@ -113,7 +112,7 @@ definitionListDefinitionBlockSpec = BlockSpec
          let defnode = Node (defBlockData
                               definitionListDefinitionBlockSpec){
                                   blockStartPos = [pos] } []
-         if traceShowId (blockType (blockSpec bdata)) == "DefinitionListItem"
+         if blockType (blockSpec bdata) == "DefinitionListItem"
             then addNodeToStack defnode
             else do
              linode <-
@@ -153,8 +152,15 @@ definitionListDefinitionBlockSpec = BlockSpec
              let listnode = Node (defBlockData definitionListBlockSpec){
                                 blockStartPos = blockStartPos
                                              (rootLabel linode) } []
-             (Node bdata' _ : _) <- nodeStack <$> getState
-             case blockType (blockSpec bdata') of
+             (Node bdata' children' : rest') <- nodeStack <$> getState
+             -- if last child was DefinitionList, set that to current
+             case reverse children' of
+               n:ns | blockType (blockSpec (rootLabel n)) == "DefinitionList"
+                   -> updateState $ \st -> st{ nodeStack =
+                        n : Node bdata' (reverse ns) : rest' }
+               _ -> return ()
+             (Node bdata'' _ : _) <- nodeStack <$> getState
+             case blockType (blockSpec bdata'') of
                   "DefinitionList"
                     -> addNodeToStack linode >> addNodeToStack defnode
                   _ -> addNodeToStack listnode >> addNodeToStack linode >>

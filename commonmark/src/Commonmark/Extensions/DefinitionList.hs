@@ -185,11 +185,11 @@ instance Rangeable (Html a) =>
          HasDefinitionList (Html a) (Html a) where
   definitionList spacing items =
     htmlBlock "dl" $ Just $ htmlRaw "\n" <>
-       mconcat (map (definitionListItem spacing) items)
+       mconcat (map (definitionListItem spacing) (reverse items))
 
 definitionListItem :: ListSpacing -> (Html a, [Html a]) -> Html a
 definitionListItem spacing (term, defns) =
-  htmlInline "dt" (Just term) <> htmlRaw "\n" <>
+  htmlBlock "dt" (Just term) <>
    mconcat (map (\defn ->
             case spacing of
               LooseList -> htmlBlock "dd" (Just (htmlRaw "\n" <> defn))

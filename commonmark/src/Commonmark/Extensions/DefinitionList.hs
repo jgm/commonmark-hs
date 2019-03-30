@@ -26,6 +26,8 @@ import Data.Dynamic
 import Data.Tree
 import Text.Parsec
 
+import Debug.Trace
+
 definitionListSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
                        Typeable il, Typeable bl, HasDefinitionList il bl)
                    => SyntaxSpec m il bl
@@ -104,51 +106,59 @@ definitionListDefinitionBlockSpec = BlockSpec
      { blockType           = "DefinitionListDefinition"
      , blockStart          = try $ do
          n <- gobbleUpToSpaces 3
+         pos <- getPosition
          symbol ':' <|> symbol '~'
          gobbleSpaces (min 1 (3 - n))
          (Node bdata children : rest) <- nodeStack <$> getState
-         linode <-
-           if blockParagraph (blockSpec bdata)
-             then do
-               -- a) we're in a paragraph -> TightList
-               --    make cur a DefinitionListItem instead
-               --    keep the tokens; they will be the term
-               -- remove paragraph from stack
-               updateState $ \st -> st{ nodeStack = rest }
-               return $ Node (defBlockData definitionListItemBlockSpec)
-                        { blockData = toDyn TightList
-                        , blockLines = blockLines bdata
-                        , blockStartPos = blockStartPos bdata
-                        } []
-             else
-               case children of
-                 (lastChild : rest')
-                   | blockParagraph (bspec lastChild) -> do
-                     -- b) previous sibling is a paragraph -> LooseList
-                     --    last child of cur is a Paragraph
-                     --    remove this child and mk new child with its content
-                     --    and position.  tokens will be term.
-                     -- remove paragraph from stack
-                     updateState $ \st -> st{ nodeStack =
-                          Node bdata rest' : rest }
-                     return $ Node (defBlockData definitionListItemBlockSpec)
-                              { blockData = toDyn LooseList
-                              , blockStartPos = blockStartPos
-                                                 (rootLabel lastChild)
-                              , blockLines = blockLines (rootLabel lastChild)
-                              } []
-                 _ -> mzero
+         let defnode = Node (defBlockData
+                              definitionListDefinitionBlockSpec){
+                                  blockStartPos = [pos] } []
+         if traceShowId (blockType (blockSpec bdata)) == "DefinitionListItem"
+            then addNodeToStack defnode
+            else do
+             linode <-
+               if blockParagraph (blockSpec bdata)
+                 then do
+                   -- a) we're in a paragraph -> TightList
+                   --    make cur a DefinitionListItem instead
+                   --    keep the tokens; they will be the term
+                   -- remove paragraph from stack
+                   updateState $ \st -> st{ nodeStack = rest }
+                   return $ Node (defBlockData definitionListItemBlockSpec)
+                            { blockData = toDyn TightList
+                            , blockLines = blockLines bdata
+                            , blockStartPos = blockStartPos bdata
+                            } []
+                 else
+                   case children of
+                     (lastChild : rest')
+                       | blockParagraph (bspec lastChild) -> do
+                         -- b) previous sibling is a paragraph -> LooseList
+                         --    last child of cur is a Paragraph
+                         --    remove this child and mk new child with its
+                         --    content and position.  tokens will be term.
+                         -- remove paragraph from stack
+                         updateState $ \st -> st{ nodeStack =
+                              Node bdata rest' : rest }
+                         return $ Node (defBlockData
+                                    definitionListItemBlockSpec)
+                                  { blockData = toDyn LooseList
+                                  , blockStartPos = blockStartPos
+                                                     (rootLabel lastChild)
+                                  , blockLines = blockLines
+                                        (rootLabel lastChild)
+                                  } []
+                     _ -> mzero
 
-         let listnode = Node (defBlockData definitionListBlockSpec){
-                            blockStartPos = blockStartPos (rootLabel linode) } []
-         let defnode = Node (defBlockData definitionListDefinitionBlockSpec){
-                            blockStartPos = blockStartPos (rootLabel linode) } []
-         (Node bdata' _ : _) <- nodeStack <$> getState
-         case blockType (blockSpec bdata') of
-              "DefinitionList"
-                -> addNodeToStack linode >> addNodeToStack defnode
-              _ -> addNodeToStack listnode >> addNodeToStack linode >>
-                   addNodeToStack defnode
+             let listnode = Node (defBlockData definitionListBlockSpec){
+                                blockStartPos = blockStartPos
+                                             (rootLabel linode) } []
+             (Node bdata' _ : _) <- nodeStack <$> getState
+             case blockType (blockSpec bdata') of
+                  "DefinitionList"
+                    -> addNodeToStack linode >> addNodeToStack defnode
+                  _ -> addNodeToStack listnode >> addNodeToStack linode >>
+                       addNodeToStack defnode
          return BlockStartMatch
      , blockCanContain     = const True
      , blockContainsLines  = False

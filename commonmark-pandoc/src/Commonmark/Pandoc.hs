@@ -109,7 +109,7 @@ instance HasPipeTable (Cm a B.Inlines) (Cm a B.Blocks) where
 
 instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
   => HasDefinitionList (Cm a B.Inlines) (Cm a B.Blocks) where
-  definitionList items =
+  definitionList _ items =
     Cm $ B.definitionList $ map coerce items
 
 instance HasStrikethrough (Cm a B.Inlines) where

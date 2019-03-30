@@ -30,7 +30,7 @@ definitionListSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
                        Typeable il, Typeable bl, HasDefinitionList il bl)
                    => SyntaxSpec m il bl
 definitionListSpec = SyntaxSpec
-  { syntaxBlockSpecs = [definitionListItemBlockSpec]
+  { syntaxBlockSpecs = [definitionListDefinitionBlockSpec]
   , syntaxBracketedSpecs = []
   , syntaxFormattingSpecs = []
   , syntaxInlineParsers = []
@@ -70,6 +70,38 @@ definitionListItemBlockSpec ::
    => BlockSpec m il bl
 definitionListItemBlockSpec = BlockSpec
      { blockType           = "DefinitionListItem"
+     , blockStart          = undefined
+     , blockCanContain     = \sp -> blockType sp == "DefinitionListDefinition"
+     , blockContainsLines  = False
+     , blockParagraph      = False
+     , blockContinue       = \n -> (,n) <$> getPosition
+     , blockConstructor    = undefined
+     , blockFinalize       = \(Node cdata children) parent -> do
+         let listSpacing   = fromDyn (blockData cdata) LooseList
+         let plainSpec = paraSpec{
+               blockConstructor    = \node ->
+                   (addRange node . plain)
+                       <$> runInlineParser (getBlockText removeIndent node)
+               }
+         let totight (Node nd cs)
+               | blockType (blockSpec nd) == "Paragraph"
+                           = Node nd{ blockSpec = plainSpec } cs
+               | otherwise = Node nd cs
+         let childrenToTight (Node nd cs) = Node nd (map totight cs)
+         let children' =
+                case listSpacing of
+                  TightList -> map childrenToTight children
+                  LooseList -> children
+         defaultFinalizer (Node cdata children') parent
+     }
+
+
+
+definitionListDefinitionBlockSpec ::
+   (Monad m, IsBlock il bl, IsInline il, HasDefinitionList il bl)
+   => BlockSpec m il bl
+definitionListDefinitionBlockSpec = BlockSpec
+     { blockType           = "DefinitionListDefinition"
      , blockStart          = try $ do
          n <- gobbleUpToSpaces 3
          symbol ':' <|> symbol '~'
@@ -118,38 +150,6 @@ definitionListItemBlockSpec = BlockSpec
               _ -> addNodeToStack listnode >> addNodeToStack linode >>
                    addNodeToStack defnode
          return BlockStartMatch
-     , blockCanContain     = \sp -> blockType sp == "DefinitionListDefinition"
-     , blockContainsLines  = False
-     , blockParagraph      = False
-     , blockContinue       = \n -> (,n) <$> getPosition
-     , blockConstructor    = undefined
-     , blockFinalize       = \(Node cdata children) parent -> do
-         let listSpacing   = fromDyn (blockData cdata) LooseList
-         let plainSpec = paraSpec{
-               blockConstructor    = \node ->
-                   (addRange node . plain)
-                       <$> runInlineParser (getBlockText removeIndent node)
-               }
-         let totight (Node nd cs)
-               | blockType (blockSpec nd) == "Paragraph"
-                           = Node nd{ blockSpec = plainSpec } cs
-               | otherwise = Node nd cs
-         let childrenToTight (Node nd cs) = Node nd (map totight cs)
-         let children' =
-                case listSpacing of
-                  TightList -> map childrenToTight children
-                  LooseList -> children
-         defaultFinalizer (Node cdata children') parent
-     }
-
-
-
-definitionListDefinitionBlockSpec ::
-   (Monad m, IsBlock il bl, IsInline il, HasDefinitionList il bl)
-   => BlockSpec m il bl
-definitionListDefinitionBlockSpec = BlockSpec
-     { blockType           = "DefinitionListDefinition"
-     , blockStart          = undefined
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False

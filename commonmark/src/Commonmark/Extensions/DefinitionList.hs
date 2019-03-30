@@ -53,7 +53,16 @@ definitionListBlockSpec = BlockSpec
                defs <- mapM (\c -> (blockConstructor (bspec c)) c) ds
                return (term, defs)
          definitionList listType <$> mapM getItem items
-     , blockFinalize       = defaultFinalizer
+     , blockFinalize       = \(Node cdata children) parent -> do
+          let spacing =
+                if any (== LooseList)
+                     (map (\child ->
+                            fromDyn (blockData (rootLabel child))
+                              LooseList) children)
+                   then LooseList
+                   else TightList
+          defaultFinalizer (Node cdata{ blockData = toDyn spacing } children)
+                           parent
      }
 
 definitionListItemBlockSpec ::
@@ -164,7 +173,7 @@ instance Rangeable (Html a) =>
 
 definitionListItem :: ListSpacing -> (Html a, [Html a]) -> Html a
 definitionListItem spacing (term, defns) =
-  htmlBlock "dt" (Just term) <>
+  htmlInline "dt" (Just term) <> htmlRaw "\n" <>
    mconcat (map (\defn ->
             case spacing of
               LooseList -> htmlBlock "dd" (Just (htmlRaw "\n" <> defn))

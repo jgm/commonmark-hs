@@ -193,7 +193,7 @@ definitionListItem spacing (term, defns) =
    mconcat (map (\defn ->
             case spacing of
               LooseList -> htmlBlock "dd" (Just (htmlRaw "\n" <> defn))
-              TightList -> htmlInline "dd" (Just defn)) defns)
+              TightList -> htmlBlock "dd" (Just defn)) defns)
 
 instance (HasDefinitionList il bl, Semigroup bl, Semigroup il)
         => HasDefinitionList (WithSourceMap il) (WithSourceMap bl) where

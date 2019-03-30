@@ -16,9 +16,11 @@ orange
 .
 <dl>
 <dt>apple</dt>
-<dd>red fruit</dd>
+<dd>red fruit
+</dd>
 <dt>orange</dt>
-<dd>orange fruit</dd>
+<dd>orange fruit
+</dd>
 </dl>
 ````````````````````````````````
 
@@ -56,9 +58,11 @@ orange
 .
 <dl>
 <dt>apple</dt>
-<dd>red fruit</dd>
+<dd>red fruit
+</dd>
 <dt>orange</dt>
-<dd>orange fruit</dd>
+<dd>orange fruit
+</dd>
 </dl>
 ````````````````````````````````
 
@@ -133,11 +137,14 @@ orange
 .
 <dl>
 <dt>apple</dt>
-<dd>red fruit</dd>
+<dd>red fruit
+</dd>
 <dd>computer company</dd>
 <dt>orange</dt>
-<dd>orange fruit</dd>
-<dd>telecom company</dd>
+<dd>orange fruit
+</dd>
+<dd>telecom company
+</dd>
 </dl>
 ````````````````````````````````
 
@@ -220,8 +227,10 @@ orange
 .
 <dl>
 <dt>apple</dt>
-<dd>red fruit</dd>
+<dd>red fruit
+</dd>
 <dt>orange</dt>
-<dd>orange fruit</dd>
+<dd>orange fruit
+</dd>
 </dl>
 ````````````````````````````````

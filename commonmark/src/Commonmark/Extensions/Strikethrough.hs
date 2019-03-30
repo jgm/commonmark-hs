@@ -10,7 +10,6 @@ import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.SourceMap
 import Commonmark.Html
-import Data.Semigroup (Semigroup(..))
 
 strikethroughSpec :: (Monad m, IsBlock il bl, IsInline il, HasStrikethrough il)
               => SyntaxSpec m il bl

@@ -139,7 +139,8 @@ orange
 <dt>apple</dt>
 <dd>red fruit
 </dd>
-<dd>computer company</dd>
+<dd>computer company
+</dd>
 <dt>orange</dt>
 <dd>orange fruit
 </dd>

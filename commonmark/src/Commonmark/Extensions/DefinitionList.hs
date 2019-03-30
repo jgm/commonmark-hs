@@ -174,7 +174,8 @@ definitionListDefinitionBlockSpec = BlockSpec
          gobbleSpaces 4 <|> 0 <$ lookAhead blankLine
          return (pos, node)
      , blockConstructor    = \(Node _bdata children) ->
-         mconcat <$> mapM (\c -> blockConstructor (bspec c) c) children
+         mconcat <$> mapM (\c -> blockConstructor (bspec c) c)
+                       (reverse children)
      , blockFinalize       = defaultFinalizer
      }
 
@@ -193,7 +194,7 @@ definitionListItem spacing (term, defns) =
    mconcat (map (\defn ->
             case spacing of
               LooseList -> htmlBlock "dd" (Just (htmlRaw "\n" <> defn))
-              TightList -> htmlBlock "dd" (Just defn)) defns)
+              TightList -> htmlBlock "dd" (Just defn)) (reverse defns))
 
 instance (HasDefinitionList il bl, Semigroup bl, Semigroup il)
         => HasDefinitionList (WithSourceMap il) (WithSourceMap bl) where

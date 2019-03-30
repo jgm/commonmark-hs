@@ -11,6 +11,10 @@ Solution: make the IsInline type for roff be a newtype
 embeddding State EmphState Builder or something like
 that.  Then the effect can be state dependenet.
 * TODO extensions
+** TODO fix definition list
+currently it just creates one item lists.
+Fix: when finalizing a list item, check to see if previous
+node is a def list; if so, merge the two.
 ** TODO attributes (link/image/code/codeblock/header)
 - [ ] attribute parser
 - [ ] for header, parse inlines

@@ -169,7 +169,7 @@ orange
 <p>red fruit</p>
 </dd>
 <dd>
-<p> computer company</p>
+<p>computer company</p>
 </dd>
 <dt>orange</dt>
 <dd>
@@ -203,11 +203,13 @@ fruit
 <p>red fruit</p>
 </dd>
 <dd>
-<p> computer company</p>
+<p>computer
+company</p>
 </dd>
 <dt>orange</dt>
 <dd>
-<p>orange fruit</p>
+<p>orange
+fruit</p>
 </dd>
 <dd>
 <p>telecom company</p>

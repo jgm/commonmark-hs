@@ -7,6 +7,7 @@ import           Commonmark.Extensions.PipeTable
 import           Commonmark.Extensions.Smart
 import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.Math
+import           Commonmark.Extensions.DefinitionList
 import           Commonmark.Extensions.Footnote
 import           Control.Monad         (when)
 import           Data.Functor.Identity
@@ -23,32 +24,20 @@ import           Text.Parsec.Pos
 
 main :: IO ()
 main = do
-  spectests <- getSpecTestTree "test/spec.txt" defaultSyntaxSpec
-  regressiontests <- getSpecTestTree "test/regression.txt"
-                       defaultSyntaxSpec
-  smarttests <- getSpecTestTree "test/smart_punct.txt"
-                   (smartPunctuationSpec <> defaultSyntaxSpec)
-  strikethroughtests <- getSpecTestTree "test/strikethrough.txt"
-                         (strikethroughSpec <> defaultSyntaxSpec)
-  pipetabletests <- getSpecTestTree "test/pipe-tables.txt"
-                         (pipeTableSpec <> defaultSyntaxSpec)
-  footnotetests <- getSpecTestTree "test/footnotes.txt"
-                         (footnoteSpec <> defaultSyntaxSpec)
-  mathtests <- getSpecTestTree "test/math.txt"
-                         (mathSpec <> defaultSyntaxSpec)
-  autolinktests <- getSpecTestTree "test/autolinks.txt"
-                         (autolinkSpec <> defaultSyntaxSpec)
+  tests <- mapM (uncurry getSpecTestTree)
+             [ ("test/spec.txt", mempty)
+             , ("test/regression.txt", mempty)
+             , ("test/smart_punct.txt", smartPunctuationSpec)
+             , ("test/strikethrough.txt", strikethroughSpec)
+             , ("test/pipe-tables.txt", pipeTableSpec)
+             , ("test/footnotes.txt", footnoteSpec)
+             , ("test/math.txt", mathSpec)
+             , ("test/autolinks.txt", autolinkSpec)
+             , ("test/definition-list.txt", definitionListSpec)
+             ]
   defaultMain $ testGroup "Tests"
-    [ testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip
-    , spectests
-    , regressiontests
-    , smarttests
-    , strikethroughtests
-    , pipetabletests
-    , footnotetests
-    , mathtests
-    , autolinktests
-    ]
+     (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip
+      : tests)
 
 getSpecTestTree :: FilePath
                 -> SyntaxSpec Identity (Html ()) (Html ())
@@ -58,7 +47,8 @@ getSpecTestTree fp syntaxspec = do
   let spectestgroups = groupBy (\t1 t2 -> section t1 == section t2)
                           spectests
   let spectestsecs = [(section (head xs), xs) | xs <- spectestgroups]
-  let parser = runIdentity . parseCommonmarkWith syntaxspec
+  let parser = runIdentity . parseCommonmarkWith
+                   (syntaxspec <> defaultSyntaxSpec)
   return $ testGroup fp $
     map (\(secname, tests) ->
            testGroup (T.unpack secname) $

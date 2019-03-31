@@ -107,8 +107,8 @@ processLine specs = do
                  , maybeBlank = True
                  , failurePositions = M.empty }
   conts <- mapM checkContinue $ reverse (nodeStack st')
-  let (matched, unmatched) =
-       ([x | (True, x) <- conts], [x | (False, x) <- conts])
+  let matched = [x | (True, x) <- conts]
+  let unmatched = [x | (False, x) <- conts]
 
   -- if not everything matched, and last unmatched is paragraph,
   -- then we may have a lazy paragraph continuation

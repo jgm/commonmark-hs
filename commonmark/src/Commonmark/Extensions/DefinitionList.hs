@@ -155,9 +155,9 @@ definitionListDefinitionBlockSpec = BlockSpec
              (Node bdata' children' : rest') <- nodeStack <$> getState
              -- if last child was DefinitionList, set that to current
              case reverse children' of
-               n:ns | blockType (blockSpec (rootLabel n)) == "DefinitionList"
+               m:ms | blockType (blockSpec (rootLabel m)) == "DefinitionList"
                    -> updateState $ \st -> st{ nodeStack =
-                        n : Node bdata' (reverse ns) : rest' }
+                        m : Node bdata' (reverse ms) : rest' }
                _ -> return ()
              (Node bdata'' _ : _) <- nodeStack <$> getState
              case blockType (blockSpec bdata'') of

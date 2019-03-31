@@ -146,7 +146,7 @@ processLine specs = do
 
   (cur:rest) <- nodeStack <$> getState
   -- add line contents
-  (toks, endpos) <- restOfLine <|> (([],) <$> getPosition <* eof)
+  (toks, endpos) <- restOfLine
   -- add endpos
   let addEndPos (Node bdata children) = Node bdata{ blockEndPos =
                      endpos : blockEndPos bdata } children

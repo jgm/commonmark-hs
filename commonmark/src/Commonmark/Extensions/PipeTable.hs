@@ -170,13 +170,12 @@ pipeTableBlockSpec = BlockSpec
                 PipeTableData{ pipeTableAlignments = []
                              , pipeTableHeaders = []
                              , pipeTableRows = [] }
-         pos <- getPosition
          if null (blockLines ndata)
            then do
              cells <- pCells
              let tabledata' = tabledata{ pipeTableRows =
                                  cells : pipeTableRows tabledata }
-             return (pos, Node ndata{ blockData =
+             return (Node ndata{ blockData =
                                  toDyn tabledata' } children)
            else
              -- last line was first; check for separators
@@ -185,11 +184,10 @@ pipeTableBlockSpec = BlockSpec
                      guard $ length aligns ==
                              length (pipeTableHeaders tabledata)
                      let tabledata' = tabledata{ pipeTableAlignments = aligns }
-                     return (pos, Node ndata{ blockLines = []
+                     return (Node ndata{ blockLines = []
                                             , blockData = toDyn tabledata'
                                             } children))
-             <|> return (pos, Node ndata{
-                                 blockSpec = paraSpec } children)
+             <|> return (Node ndata{ blockSpec = paraSpec } children)
      , blockConstructor    = \(Node ndata _) -> do
          let tabledata = fromDyn
                 (blockData ndata)

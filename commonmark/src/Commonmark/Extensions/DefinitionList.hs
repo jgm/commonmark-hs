@@ -46,7 +46,7 @@ definitionListBlockSpec = BlockSpec
      , blockCanContain     = \sp -> blockType sp == "DefinitionListItem"
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = \n -> (,n) <$> getPosition
+     , blockContinue       = return
      , blockConstructor    = \(Node bdata items) -> do
          let listType = fromDyn (blockData bdata) LooseList
          let getItem item@(Node _ ds) = do
@@ -75,7 +75,7 @@ definitionListItemBlockSpec = BlockSpec
      , blockCanContain     = \sp -> blockType sp == "DefinitionListDefinition"
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = \n -> (,n) <$> getPosition
+     , blockContinue       = return
      , blockConstructor    = undefined
      , blockFinalize       = \(Node cdata children) parent -> do
          let listSpacing   = fromDyn (blockData cdata) LooseList
@@ -170,9 +170,8 @@ definitionListDefinitionBlockSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = \node -> do
-         pos <- getPosition
          gobbleSpaces 4 <|> 0 <$ lookAhead blankLine
-         return (pos, node)
+         return node
      , blockConstructor    = \(Node _bdata children) ->
          mconcat <$> mapM (\c -> blockConstructor (bspec c) c)
                        (reverse children)

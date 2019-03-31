@@ -84,8 +84,7 @@ footnoteBlockSpec = BlockSpec
      , blockContinue       = \n -> try $ do
              () <$ (gobbleSpaces 4)
                <|> (skipWhile (hasType Spaces) >> () <$ lookAhead lineEnd)
-             pos <- getPosition
-             return (pos, n)
+             return n
      , blockConstructor    = \node ->
           (addRange node . mconcat) <$> mapM (\n ->
               blockConstructor (blockSpec (rootLabel n)) n)

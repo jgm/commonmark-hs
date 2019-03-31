@@ -1,4 +1,6 @@
 * TODO stack overflow
+The stack space required goes up with size of input:
+
 % python -c 'print("aa\n"*3000)' | commonmark +RTS -s  -xc -K320K > /dev/null
 s.hs:(1033,1)-(1040,77))
 Commonmark.Blocks.paraSpec.\ (src/Commonmark/Blocks.hs:(442,10)-(478,59))

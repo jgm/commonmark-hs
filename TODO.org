@@ -1,6 +1,12 @@
 * TODO stack overflow
 The stack space required goes up with size of input:
 
+without profiling
+python -c 'print("aa\n"*30000)' | commonmark +RTS  -K100K  > /dev/null
+commonmark: Stack space overflow: current size 33624 bytes.
+commonmark: Use `+RTS -Ksize -RTS' to increase it.
+
+wiht profiling:
 % python -c 'print("aa\n"*3000)' | commonmark +RTS -s  -xc -K320K > /dev/null
 s.hs:(1033,1)-(1040,77))
 Commonmark.Blocks.paraSpec.\ (src/Commonmark/Blocks.hs:(442,10)-(478,59))

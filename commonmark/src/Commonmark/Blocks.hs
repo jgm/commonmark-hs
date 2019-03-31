@@ -57,7 +57,7 @@ import           Data.Monoid
 #endif
 import           Data.Char                 (isAsciiUpper, isDigit, isSpace)
 import           Data.Dynamic
-import           Data.List                 (sort, partition)
+import           Data.List                 (sort)
 import           Data.Text                 (Text)
 import qualified Data.Map                  as M
 import qualified Data.Text                 as T
@@ -107,8 +107,8 @@ processLine specs = do
                  , maybeBlank = True
                  , failurePositions = M.empty }
   conts <- mapM checkContinue $ reverse (nodeStack st')
-  let (contsmatched, contsunmatched) = partition fst conts
-  let (matched, unmatched) = (map snd contsmatched, map snd contsunmatched)
+  let (matched, unmatched) =
+       ([x | (True, x) <- conts], [x | (False, x) <- conts])
 
   -- if not everything matched, and last unmatched is paragraph,
   -- then we may have a lazy paragraph continuation

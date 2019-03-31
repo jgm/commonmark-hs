@@ -6,6 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE BangPatterns          #-}
 module Commonmark.Blocks
   ( mkBlockParser
   , defaultBlockSpecs
@@ -125,11 +126,12 @@ processLine specs = do
              <|> (False, nd) <$ updateState (\st -> st{
                                     blockMatched = False })
            else return (False, nd)
-  updateState $ \st -> st{ blockMatched = True
-                         , maybeLazy = False
-                         , maybeBlank = True
-                         , failurePositions = M.empty }
-  conts <- getState >>= mapM checkContinue . reverse . nodeStack
+  st <- getState
+  putState $! st{ blockMatched = True
+                , maybeLazy = False
+                , maybeBlank = True
+                , failurePositions = M.empty }
+  conts <- mapM checkContinue $ reverse (nodeStack st)
   let (contsmatched, contsunmatched) = partition fst conts
   let (matched, unmatched) = (map snd contsmatched, map snd contsunmatched)
 
@@ -316,9 +318,9 @@ data BPState m il bl = BPState
      { referenceMap     :: ReferenceMap
      , inlineParser     :: ReferenceMap -> [Tok] -> m (Either ParseError il)
      , nodeStack        :: [BlockNode m il bl]   -- reverse order, head is tip
-     , blockMatched     :: Bool
-     , maybeLazy        :: Bool
-     , maybeBlank       :: Bool
+     , blockMatched     :: !Bool
+     , maybeLazy        :: !Bool
+     , maybeBlank       :: !Bool
      , counters         :: M.Map Text Dynamic
      , failurePositions :: M.Map Text SourcePos  -- record known positions
                            -- where parsers fail to avoid repetition

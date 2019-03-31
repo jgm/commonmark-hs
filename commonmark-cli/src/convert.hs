@@ -26,8 +26,7 @@ import           Data.Version (showVersion)
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid
 #endif
-import           Control.Exception          (AsyncException(StackOverflow),
-                                             catch, throwIO)
+import           Control.Exception          (AsyncException, catch, throwIO)
 import           GHC.Stack                  (currentCallStack)
 
 data Opt =
@@ -114,11 +113,9 @@ main = catch (do
         case runIdentity (parseCommonmarkWith spec toks) of
              Left e -> errExit e
              Right (r :: Html ()) -> TLIO.putStr . renderHtml $ r)
-   (\e -> case e of
-            StackOverflow -> do
+   (\(e :: AsyncException) -> do
              currentCallStack >>= mapM_ (hPutStrLn stderr)
-             throwIO e
-            _ -> throwIO e)
+             throwIO e)
 
 
 errExit :: ParseError -> IO a

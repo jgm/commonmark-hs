@@ -101,37 +101,12 @@ processLine :: (Monad m, IsBlock il bl)
             => [BlockSpec m il bl] -> BlockParser m il bl ()
 processLine specs = do
   -- check block continuations for each node in stack
-  let checkContinue nd = do
-        ismatched <- blockMatched <$> getState
-        if ismatched
-           then
-             (do (startpos, Node bdata children) <- blockContinue (bspec nd) nd
-                 matched' <- blockMatched <$> getState
-                 -- if blockContinue set blockMatched to False, it's
-                 -- because of characters on the line closing the block,
-                 -- so it's not to be counted as blank:
-                 unless matched' $
-                   updateState $ \st -> st{ maybeBlank = False }
-                 pos' <- if matched'
-                            then return startpos
-                            else getPosition
-                 return (matched',
-                         Node bdata{ blockStartPos =
-                           startpos : blockStartPos bdata,
-                           blockEndPos =
-                               if matched'
-                                  then blockEndPos bdata
-                                  else pos' : blockEndPos bdata
-                           } children))
-             <|> (False, nd) <$ updateState (\st -> st{
-                                    blockMatched = False })
-           else return (False, nd)
-  st <- getState
-  putState $! st{ blockMatched = True
-                , maybeLazy = False
-                , maybeBlank = True
-                , failurePositions = M.empty }
-  conts <- mapM checkContinue $ reverse (nodeStack st)
+  st' <- getState
+  putState $! st'{ blockMatched = True
+                 , maybeLazy = False
+                 , maybeBlank = True
+                 , failurePositions = M.empty }
+  conts <- mapM checkContinue $ reverse (nodeStack st')
   let (contsmatched, contsunmatched) = partition fst conts
   let (matched, unmatched) = (map snd contsmatched, map snd contsunmatched)
 
@@ -154,26 +129,6 @@ processLine specs = do
 
   isblank <- option False $ True <$ (do getState >>= guard . maybeBlank
                                         lookAhead blankLine)
-  let doBlockStarts [] = mzero
-      doBlockStarts (spec:otherSpecs) = try $ do
-        st' <- getState
-        initPos <- getPosition
-        case M.lookup (blockType spec) (failurePositions st') of
-           Just pos' | initPos < pos' -> doBlockStarts otherSpecs
-           _ -> (do
-             pst <- getParserState
-             res <- blockStart spec
-             case res of
-               BlockStartMatch -> return ()
-               BlockStartNoMatchBefore pos -> do
-                 setParserState pst
-                 unless (pos == initPos) $
-                   updateState $ \st ->
-                      st{ failurePositions =
-                           M.insert (blockType spec)
-                           pos (failurePositions st) }
-                 doBlockStarts otherSpecs)
-                <|> doBlockStarts otherSpecs
   (skipMany1 (doBlockStarts specs) >> optional (blockStart paraSpec))
       <|>
     (do getState >>= guard . maybeLazy
@@ -209,6 +164,59 @@ processLine specs = do
            } : rest
       }
   -- showNodeStack
+
+doBlockStarts :: Monad m => [BlockSpec m il bl] -> BlockParser m il bl ()
+doBlockStarts [] = mzero
+doBlockStarts (spec:otherSpecs) = try $ do
+  st' <- getState
+  initPos <- getPosition
+  case M.lookup (blockType spec) (failurePositions st') of
+     Just pos' | initPos < pos' -> doBlockStarts otherSpecs
+     _ -> (do
+       pst <- getParserState
+       res <- blockStart spec
+       case res of
+         BlockStartMatch -> return ()
+         BlockStartNoMatchBefore pos -> do
+           setParserState pst
+           unless (pos == initPos) $
+             updateState $ \st ->
+                st{ failurePositions =
+                     M.insert (blockType spec)
+                     pos (failurePositions st) }
+           doBlockStarts otherSpecs)
+          <|> doBlockStarts otherSpecs
+
+
+checkContinue :: Monad m
+              => BlockNode m il bl
+              -> BlockParser m il bl (Bool, BlockNode m il bl)
+checkContinue nd = do
+  ismatched <- blockMatched <$> getState
+  if ismatched
+     then
+       (do (startpos, Node bdata children) <- blockContinue (bspec nd) nd
+           matched' <- blockMatched <$> getState
+           -- if blockContinue set blockMatched to False, it's
+           -- because of characters on the line closing the block,
+           -- so it's not to be counted as blank:
+           unless matched' $
+             updateState $ \st -> st{ maybeBlank = False }
+           pos' <- if matched'
+                      then return startpos
+                      else getPosition
+           return (matched',
+                   Node bdata{ blockStartPos =
+                     startpos : blockStartPos bdata,
+                     blockEndPos =
+                         if matched'
+                            then blockEndPos bdata
+                            else pos' : blockEndPos bdata
+                     } children))
+       <|> (False, nd) <$ updateState (\st -> st{
+                              blockMatched = False })
+     else return (False, nd)
+
 
 {-
 --- for debugging

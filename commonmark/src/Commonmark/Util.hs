@@ -23,7 +23,7 @@ module Commonmark.Util
   , skipWhile
   )
   where
-import           Control.Monad   (mzero, when, void, guard)
+import           Control.Monad   (mzero, void, guard)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Text.Parsec

@@ -1,3 +1,81 @@
+* TODO stack overflow
+ % time commonmark ../pandoc/MANUAL.txt +RTS -s  -xc -K1020K > /dev/null
+*** Exception (reporting due to +RTS -xc): (THUNK_STATIC), stack trace: 
+  Data.Text.Internal.IO.readTextDevice,
+  called from Main.main.\,
+  called from Main.main
+*** Exception (reporting due to +RTS -xc): (THUNK_STATIC), stack trace: 
+  Commonmark.Blocks.processLine.\,
+  called from Commonmark.Blocks.processLine,
+  called from Commonmark.Util.whileM_.go,
+  called from Commonmark.Util.whileM_,
+  called from Commonmark.Blocks.processLines,
+  called from Commonmark.Blocks.mkBlockParser,
+  called from Commonmark.Parser.parseCommonmarkWith,
+  called from Main.main
+*** Exception (reporting due to +RTS -xc): (THUNK_STATIC), stack trace: 
+  Commonmark.Blocks.processLine.\,
+  called from Commonmark.Blocks.processLine,
+  called from Commonmark.Util.whileM_.go,
+  called from Commonmark.Util.whileM_,
+  called from Commonmark.Blocks.processLines,
+  called from Commonmark.Blocks.mkBlockParser,
+  called from Commonmark.Parser.parseCommonmarkWith,
+  called from Main.main
+Main.main (src/convert.hs:(60,1)-(121,27))
+Commonmark.Parser.parseCommonmarkWith (src/Commonmark/Parser.hs:(47,1)-(52,51))
+Commonmark.Blocks.mkBlockParser (src/Commonmark/Blocks.hs:(74,1)-(86,25))
+Commonmark.Blocks.processLines (src/Commonmark/Blocks.hs:(92,1)-(97,29))
+Commonmark.Util.whileM_ (src/Commonmark/Util.hs:(153,1)-(156,28))
+Commonmark.Util.whileM_.go (src/Commonmark/Util.hs:(154,11)-(156,28))
+Commonmark.Blocks.processLine (src/Commonmark/Blocks.hs:(101,1)-(208,7))
+Commonmark.Blocks.processLine.\ (src/Commonmark/Blocks.hs:(128,24)-(131,55))
+Main.main.\ (src/convert.hs:(117,11)-(121,26))
+*** Exception (reporting due to +RTS -xc): (THUNK_STATIC), stack trace: 
+  Main.main.\,
+  called from Commonmark.Blocks.processLine.\,
+  called from Commonmark.Blocks.processLine,
+  called from Commonmark.Util.whileM_.go,
+  called from Commonmark.Util.whileM_,
+  called from Commonmark.Blocks.processLines,
+  called from Commonmark.Blocks.mkBlockParser,
+  called from Commonmark.Parser.parseCommonmarkWith,
+  called from Main.main
+commonmark: Stack space overflow: current size 33568 bytes.
+commonmark: Use `+RTS -Ksize -RTS' to increase it.
+     395,778,136 bytes allocated in the heap
+      60,626,728 bytes copied during GC
+      15,483,160 bytes maximum residency (7 sample(s))
+         241,384 bytes maximum slop
+              14 MB total memory in use (0 MB lost due to fragmentation)
+
+                                     Tot time (elapsed)  Avg pause  Max pause
+  Gen  0       376 colls,   376 par    0.136s   0.043s     0.0001s    0.0021s
+  Gen  1         7 colls,     6 par    0.069s   0.030s     0.0043s    0.0107s
+
+  Parallel GC work balance: 56.95% (serial 0%, perfect 100%)
+
+  TASKS: 10 (1 bound, 9 peak workers (9 total), using -N4)
+
+  SPARKS: 0(0 converted, 0 overflowed, 0 dud, 0 GC'd, 0 fizzled)
+
+  INIT    time    0.001s  (  0.003s elapsed)
+  MUT     time    0.221s  (  0.208s elapsed)
+  GC      time    0.204s  (  0.073s elapsed)
+  RP      time    0.000s  (  0.000s elapsed)
+  PROF    time    0.000s  (  0.000s elapsed)
+  EXIT    time    0.000s  (  0.001s elapsed)
+  Total   time    0.426s  (  0.285s elapsed)
+
+  Alloc rate    1,792,903,803 bytes per MUT second
+
+  Productivity  51.8% of total user, 73.0% of total elapsed
+
+
+real	0m0.300s
+user	0m0.429s
+sys	0m0.083s
+
 * TODO example roff man writer
 In roff, the effect of an 'emph' might
 be `\f[I]`, but it might be `\f[BI]` (if we're already in a
@@ -11,7 +89,7 @@ Solution: make the IsInline type for roff be a newtype
 embeddding State EmphState Builder or something like
 that.  Then the effect can be state dependenet.
 * TODO extensions
-** TODO fix definition list
+** DONE fix definition list
 currently it just creates one item lists.
 Fix: when finalizing a list item, check to see if previous
 node is a def list; if so, merge the two.

@@ -195,8 +195,7 @@ checkContinue nd = do
   ismatched <- blockMatched <$> getState
   if ismatched
      then
-       (do startpos <- lookAhead $ skipWhile (hasType Spaces) >> getPosition
-           Node bdata children <- blockContinue (bspec nd) nd
+       (do (startpos, Node bdata children) <- blockContinue (bspec nd) nd
            matched' <- blockMatched <$> getState
            -- if blockContinue set blockMatched to False, it's
            -- because of characters on the line closing the block,
@@ -264,7 +263,7 @@ data BlockSpec m il bl = BlockSpec
      , blockParagraph      :: Bool -- ^ True if this kind of block
                            -- is paragraph.
      , blockContinue       :: BlockNode m il bl
-                           -> BlockParser m il bl (BlockNode m il bl)
+                           -> BlockParser m il bl (SourcePos, BlockNode m il bl)
                            -- ^ Parser that checks to see if the current
                            -- block (the 'BlockNode') can be kept open.
                            -- If it fails, the block will be closed, unless
@@ -397,7 +396,7 @@ docSpec = BlockSpec
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = return
+     , blockContinue       = \n -> (,n) <$> getPosition
      , blockConstructor    = \node ->
             mconcat <$> mapM (\n ->
                         blockConstructor (blockSpec (rootLabel n)) n)
@@ -441,8 +440,9 @@ paraSpec = BlockSpec
      , blockParagraph      = True
      , blockContinue       = \n -> lookAhead $ try $ do
              skipWhile (hasType Spaces)
+             pos <- getPosition
              notFollowedBy lineEnd
-             return n
+             return (pos, n)
      , blockConstructor    = \node ->
          (addRange node . paragraph)
              <$> runInlineParser (getBlockText removeIndent node)
@@ -610,9 +610,10 @@ blockQuoteSpec = BlockSpec
      , blockParagraph      = False
      , blockContinue       = \n -> try $ do
              nonindentSpaces
+             pos <- getPosition
              _ <- symbol '>'
              _ <- gobbleUpToSpaces 1
-             return n
+             return (pos, n)
      , blockConstructor    = \node ->
           (addRange node . blockQuote . mconcat)
    <$> mapM (\n ->
@@ -667,8 +668,9 @@ listItemSpec = BlockSpec
              -- a marker followed by two blanks is just an empty item:
              guard $ null (blockBlanks ndata) ||
                      not (null children)
+             pos <- getPosition
              gobbleSpaces (listItemIndent lidata) <|> 0 <$ lookAhead blankLine
-             return node
+             return (pos, node)
      , blockConstructor    = \node ->
           mconcat
    <$> mapM (\n ->
@@ -734,7 +736,7 @@ listSpec = BlockSpec
      , blockCanContain     = \sp -> blockType sp == "ListItem"
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = return
+     , blockContinue       = \n -> (,n) <$> getPosition
      , blockConstructor    = \node -> do
           let ListData lt ls = fromDyn (blockData (rootLabel node))
                                  (ListData undefined undefined)
@@ -822,7 +824,8 @@ indentedCodeSpec = BlockSpec
      , blockContinue       = \node -> do
              void (gobbleSpaces 4)
                <|> try (skipWhile (hasType Spaces) <* lookAhead lineEnd)
-             return node
+             pos <- getPosition
+             return (pos, node)
 
      , blockConstructor    = \node ->
              return (addRange node
@@ -873,18 +876,20 @@ fencedCodeSpec = BlockSpec
                                    (blockData (rootLabel node))
                                    ('`', 3, 0, mempty)
              nonindentSpaces
+             pos <- getPosition
              ts <- many1 (symbol c)
              guard $ length ts >= fencelength
              skipWhile (hasType Spaces)
              lookAhead $ void lineEnd <|> eof
              endOfBlock
-             return node)
+             return (pos, node))
                <|> (do let ((_, _, indentspaces, _)
                               :: (Char, Int, Int, Text)) = fromDyn
                                    (blockData (rootLabel node))
                                    ('`', 3, 0, mempty)
+                       pos <- getPosition
                        _ <- gobbleUpToSpaces indentspaces
-                       return node)
+                       return (pos, node))
      , blockConstructor    = \node -> do
              let ((_, _, _, info) :: (Char, Int, Int, Text)) =
                      fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty)
@@ -926,19 +931,21 @@ rawHtmlSpec = BlockSpec
      , blockContainsLines  = True
      , blockParagraph      = False
      , blockContinue       = \node@(Node ndata children) -> try $ do
+         pos <- getPosition
          case fromDyn (blockData (rootLabel node)) (0 :: Int) of
               0 -> mzero  -- 0 means that the block start already closed
-              6 -> node <$ notFollowedBy blankLine
-              7 -> node <$ notFollowedBy blankLine
+              6 -> (pos, node) <$ notFollowedBy blankLine
+              7 -> (pos, node) <$ notFollowedBy blankLine
               n ->
-                (do lookAhead (endCond n)
+                (do pos' <- getPosition
+                    lookAhead (endCond n)
                     endOfBlock
                     toks <- many (satisfyTok (not . hasType LineEnd))
                     le <- option [] $ (:[]) <$> lookAhead lineEnd
-                    return (Node ndata{
-                                 blockData = toDyn (0 :: Int)
-                               , blockLines = (toks ++ le) : blockLines ndata
-                               } children)) <|> return node
+                    return (pos', Node ndata{
+                                    blockData = toDyn (0 :: Int)
+                                  , blockLines = (toks ++ le) : blockLines ndata
+                                  } children)) <|> return (pos, node)
      , blockConstructor    = \node ->
              return (addRange node
                         (rawBlock (Format "html")

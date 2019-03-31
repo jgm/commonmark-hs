@@ -15,7 +15,6 @@ module Commonmark.Util
   , withRaw
   , hasType
   , textIs
-  , whileM_
   , blankLine
   , restOfLine
   , isOneOfCI
@@ -145,17 +144,6 @@ textIs :: (Text -> Bool) -> Tok -> Bool
 textIs f (Tok _ _ t) = f t
 {-# INLINEABLE textIs #-}
 
--- from monad-loops:
--- | Execute an action repeatedly as long as the given boolean expression
--- returns True.  The condition is evaluated before the loop body.
--- Discards results.
-whileM_ :: (Monad m) => m Bool -> m a -> m ()
-whileM_ p f = go
-    where go = do
-            x <- p
-            when x $ f >> go
-{-# INLINEABLE whileM_ #-}
-
 -- | Gobble up to 3 spaces (may be part of a tab).
 nonindentSpaces :: Monad m => ParsecT [Tok] u m ()
 nonindentSpaces = void $ gobbleUpToSpaces 3
@@ -192,6 +180,7 @@ restOfLine = do
   ts <- many (satisfyTok (not . hasType LineEnd))
   pos <- getPosition
   (do le <- lineEnd
-      return (ts ++ [le], pos)) <|> (do guard (not (null ts))
+      return (ts ++ [le], pos)) <|> (do eof
+                                        guard (not (null ts))
                                         return (ts, pos))
 {-# INLINEABLE restOfLine #-}

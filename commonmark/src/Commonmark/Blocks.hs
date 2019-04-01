@@ -135,10 +135,8 @@ processLine specs = do
         guard $ not isblank
         -- lazy line
         sp <- getPosition
-        let addStartPos (Node bd cs) =
-                Node bd{ blockStartPos = sp : blockStartPos bd } cs
         updateState $ \st -> st{ nodeStack =
-             map addStartPos (reverse unmatched) ++ reverse matched })
+             map (addStartPos sp) (reverse unmatched) ++ reverse matched })
       <|>
     void (blockStart paraSpec)
       <|>
@@ -147,12 +145,9 @@ processLine specs = do
   (cur:rest) <- nodeStack <$> getState
   -- add line contents
   (toks, endpos) <- restOfLine
-  -- add endpos
-  let addEndPos (Node bdata children) = Node bdata{ blockEndPos =
-                     endpos : blockEndPos bdata } children
   let curdata = rootLabel cur
   updateState $ \st -> st{
-      nodeStack = map addEndPos $
+      nodeStack = map (addEndPos endpos) $
         cur{ rootLabel =
                if blockContainsLines (bspec cur)
                   then curdata{ blockLines = toks : blockLines curdata }
@@ -164,6 +159,13 @@ processLine specs = do
            } : rest
       }
   -- showNodeStack
+
+addStartPos :: SourcePos -> BlockNode m il bl -> BlockNode m il bl
+addStartPos sp (Node bd cs) = Node bd{ blockStartPos = sp : blockStartPos bd } cs
+
+addEndPos :: SourcePos -> BlockNode m il bl -> BlockNode m il bl
+addEndPos endpos (Node bdata children) =
+  Node bdata{ blockEndPos = endpos : blockEndPos bdata } children
 
 doBlockStarts :: Monad m => [BlockSpec m il bl] -> BlockParser m il bl ()
 doBlockStarts [] = mzero

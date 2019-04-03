@@ -505,7 +505,6 @@ linkReferenceDef = try $ do
   symbol ':'
   optional whitespace
   dest <- pLinkDestination
-  guard $ not . null $ dest
   title <- option [] $ try $
              whitespace
              *> pLinkTitle

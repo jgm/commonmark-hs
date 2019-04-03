@@ -853,7 +853,14 @@ pLinkDestination = try $ pAngleDest <|> pNormalDest 0
       return res
 
     pNormalDest :: Int -> Parsec [Tok] s [Tok]
-    pNormalDest numparens
+    pNormalDest numparens = do
+      res <- pNormalDest' numparens
+      if null res
+         then res <$ lookAhead (symbol ')')
+         else return res
+
+    pNormalDest' :: Int -> Parsec [Tok] s [Tok]
+    pNormalDest' numparens
      | numparens > 32 = mzero
      | otherwise = (do
           t <- satisfyTok (\case
@@ -865,10 +872,10 @@ pLinkDestination = try $ pAngleDest <|> pNormalDest 0
           case t of
             Tok (Symbol '\\') _ _ -> do
               t' <- option t $ satisfyTok asciiSymbol
-              (t':) <$> pNormalDest numparens
-            Tok (Symbol '(') _ _ -> (t:) <$> pNormalDest (numparens + 1)
-            Tok (Symbol ')') _ _ -> (t:) <$> pNormalDest (numparens - 1)
-            _                    -> (t:) <$> pNormalDest numparens)
+              (t':) <$> pNormalDest' numparens
+            Tok (Symbol '(') _ _ -> (t:) <$> pNormalDest' (numparens + 1)
+            Tok (Symbol ')') _ _ -> (t:) <$> pNormalDest' (numparens - 1)
+            _                    -> (t:) <$> pNormalDest' numparens)
           <|> return []
 
 -- parses backslash + escapable character, or just backslash

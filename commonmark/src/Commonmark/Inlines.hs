@@ -420,6 +420,7 @@ pCodeSpan =
           nltosp c    = c
           removeSurroundingSpace s
              | not (T.null s)
+             , not (T.all (== ' ') s)
              , T.head s == ' '
              , T.last s == ' ' = T.drop 1 $ T.dropEnd 1 s
              | otherwise = s

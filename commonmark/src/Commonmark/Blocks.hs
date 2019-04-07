@@ -424,6 +424,48 @@ refLinkDefSpec = BlockSpec
      , blockFinalize       = defaultFinalizer
      }
 
+-- Parse reference links from beginning of block text;
+-- update reference map and block text; return maybe altered node
+-- (if it still contains lines) and maybe ref link node.
+extractReferenceLinks :: (Monad m, IsBlock il bl)
+                      => BlockNode m il bl
+                      -> BlockParser m il bl (Maybe (BlockNode m il bl),
+                                              Maybe (BlockNode m il bl))
+extractReferenceLinks node = do
+  case parse ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
+                        many1 linkReferenceDef)
+                  <*> getInput) "" (getBlockText removeIndent node) of
+        Left _ -> return (Just node, Nothing)
+        Right (linkdefs, toks') -> do
+          mapM_
+            (\((_,lab),(dest,tit)) ->
+             updateState $ \st -> st{
+              referenceMap = insertReference lab
+                LinkInfo{ linkDestination = dest, linkTitle = tit }
+                (referenceMap st) }) linkdefs
+          let isRefPos = case toks' of
+                           (t:_) -> (< tokPos t)
+                           _     -> const False
+          let node' = if null toks'
+                         then Nothing
+                         else Just node{ rootLabel =
+                              (rootLabel node){
+                                blockLines = [toks'],
+                                blockStartPos = dropWhile isRefPos
+                                   (blockStartPos (rootLabel node)),
+                                blockEndPos = dropWhile isRefPos
+                                   (blockEndPos (rootLabel node))
+                                }
+                           }
+          let refnode = node{ rootLabel =
+                 (rootLabel node){
+                     blockLines = takeWhile (any (isRefPos . tokPos))
+                       (blockLines (rootLabel node))
+                   , blockData = toDyn linkdefs
+                   , blockSpec = refLinkDefSpec
+                 }}
+          return (node', Just refnode)
+
 paraSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 paraSpec = BlockSpec
@@ -448,44 +490,16 @@ paraSpec = BlockSpec
      , blockConstructor    = \node ->
          (addRange node . paragraph)
              <$> runInlineParser (getBlockText removeIndent node)
-     , blockFinalize       = \child parent ->
-         case parse ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
-                               many1 linkReferenceDef)
-                         <*> getInput) ""
-                  (getBlockText removeIndent child) of
-               Left _ -> defaultFinalizer child parent
-               Right (linkdefs, toks') -> do
-                 mapM_
-                   (\((_,lab),(dest,tit)) ->
-                    updateState $ \st -> st{
-                     referenceMap = insertReference lab
-                       LinkInfo{ linkDestination = dest, linkTitle = tit }
-                       (referenceMap st) }) linkdefs
-                 let isRefPos = case toks' of
-                                  (t:_) -> (< tokPos t)
-                                  _     -> const False
-                 let paranodes = if null toks'
-                                    then []
-                                    else [child{ rootLabel =
-                                           (rootLabel child){
-                                             blockLines = [toks'],
-                                             blockStartPos =
-                                               dropWhile isRefPos
-                                                (blockStartPos
-                                                 (rootLabel child)),
-                                             blockEndPos =
-                                               dropWhile isRefPos
-                                                (blockEndPos
-                                                 (rootLabel child)),
-                                             blockSpec = paraSpec
-                                             } }]
-                 let thisnode = child{ rootLabel =
-                        (rootLabel child){
-                            blockData = toDyn linkdefs
-                          , blockSpec = refLinkDefSpec
-                        }}
-                 return $ parent{ subForest = paranodes ++
-                              thisnode : subForest parent }
+     , blockFinalize       = \child parent -> do
+         (mbchild, mbrefdefs) <- return (Nothing, Nothing) -- extractReferenceLinks child
+         case (mbchild, mbrefdefs) of
+           (_, Nothing) -> defaultFinalizer child parent
+           (Nothing, Just refnode)
+                        -> return parent{ subForest =
+                                          refnode : subForest parent }
+           (Just child', Just refnode)
+                        -> return parent{ subForest =
+                                        child' : refnode : subForest parent }
      }
 
 plainSpec :: (Monad m, IsBlock il bl)

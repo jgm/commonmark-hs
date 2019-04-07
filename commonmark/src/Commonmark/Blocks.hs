@@ -491,7 +491,7 @@ paraSpec = BlockSpec
          (addRange node . paragraph)
              <$> runInlineParser (getBlockText removeIndent node)
      , blockFinalize       = \child parent -> do
-         (mbchild, mbrefdefs) <- return (Nothing, Nothing) -- extractReferenceLinks child
+         (mbchild, mbrefdefs) <- extractReferenceLinks child
          case (mbchild, mbrefdefs) of
            (_, Nothing) -> defaultFinalizer child parent
            (Nothing, Just refnode)

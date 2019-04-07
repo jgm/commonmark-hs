@@ -587,16 +587,29 @@ setextHeaderSpec = BlockSpec
                   <|> (1 :: Int) <$ skipMany1 (symbol '=')
              skipWhile (hasType Spaces)
              lookAhead (eof <|> void lineEnd)
-             -- replace cur with new setext header node
+             -- process any reference links, make sure there's some
+             -- content left
+             (mbcur, mbrefdefs) <- extractReferenceLinks cur
              updateState $ \st ->
-                st{ nodeStack = rest }
-             addNodeToStack $
-                  Node (rootLabel cur){
-                          blockSpec  = setextHeaderSpec,
-                          blockData = toDyn level,
-                          blockStartPos =
-                               blockStartPos (rootLabel cur) ++ [pos] } []
-             return BlockStartMatch
+                st{ nodeStack = case mbrefdefs of
+                                  Nothing -> rest
+                                  Just rd -> case rest of
+                                                (x:xs) ->
+                                                  x{ subForest =
+                                                      rd : subForest x }:xs
+                                                [] -> [rd] }
+             case mbcur of
+               Nothing -> mzero -- should not happen
+               Just cur' -> do
+                 -- replace cur with new setext header node
+                 addNodeToStack $
+                      Node (rootLabel cur'){
+                              blockSpec  = setextHeaderSpec,
+                              blockData = toDyn level,
+                              blockStartPos =
+                                   blockStartPos (rootLabel cur') ++ [pos] }
+                                    []
+                 return BlockStartMatch
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = False

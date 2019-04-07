@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Commonmark.Tokens
   ( Tok(..)
@@ -37,9 +38,9 @@ tokenize name = go (initialPos name)
       case T.uncons t of
         Nothing  -> []
         Just x   ->
-          let (tok, newpos, t') = getTok pos x
-          in  tok `seq` newpos `seq` t' `seq` (tok : go newpos t')
-    getTok pos (c, t) =
+          let (!tok, !newpos, !t') = getTok pos x
+          in  (tok : go newpos t')
+    getTok !pos (!c, !t) =
       case c of
         ' ' -> let (sps,rest) = T.span (==' ') t
                in  (Tok Spaces pos (T.cons ' ' sps),

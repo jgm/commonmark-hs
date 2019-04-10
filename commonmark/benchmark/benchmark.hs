@@ -5,9 +5,9 @@ import Criterion.Main
 import Data.Text (Text)
 import Data.Functor.Identity  -- base >= 4.8
 import Commonmark.Parser
-import Commonmark.Extensions.PipeTable
-import Commonmark.Extensions.Smart
-import Commonmark.Extensions.Autolink
+-- import Commonmark.Extensions.PipeTable
+-- import Commonmark.Extensions.Smart
+-- import Commonmark.Extensions.Autolink
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 #if !MIN_VERSION_base(4,11,0)
@@ -22,12 +22,12 @@ main = do
       [ benchTokenize ("sample.md", sample) ]
     , bgroup "parse sample.md"
       [ benchCommonmark defaultSyntaxSpec ("commonmark default", sample)
-      , benchCommonmark (smartPunctuationSpec <> defaultSyntaxSpec)
-          ("commonmark +smart", sample)
-      , benchCommonmark (autolinkSpec <> defaultSyntaxSpec)
-          ("commonmark +autolink", sample)
-      , benchCommonmark (defaultSyntaxSpec <> pipeTableSpec)
-          ("commonmark +pipe_table", sample)
+--      , benchCommonmark (smartPunctuationSpec <> defaultSyntaxSpec)
+--          ("commonmark +smart", sample)
+--      , benchCommonmark (autolinkSpec <> defaultSyntaxSpec)
+--          ("commonmark +autolink", sample)
+--      , benchCommonmark (defaultSyntaxSpec <> pipeTableSpec)
+--          ("commonmark +pipe_table", sample)
       ]
     , bgroup "pathological"
       (map toPathBench pathtests)

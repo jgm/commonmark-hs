@@ -72,14 +72,14 @@ library
       Commonmark.Inlines
       Commonmark.Blocks
       Commonmark.Util
-      Commonmark.SourceMap
-      Commonmark.Extensions.Smart
-      Commonmark.Extensions.Strikethrough
-      Commonmark.Extensions.PipeTable
-      Commonmark.Extensions.Math
-      Commonmark.Extensions.Autolink
-      Commonmark.Extensions.Footnote
-      Commonmark.Extensions.DefinitionList
+--      Commonmark.SourceMap
+--      Commonmark.Extensions.Smart
+--      Commonmark.Extensions.Strikethrough
+--      Commonmark.Extensions.PipeTable
+--      Commonmark.Extensions.Math
+--      Commonmark.Extensions.Autolink
+--      Commonmark.Extensions.Footnote
+--      Commonmark.Extensions.DefinitionList
   other-modules:
       Commonmark.Html
       Commonmark.Tag

@@ -2,13 +2,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import           Commonmark.Parser
-import           Commonmark.Extensions.Autolink
-import           Commonmark.Extensions.PipeTable
-import           Commonmark.Extensions.Smart
-import           Commonmark.Extensions.Strikethrough
-import           Commonmark.Extensions.Math
-import           Commonmark.Extensions.DefinitionList
-import           Commonmark.Extensions.Footnote
+-- import           Commonmark.Extensions.Autolink
+-- import           Commonmark.Extensions.PipeTable
+-- import           Commonmark.Extensions.Smart
+-- import           Commonmark.Extensions.Strikethrough
+-- import           Commonmark.Extensions.Math
+-- import           Commonmark.Extensions.DefinitionList
+-- import           Commonmark.Extensions.Footnote
 import           Control.Monad         (when)
 import           Data.Functor.Identity
 import           Data.List             (groupBy)
@@ -27,13 +27,13 @@ main = do
   tests <- mapM (uncurry getSpecTestTree)
              [ ("test/spec.txt", mempty)
              , ("test/regression.txt", mempty)
-             , ("test/smart_punct.txt", smartPunctuationSpec)
-             , ("test/strikethrough.txt", strikethroughSpec)
-             , ("test/pipe-tables.txt", pipeTableSpec)
-             , ("test/footnotes.txt", footnoteSpec)
-             , ("test/math.txt", mathSpec)
-             , ("test/autolinks.txt", autolinkSpec)
-             , ("test/definition-list.txt", definitionListSpec)
+--             , ("test/smart_punct.txt", smartPunctuationSpec)
+--             , ("test/strikethrough.txt", strikethroughSpec)
+--             , ("test/pipe-tables.txt", pipeTableSpec)
+--             , ("test/footnotes.txt", footnoteSpec)
+--             , ("test/math.txt", mathSpec)
+--             , ("test/autolinks.txt", autolinkSpec)
+--             , ("test/definition-list.txt", definitionListSpec)
              ]
   defaultMain $ testGroup "Tests"
      (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip

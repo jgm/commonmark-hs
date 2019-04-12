@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE UnboxedTuples #-}
 
 module Commonmark.Tokens
   ( Tok(..)
@@ -13,16 +14,22 @@ import           Data.Char       (isAlphaNum, isSpace)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Data.Data       (Data, Typeable)
-import           Text.Parsec.Pos
+import qualified Data.Vector.Unboxed as V
 
 data Tok = Tok { tokType     :: !TokType
-               , tokPos      :: {-# UNPACK #-} !SourcePos
-               , tokContents :: {-# UNPACK #-} !Text
-               }
-               deriving (Show, Eq, Data, Typeable)
+               , tokPos      :: !Int
+               , tokLength   :: !Int
+               , tokSubject  :: V.Vector Char
+               } deriving (Eq, Data, Typeable)
+
+instance Show Tok where
+  show (Tok tt pos len subj) =
+    show tt ++ " " ++ show pos ++ " " ++ show (V.unsafeSlice pos len subj)
+
 
 data TokType =
        Spaces
+     | Tab
      | UnicodeSpace
      | LineEnd
      | WordChars
@@ -31,51 +38,47 @@ data TokType =
 
 -- | Convert a 'Text' into a list of 'Tok'. The first parameter
 -- species the source name.
-tokenize :: String -> Text -> [Tok]
-tokenize name = go (initialPos name)
+tokenize :: Text -> [Tok]
+tokenize t = go 0
   where
-    go pos t =
-      case T.uncons t of
+    v = V.fromList (T.unpack t)
+    go pos =
+      case v V.!? pos of
         Nothing  -> []
-        Just x   ->
-          let (!tok, !newpos, !t') = getTok pos x
-          in  (tok : go newpos t')
-    getTok !pos (!c, !t) =
+        Just !c  ->
+          let (!tok, !newpos) = getTok c pos
+          in  (tok : go newpos)
+    getTok c pos =
       case c of
-        ' ' -> let (sps,rest) = T.span (==' ') t
-               in  (Tok Spaces pos (T.cons ' ' sps),
-                    incSourceColumn pos (1 + T.length sps),
-                    rest)
-        '\t' -> (Tok Spaces pos "\t",
-                   incSourceColumn pos (4 - (sourceColumn pos - 1) `mod` 4),
-                   t)
-        '\r' -> case T.uncons t of
-                  Just ('\n',t')
-                    -> (Tok LineEnd pos "\r\n",
-                        incSourceLine (setSourceColumn pos 1) 1,
-                        t')
-                  _ -> (Tok LineEnd pos "\r",
-                        incSourceLine (setSourceColumn pos 1) 1,
-                        t)
-        '\n' -> (Tok LineEnd pos "\n",
-                 incSourceLine (setSourceColumn pos 1) 1,
-                 t)
-        _
-         | isAlphaNum c ->
-             let (ws,rest) = T.span isAlphaNum t
-             in  (Tok WordChars pos (T.cons c ws),
-                  incSourceColumn pos (1 + T.length ws),
-                  rest)
-         | isSpace c    ->
-            (Tok UnicodeSpace pos (T.singleton c),
-             incSourceColumn pos 1,
-             t)
-         | otherwise    ->
-            (Tok (Symbol c) pos (T.singleton c),
-             incSourceColumn pos 1,
-             t)
+        ' ' -> case V.findIndex (/=' ') (V.drop (pos + 1) v) of
+                 Just firstNonspace ->
+                   (Tok Spaces pos (1 + firstNonspace) v,
+                    pos + 1 + firstNonspace)
+                 Nothing ->
+                   (Tok Spaces pos (V.length v - pos) v,
+                    V.length v)
+        '\t' -> (Tok Tab pos 1 v, pos + 1)
+        '\n' -> (Tok LineEnd pos 1 v, pos + 1)
+        '\r' -> case v V.!? (pos + 1) of
+                   Just '\n' ->
+                     (Tok LineEnd pos 2 v, pos + 2)
+                   _         ->
+                     (Tok LineEnd pos 1 v, pos + 1)
+        _ | isAlphaNum c ->
+               case V.findIndex (not . isAlphaNum) (V.drop (pos + 1) v) of
+                 Just firstNonAlphaNum ->
+                   (Tok WordChars pos (1 + firstNonAlphaNum) v,
+                    pos + 1 + firstNonAlphaNum)
+                 Nothing ->
+                   (Tok WordChars pos (V.length v - pos) v,
+                    V.length v)
+          | isSpace c -> (Tok UnicodeSpace pos 1 v, pos + 1)
+          | otherwise -> (Tok (Symbol c) pos 1 v, pos + 1)
 
 -- | Reverses 'tokenize'.  @untokenize . tokenize ""@ should be
 -- the identity.
 untokenize :: [Tok] -> Text
-untokenize = mconcat . map tokContents
+untokenize = mconcat . map tokToText
+  where
+    tokToText (Tok _ pos len subj) =
+      T.pack . V.toList $ V.unsafeSlice pos len subj

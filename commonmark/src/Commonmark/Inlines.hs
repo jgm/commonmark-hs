@@ -55,7 +55,6 @@ import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import           Commonmark.Entity          (unEntity, charEntity, numEntity)
 import           Text.Parsec                hiding (State, space)
-import           Text.Parsec.Pos
 
 -- import Debug.Trace
 
@@ -108,13 +107,7 @@ unChunk chunk =
                            case mbspec of
                               Nothing   -> c
                               Just spec -> formattingWhenUnmatched spec
-                         range =
-                           case ts of
-                                []    -> mempty
-                                (_:_) -> SourceRange
-                                           [(chunkPos chunk,
-                                             incSourceColumn
-                                               (chunkPos chunk) len)]
+                         range = rangeFromToks ts
        Parsed ils -> ils
 
 parseChunks :: (Monad m, IsInline a)
@@ -141,7 +134,7 @@ parseChunks bspecs specs ilParsers rm startpos (t:ts) =
 
 data Chunk a = Chunk
      { chunkType :: ChunkType a
-     , chunkPos  :: !SourcePos
+     , chunkPos  :: !Int
      , chunkToks :: [Tok]
      } deriving Show
 
@@ -281,8 +274,9 @@ pChunk :: (IsInline a, Monad m)
        -> [InlineParser m a]
        -> InlineParser m (Chunk a)
 pChunk specmap ilParsers =
-      (do pos <- getPosition
-          (ils, ts) <- unzip <$> many1 (pInline ilParsers)
+      (do (ils, ts) <- unzip <$> many1 (pInline ilParsers)
+          let toks = mconcat ts
+          let pos = tokPos $ head toks
           return $ Chunk (Parsed (mconcat ils)) pos (mconcat ts))
    <|> pDelimChunk specmap
 
@@ -304,7 +298,6 @@ pDelimChunk :: (IsInline a, Monad m)
             => FormattingSpecMap a
             -> InlineParser m (Chunk a)
 pDelimChunk specmap = do
-  spos <- getPosition
   tok@(Tok (Symbol c) pos len subj) <- pDelimTok
   let mbspec = M.lookup c specmap
   more <- if isJust mbspec
@@ -344,7 +337,7 @@ pDelimChunk specmap = do
                       , delimCanClose = canClose
                       , delimSpec = mbspec
                       , delimLength = length toks
-                      } spos toks
+                      } pos toks
 
 pInline :: (IsInline a, Monad m)
         => [InlineParser m a]
@@ -511,8 +504,8 @@ data DState a = DState
      { leftCursor     :: Cursor (Chunk a)
      , rightCursor    :: Cursor (Chunk a)
      , refmap         :: ReferenceMap
-     , stackBottoms   :: M.Map Text SourcePos
-     , absoluteBottom :: SourcePos
+     , stackBottoms   :: M.Map Text Int
+     , absoluteBottom :: !Int
      }
 
 processEmphasis :: IsInline a => [Chunk a] -> [Chunk a]

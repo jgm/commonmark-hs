@@ -134,7 +134,7 @@ parseChunks bspecs specs ilParsers rm startpos (t:ts) =
 
 data Chunk a = Chunk
      { chunkType :: ChunkType a
-     , chunkPos  :: !Int
+     , chunkPos  :: !Offset
      , chunkToks :: [Tok]
      } deriving Show
 
@@ -149,7 +149,7 @@ data ChunkType a =
      deriving Show
 
 data IPState = IPState
-     { backtickSpans        :: IntMap.IntMap [Int]
+     { backtickSpans        :: IntMap.IntMap [Offset]
                                -- record of lengths of
                                -- backtick spans so we don't scan in vain
      , userState            :: Dynamic
@@ -251,10 +251,10 @@ pImageSuffix rm key = do
 
 -- Construct a map of n-length backtick spans, with source positions,
 -- so we can avoid scanning forward when it will be fruitless.
-getBacktickSpans :: [Tok] -> IntMap.IntMap [Int]
+getBacktickSpans :: [Tok] -> IntMap.IntMap [Offset]
 getBacktickSpans = go 0 0
   where
-    go :: Int -> Int -> [Tok] -> IntMap.IntMap [Int]
+    go :: Int -> Offset -> [Tok] -> IntMap.IntMap [Offset]
     go n pos []
      | n > 0     = IntMap.singleton n [pos]
      | otherwise = IntMap.empty
@@ -509,8 +509,8 @@ data DState a = DState
      { leftCursor     :: Cursor (Chunk a)
      , rightCursor    :: Cursor (Chunk a)
      , refmap         :: ReferenceMap
-     , stackBottoms   :: M.Map Text Int
-     , absoluteBottom :: !Int
+     , stackBottoms   :: M.Map Text Offset
+     , absoluteBottom :: !Offset
      }
 
 processEmphasis :: IsInline a => [Chunk a] -> [Chunk a]

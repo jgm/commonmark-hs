@@ -6,6 +6,7 @@
 module Commonmark.Tokens
   ( Tok(..)
   , TokType(..)
+  , Offset
   , tokenize
   , untokenize
   , tokToString
@@ -17,8 +18,10 @@ import qualified Data.Text       as T
 import           Data.Data       (Data, Typeable)
 import qualified Data.Vector.Unboxed as V
 
+type Offset = Int
+
 data Tok = Tok { tokType     :: !TokType
-               , tokOffset   :: !Int
+               , tokOffset   :: !Offset
                , tokLength   :: !Int
                , tokSubject  :: V.Vector Char
                } deriving (Eq, Data, Typeable)

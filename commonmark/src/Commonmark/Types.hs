@@ -15,18 +15,16 @@ module Commonmark.Types
   , IsInline(..)
   , IsBlock(..)
   , SourceRange(..)
-  , SourcePos
   , Rangeable(..)
   , Html
   , renderHtml
   )
 where
 import           Data.Data            (Data)
+import           Data.List            (intercalate)
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 import           Data.Typeable        (Typeable)
-import           Text.Parsec.Pos      (SourcePos, sourceColumn, sourceLine,
-                                       sourceName)
 import           Data.Semigroup       (Semigroup, (<>))
 import           Data.Char            (isSpace)
 import           Commonmark.Html      (Html, escapeURI, innerText,
@@ -161,7 +159,7 @@ nl :: Html a
 nl = htmlRaw "\n"
 
 newtype SourceRange = SourceRange
-        { unSourceRange :: [(SourcePos, SourcePos)] }
+        { unSourceRange :: [(Int, Int)] }
   deriving (Eq, Ord, Data, Typeable)
 
 instance Semigroup SourceRange where
@@ -194,21 +192,5 @@ instance Rangeable (Html SourceRange) where
   ranged sr x = addAttribute ("data-sourcepos", T.pack (prettyRange sr)) x
 
 prettyRange :: SourceRange -> String
-prettyRange (SourceRange []) = ""
-prettyRange (SourceRange xs@((p,_):_)) =
-  sourceName p ++ "@" ++ go (sourceName p) xs
-  where
-    go _ [] = ""
-    go curname ((p1,p2):rest)
-      | sourceName p1 /= curname =
-         sourceName p1 ++ "@" ++ go (sourceName p) ((p1,p2):rest)
-      | otherwise =
-         show (sourceLine p1) ++ ":" ++
-         show (sourceColumn p1) ++ "-" ++
-         (if sourceName p2 /= curname
-             then sourceName p2 ++ "@"
-             else "") ++ show (sourceLine p2) ++
-         ":" ++ show (sourceColumn p2) ++
-         if null rest
-            then ""
-            else ";" ++ go (sourceName p2) rest
+prettyRange (SourceRange xs) = intercalate "," $ map toRange xs
+  where toRange (x,y) = show x ++ "-" ++ show y

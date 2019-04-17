@@ -27,18 +27,20 @@ import           Control.Monad   (mzero, void, guard)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Text.Parsec
-import           Text.Parsec.Pos (updatePosString)
 import           Commonmark.Tokens
 
 -- | Parses a single 'Tok' satisfying a predicate.
 satisfyTok :: Monad m => (Tok -> Bool) -> ParsecT [Tok] s m Tok
-satisfyTok f = tokenPrim (T.unpack . tokContents) updatePos matcher
+satisfyTok f = tokenPrim tokToString updatePos matcher
   where matcher t | f t       = Just t
                   | otherwise = Nothing
         updatePos :: SourcePos -> Tok -> [Tok] -> SourcePos
-        updatePos _spos _ (Tok _ pos _ : _) = pos
-        updatePos spos (Tok _ _pos t) []    =
-          updatePosString spos (T.unpack t)
+        updatePos spos (Tok LineEnd _ _ _) _ =
+          setSourceColumn (incSourceLine spos 1) 1
+        updatePos spos (Tok Tab _ _ _) _ =
+          incSourceColumn spos (4 - ((sourceColumn spos - 1) `mod` 4))
+        updatePos spos (Tok _ _ len _) _ =
+          incSourceColumn spos len
 {-# INLINEABLE satisfyTok #-}
 
 -- | Parses any 'Tok'.
@@ -71,7 +73,7 @@ noneOfToks toktypes =
 
 -- | Parses one or more whitespace 'Tok's.
 whitespace ::  Monad m => ParsecT [Tok] s m [Tok]
-whitespace = many1 $ oneOfToks [Spaces, LineEnd]
+whitespace = many1 $ oneOfToks [Spaces, Tab, LineEnd]
 {-# INLINEABLE whitespace #-}
 
 -- | Parses a 'LineEnd' token.
@@ -79,9 +81,9 @@ lineEnd ::  Monad m => ParsecT [Tok] s m Tok
 lineEnd = satisfyTok (hasType LineEnd)
 {-# INLINEABLE lineEnd #-}
 
--- | Parses a 'Spaces' token.
+-- | Parses a 'Spaces' or 'Tab' token.
 spaceTok :: Monad m => ParsecT [Tok] s m Tok
-spaceTok = satisfyTok (hasType Spaces)
+spaceTok = satisfyTok (\t -> hasType Spaces t || hasType Tab t)
 {-# INLINEABLE spaceTok #-}
 
 -- | Parses a 'WordChars' token matching a predicate.
@@ -106,15 +108,15 @@ gobbleUpToSpaces n = gobble' False n
 gobble' :: Monad m => Bool -> Int -> ParsecT [Tok] u m Int
 gobble' requireAll numspaces
   | numspaces >= 1 = (do
-    Tok Spaces pos _ <- satisfyTok (hasType Spaces)
-    pos' <- getPosition
-    case sourceColumn pos' - sourceColumn pos of
+    startpos <- getPosition
+    Tok _ pos _ subj <-
+           satisfyTok (\t -> hasType Spaces t || hasType Tab t)
+    endpos <- getPosition
+    case sourceColumn startpos - sourceColumn endpos of
          n | n < numspaces  -> (+ n) <$> gobble' requireAll (numspaces - n)
            | n == numspaces -> return n
            | otherwise      -> do
-               let newtok = Tok Spaces
-                      (incSourceColumn pos numspaces)
-                      (T.replicate (n - numspaces) " ")
+               let newtok = Tok Spaces pos numspaces subj
                getInput >>= setInput . (newtok:)
                return numspaces)
     <|> if requireAll
@@ -129,19 +131,20 @@ withRaw :: Monad m => ParsecT [Tok] s m a -> ParsecT [Tok] s m (a, [Tok])
 withRaw parser = do
   toks <- getInput
   res <- parser
-  newpos <- getPosition
-  let rawtoks = takeWhile ((< newpos) . tokPos) toks
+  rawtoks <- (do Tok _ pos _ _ <- lookAhead anyTok
+                 return $ takeWhile ((< pos) . tokPos) toks)
+             <|> return toks
   return (res, rawtoks)
 {-# INLINEABLE withRaw #-}
 
 -- | Filters tokens of a certain type.
 hasType :: TokType -> Tok -> Bool
-hasType ty (Tok ty' _ _) = ty == ty'
+hasType ty t = tokType t == ty
 {-# INLINEABLE hasType #-}
 
 -- | Filters tokens with certain contents.
 textIs :: (Text -> Bool) -> Tok -> Bool
-textIs f (Tok _ _ t) = f t
+textIs f t = f (T.pack (tokToString t))
 {-# INLINEABLE textIs #-}
 
 -- | Gobble up to 3 spaces (may be part of a tab).
@@ -168,7 +171,7 @@ skipWhile f = skipMany (satisfyTok f)
 -- | Parse optional spaces and an endline.
 blankLine :: Monad m => ParsecT [Tok] s m ()
 blankLine = try $ do
-  skipWhile (hasType Spaces)
+  skipWhile (\t -> hasType Spaces t || hasType Tab t)
   void lineEnd
 {-# INLINEABLE blankLine #-}
 

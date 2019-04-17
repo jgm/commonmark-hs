@@ -8,6 +8,7 @@ module Commonmark.Tokens
   , TokType(..)
   , tokenize
   , untokenize
+  , tokToString
   ) where
 
 import           Data.Char       (isAlphaNum, isSpace)
@@ -78,7 +79,12 @@ tokenize t = go 0
 -- | Reverses 'tokenize'.  @untokenize . tokenize ""@ should be
 -- the identity.
 untokenize :: [Tok] -> Text
-untokenize = mconcat . map tokToText
-  where
-    tokToText (Tok _ pos len subj) =
-      T.pack . V.toList $ V.unsafeSlice pos len subj
+untokenize = mconcat . map (T.pack . tokToString)
+
+-- | Render token contents as a String.
+tokToString :: Tok -> String
+tokToString (Tok Spaces pos len subj) =
+      case V.toList $ V.unsafeSlice pos len subj of
+        "\t"  -> replicate len ' '
+        s     -> s
+tokToString (Tok _ pos len subj) = V.toList $ V.unsafeSlice pos len subj

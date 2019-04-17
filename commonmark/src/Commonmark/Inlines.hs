@@ -262,7 +262,7 @@ getBacktickSpans = go 0 0
      case tokType t of
        Symbol '`'
          | n > 0     -> go (n+1) pos ts
-         | otherwise -> go (n+1) (tokPos t) ts
+         | otherwise -> go (n+1) (tokOffset t) ts
        _ | n > 0     -> IntMap.alter (\x ->
                             case x of
                                  Nothing -> Just [pos]
@@ -276,7 +276,7 @@ pChunk :: (IsInline a, Monad m)
 pChunk specmap ilParsers =
       (do (ils, ts) <- unzip <$> many1 (pInline ilParsers)
           let toks = mconcat ts
-          let pos = tokPos $ head toks
+          let pos = tokOffset $ head toks
           return $ Chunk (Parsed (mconcat ils)) pos (mconcat ts))
    <|> pDelimChunk specmap
 
@@ -304,12 +304,9 @@ pDelimChunk specmap = do
              then many $ symbol c
              else return []
   let toks = tok:more
-  newpos <- getPosition
-  st <- getState
-  next <- option LineEnd (tokType <$> lookAhead anyTok)
   let afterChar = subj V.!? (pos + len)
   let beforeChar = subj V.!? (pos - 1)
-  let isPunct c = isPunctuation c || isSymbol c
+  let isPunct c' = isPunctuation c' || isSymbol c'
   let precededByWhitespace = maybe True isSpace beforeChar
   let precededByPunctuation = maybe False isPunct beforeChar
   let followedByWhitespace = maybe True isSpace afterChar
@@ -354,15 +351,15 @@ rangeFromToks = SourceRange . go
              ([], _:ys)   -> go ys
              (x:xs, [])   ->
                 let y = last (x:xs) in
-                [(tokPos x,
-                  incSourceColumn (tokPos y) (T.length (tokContents y)))]
+                [(tokOffset x,
+                  tokOffset y + tokLength y)]
              (x:_, y:ys) ->
-                (tokPos x, tokPos y) : go ys
+                (tokOffset x, tokOffset y) : go ys
 
 pEscapedChar :: (IsInline a, Monad m) => InlineParser m a
 pEscapedChar = do
   symbol '\\'
-  (do Tok (Symbol c) _ _ <- satisfyTok asciiSymbol
+  (do Tok (Symbol c) _ _ _ <- satisfyTok asciiSymbol
       return $ escapedChar c)
    <|>
    (lineBreak <$ lineEnd)
@@ -379,12 +376,12 @@ pBacktickSpan :: Monad m
               => InlineParser m (Either [Tok] [Tok])
 pBacktickSpan = do
   ts <- many1 (symbol '`')
-  let pos' = tokPos $ head ts
+  let pos' = tokOffset $ head ts
   let numticks = length ts
   st' <- getState
   case dropWhile (<= pos') <$> IntMap.lookup numticks (backtickSpans st') of
      Just (pos'':ps) -> do
-          codetoks <- many $ satisfyTok (\tok -> tokPos tok < pos'')
+          codetoks <- many $ satisfyTok (\tok -> tokOffset tok < pos'')
           backticks <- many $ satisfyTok (hasType (Symbol '`'))
           guard $ length backticks == numticks
           updateState $ \st ->
@@ -449,7 +446,7 @@ pScheme = try $ do
 
 pEmail :: Monad m => InlineParser m (Text, Text)
 pEmail = try $ do
-  let isEmailSymbolTok (Tok (Symbol c) _ _) =
+  let isEmailSymbolTok (Tok (Symbol c) _ _ _) =
          c == '.' || c == '!' || c == '#' || c == '$' || c == '%' ||
          c == '&' || c == '\'' || c == '*' || c == '+' || c == '/' ||
          c == '=' || c == '?' || c == '^' || c == '_' || c == '`' ||
@@ -471,14 +468,17 @@ pEmail = try $ do
 
 pSpaces :: (IsInline a, Monad m) => InlineParser m a
 pSpaces = do
-  Tok Spaces pos t <- satisfyTok (hasType Spaces)
-  (do Tok LineEnd pos' _ <- satisfyTok (hasType LineEnd)
-      case sourceColumn pos' - sourceColumn pos of
+  Tok tt pos len _ <- satisfyTok (\t -> hasType Spaces t || hasType Tab t)
+  (do Tok LineEnd pos' _ _ <- satisfyTok (hasType LineEnd)
+      case pos' - pos of
            n | n >= 2 ->
              return lineBreak
            _ ->
              return softBreak)
-   <|> return (str t)
+   <|> return (str $ case tt of
+                       Spaces -> T.pack $ replicate len ' '
+                       Tab    -> "\t"
+                       _      -> error "should not happen")
 
 pSoftbreak :: (IsInline a, Monad m) => InlineParser m a
 pSoftbreak = softBreak <$ satisfyTok (hasType LineEnd)
@@ -486,7 +486,7 @@ pSoftbreak = softBreak <$ satisfyTok (hasType LineEnd)
 pWords :: (IsInline a, Monad m) => InlineParser m a
 pWords = do
   t <- satisfyTok (hasType WordChars)
-  return $ str (tokContents t)
+  return $ str (T.pack $ tokToString t)
 
 {-
 getWord :: [Tok] -> [Tok]
@@ -498,7 +498,12 @@ getWord _ = []
 -}
   
 pSymbol :: (IsInline a, Monad m) => InlineParser m a
-pSymbol = str . tokContents <$> pNonDelimTok
+pSymbol = do
+  t <- pNonDelimTok
+  return $ str $
+    case t of
+      Tok (Symbol c) _ _ _ -> T.singleton c
+      _ -> T.pack $ tokToString t
 
 data DState a = DState
      { leftCursor     :: Cursor (Chunk a)
@@ -736,7 +741,7 @@ processBs bracketedSpecs st =
                    (do (spec, constructor) <- choice $
                            map (\s -> (s,) <$> bracketedSuffix s rm key)
                            specs
-                       pos <- getPosition
+                       pos <- getOffset
                        return (spec, constructor, pos)))
                  ""
                  (mconcat (map chunkToks (afters right))) of
@@ -763,8 +768,10 @@ processBs bracketedSpecs st =
                                   $ constructor $ unChunks $
                                        processEmphasis chunksinside
                          eltchunk = Chunk (Parsed elt) openerPos elttoks
-                         afterchunks = dropWhile ((< newpos) . chunkPos)
-                                         (afters right)
+                         inChunk = case newpos of
+                                      Just np -> (< np) . chunkPos
+                                      Nothing -> const True
+                         afterchunks = dropWhile inChunk (afters right)
                      in case afterchunks of
                            []     -> processBs bracketedSpecs
                                       st{ rightCursor = Cursor Nothing
@@ -849,18 +856,18 @@ pLinkDestination = try $ pAngleDest <|> pNormalDest 0
      | numparens > 32 = mzero
      | otherwise = (do
           t <- satisfyTok (\case
-                           Tok (Symbol '\\') _ _ -> True
-                           Tok (Symbol ')') _ _  -> numparens >= 1
-                           Tok Spaces _ _        -> False
-                           Tok LineEnd _ _       -> False
-                           _                     -> True)
+                           Tok (Symbol '\\') _ _ _ -> True
+                           Tok (Symbol ')') _ _ _  -> numparens >= 1
+                           Tok Spaces _ _ _       -> False
+                           Tok LineEnd _ _ _      -> False
+                           _                      -> True)
           case t of
-            Tok (Symbol '\\') _ _ -> do
+            Tok (Symbol '\\') _ _ _ -> do
               t' <- option t $ satisfyTok asciiSymbol
               (t':) <$> pNormalDest' numparens
-            Tok (Symbol '(') _ _ -> (t:) <$> pNormalDest' (numparens + 1)
-            Tok (Symbol ')') _ _ -> (t:) <$> pNormalDest' (numparens - 1)
-            _                    -> (t:) <$> pNormalDest' numparens)
+            Tok (Symbol '(') _ _ _ -> (t:) <$> pNormalDest' (numparens + 1)
+            Tok (Symbol ')') _ _ _ -> (t:) <$> pNormalDest' (numparens - 1)
+            _                      -> (t:) <$> pNormalDest' numparens)
           <|> return []
 
 -- parses backslash + escapable character, or just backslash
@@ -870,7 +877,7 @@ pEscaped = do
   option bs $ satisfyTok asciiSymbol <|> lineEnd
 
 asciiSymbol :: Tok -> Bool
-asciiSymbol (Tok (Symbol c) _ _) = isAscii c
+asciiSymbol (Tok (Symbol c) _ _ _) = isAscii c
 asciiSymbol _                    = False
 
 pLinkTitle :: Parsec [Tok] s [Tok]

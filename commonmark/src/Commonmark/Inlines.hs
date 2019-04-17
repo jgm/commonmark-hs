@@ -95,8 +95,16 @@ unChunks = foldl' mappend mempty . map unChunk
 unChunk :: IsInline a => Chunk a -> a
 unChunk chunk =
   case chunkType chunk of
-       Delim{} -> ranged range (str (untokenize ts))
+       Delim{ delimType = c
+            , delimSpec = mbspec
+            , delimLength = len
+            } -> ranged range (str rendered)
                    where ts = chunkToks chunk
+                         rendered = T.pack $ replicate len c'
+                         c' =
+                           case mbspec of
+                              Nothing   -> c
+                              Just spec -> formattingWhenUnmatched spec
                          range =
                            case ts of
                                 []    -> mempty
@@ -331,25 +339,12 @@ pDelimChunk specmap = do
            not leftFlanking ||
            followedByPunctuation)
   updateState $ \s -> s{ afterPunct = newpos }
-  let toks' = case mbspec of
-                    Nothing -> toks
-                    -- change tokens to unmatched fallback
-                    -- this is mainly for quotes
-                    -- TODO: have to change this with new approach to
-                    -- Tokens, because we can't just change tokContents...
-                    -- Put this logic in unChunk instead?
-                    Just spec
-                      | formattingWhenUnmatched spec /= c ->
-                         map (\t -> t{ tokContents =
-                               T.map (\_ -> formattingWhenUnmatched spec)
-                                  (tokContents t) }) toks
-                    _ -> toks
   return $ Chunk Delim{ delimType = c
                       , delimCanOpen = canOpen
                       , delimCanClose = canClose
                       , delimSpec = mbspec
                       , delimLength = length toks'
-                      } pos toks'
+                      } pos toks
 
 pInline :: (IsInline a, Monad m)
         => [InlineParser m a]

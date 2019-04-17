@@ -134,7 +134,7 @@ processLine specs = do
     (do getState >>= guard . maybeLazy
         guard $ not isblank
         -- lazy line
-        sp <- getPosition
+        sp <- getOffset
         updateState $ \st -> st{ nodeStack =
              map (addStartPos sp) (reverse unmatched) ++ reverse matched })
       <|>
@@ -144,6 +144,7 @@ processLine specs = do
 
   (cur:rest) <- nodeStack <$> getState
   -- add line contents
+  curpos <- getPosition
   (toks, endpos) <- restOfLine
   let curdata = rootLabel cur
   updateState $ \st -> st{
@@ -153,7 +154,7 @@ processLine specs = do
                   then curdata{ blockLines = toks : blockLines curdata }
                   else
                     if isblank
-                       then curdata{ blockBlanks = sourceLine endpos :
+                       then curdata{ blockBlanks = sourceLine curpos :
                                         blockBlanks curdata }
                        else curdata
            } : rest
@@ -171,7 +172,7 @@ doBlockStarts :: Monad m => [BlockSpec m il bl] -> BlockParser m il bl ()
 doBlockStarts [] = mzero
 doBlockStarts (spec:otherSpecs) = try $ do
   st' <- getState
-  initPos <- getPosition
+  initPos <- getOffset
   case M.lookup (blockType spec) (failurePositions st') of
      Just pos' | initPos < pos' -> doBlockStarts otherSpecs
      _ -> (do
@@ -206,7 +207,7 @@ checkContinue nd = do
              updateState $ \st -> st{ maybeBlank = False }
            pos' <- if matched'
                       then return startpos
-                      else getPosition
+                      else getOffset
            return (matched',
                    Node bdata{ blockStartPos =
                      startpos : blockStartPos bdata,
@@ -398,7 +399,7 @@ docSpec = BlockSpec
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = \n -> (,n) <$> getPosition
+     , blockContinue       = \n -> (,n) <$> getOffset
      , blockConstructor    = \node ->
             mconcat <$> mapM (\n ->
                         blockConstructor (blockSpec (rootLabel n)) n)
@@ -473,7 +474,7 @@ paraSpec = BlockSpec
      , blockStart          = try $ do
              interruptsParagraph >>= guard . not
              skipWhile (hasType Spaces)
-             pos <- getPosition
+             pos <- getOffset
              notFollowedBy lineEnd
              addNodeToStack $
                Node (defBlockData paraSpec){
@@ -484,7 +485,7 @@ paraSpec = BlockSpec
      , blockParagraph      = True
      , blockContinue       = \n -> lookAhead $ try $ do
              skipWhile (hasType Spaces)
-             pos <- getPosition
+             pos <- getOffset
              notFollowedBy lineEnd
              return (pos, n)
      , blockConstructor    = \node ->
@@ -513,7 +514,7 @@ plainSpec = paraSpec{
 
 linkReferenceDef :: Parsec [Tok] s ((SourceRange, Text), (Text, Text))
 linkReferenceDef = try $ do
-  startpos <- getPosition
+  startpos <- getOffset
   lab <- pLinkLabel
   guard $ not $ T.all isSpace lab
   symbol ':'
@@ -525,7 +526,7 @@ linkReferenceDef = try $ do
              <* skipWhile (hasType Spaces)
              <* lookAhead (void lineEnd <|> eof)
   skipWhile (hasType Spaces)
-  endpos <- getPosition
+  endpos <- getOffset
   void lineEnd <|> eof
   return ((SourceRange [(startpos, endpos)], lab),
           (unEntity dest, unEntity title))
@@ -536,7 +537,7 @@ atxHeaderSpec = BlockSpec
      { blockType           = "ATXHeader"
      , blockStart          = try $ do
              nonindentSpaces
-             pos <- getPosition
+             pos <- getOffset
              hashes <- many1 (symbol '#')
              let level = length hashes
              guard $ level <= 6
@@ -582,7 +583,7 @@ setextHeaderSpec = BlockSpec
              (cur:rest) <- nodeStack <$> getState
              guard $ blockParagraph (bspec cur)
              nonindentSpaces
-             pos <- getPosition
+             pos <- getOffset
              level <- (2 :: Int) <$ skipMany1 (symbol '-')
                   <|> (1 :: Int) <$ skipMany1 (symbol '=')
              skipWhile (hasType Spaces)
@@ -626,7 +627,7 @@ blockQuoteSpec = BlockSpec
      { blockType           = "BlockQuote"
      , blockStart          = try $ do
              nonindentSpaces
-             pos <- getPosition
+             pos <- getOffset
              _ <- symbol '>'
              _ <- option 0 (gobbleSpaces 1)
              addNodeToStack $
@@ -638,7 +639,7 @@ blockQuoteSpec = BlockSpec
      , blockParagraph      = False
      , blockContinue       = \n -> try $ do
              nonindentSpaces
-             pos <- getPosition
+             pos <- getOffset
              _ <- symbol '>'
              _ <- gobbleUpToSpaces 1
              return (pos, n)
@@ -696,7 +697,7 @@ listItemSpec = BlockSpec
              -- a marker followed by two blanks is just an empty item:
              guard $ null (blockBlanks ndata) ||
                      not (null children)
-             pos <- getPosition
+             pos <- getOffset
              gobbleSpaces (listItemIndent lidata) <|> 0 <$ lookAhead blankLine
              return (pos, node)
      , blockConstructor    = \node ->
@@ -713,7 +714,7 @@ listItemSpec = BlockSpec
                                   map (blockBlanks . rootLabel)
                                   (filter ((== "List") . blockType .
                                    blockSpec . rootLabel) children)
-          curline <- sourceLine <$> getPosition
+          curline <- sourceLine <$> getOffset
           let blanksAtEnd = case blanks of
                                    (l:_) -> l >= curline - 1
                                    _     -> False
@@ -729,11 +730,11 @@ listItemSpec = BlockSpec
 
 itemStart :: Monad m => BlockParser m il bl (Offset, ListItemData)
 itemStart = do
-  beforecol <- sourceColumn <$> getPosition
+  beforecol <- sourceColumn <$> getOffset
   gobbleUpToSpaces 3
-  pos <- getPosition
+  pos <- getOffset
   ty <- bulletListMarker <|> orderedListMarker
-  aftercol <- sourceColumn <$> getPosition
+  aftercol <- sourceColumn <$> getOffset
   lookAhead whitespace
   numspaces <- try (gobbleUpToSpaces 4 <* notFollowedBy whitespace)
            <|> gobbleSpaces 1
@@ -764,7 +765,7 @@ listSpec = BlockSpec
      , blockCanContain     = \sp -> blockType sp == "ListItem"
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = \n -> (,n) <$> getPosition
+     , blockContinue       = \n -> (,n) <$> getOffset
      , blockConstructor    = \node -> do
           let ListData lt ls = fromDyn (blockData (rootLabel node))
                                  (ListData undefined undefined)
@@ -786,7 +787,7 @@ listSpec = BlockSpec
                           _    -> TightList
           blockBlanks' <- case childrenData of
                              c:_ | listItemBlanksAtEnd c -> do
-                                 curline <- sourceLine <$> getPosition
+                                 curline <- sourceLine <$> getOffset
                                  return $ curline - 1 : blockBlanks cdata
                              _ -> return $ blockBlanks cdata
           let ldata' = toDyn (ListData lt ls)
@@ -811,7 +812,7 @@ thematicBreakSpec = BlockSpec
      { blockType           = "ThematicBreak"
      , blockStart          = try $ do
             nonindentSpaces
-            pos <- getPosition
+            pos <- getOffset
             Tok (Symbol c) _ _ <- symbol '-'
                               <|> symbol '_'
                               <|> symbol '*'
@@ -823,7 +824,7 @@ thematicBreakSpec = BlockSpec
                 addNodeToStack (Node (defBlockData thematicBreakSpec){
                                    blockStartPos = [pos] } [])
                 return BlockStartMatch) <|>
-              (BlockStartNoMatchBefore <$> getPosition)
+              (BlockStartNoMatchBefore <$> getOffset)
      , blockCanContain     = const False
      , blockContainsLines  = False
      , blockParagraph      = False
@@ -841,7 +842,7 @@ indentedCodeSpec = BlockSpec
              interruptsParagraph >>= guard . not
              getState >>= guard . not . maybeLazy
              _ <- gobbleSpaces 4
-             pos <- getPosition
+             pos <- getOffset
              notFollowedBy blankLine
              addNodeToStack $ Node (defBlockData indentedCodeSpec){
                           blockStartPos = [pos] } []
@@ -852,7 +853,7 @@ indentedCodeSpec = BlockSpec
      , blockContinue       = \node -> do
              void (gobbleSpaces 4)
                <|> try (skipWhile (hasType Spaces) <* lookAhead lineEnd)
-             pos <- getPosition
+             pos <- getOffset
              return (pos, node)
 
      , blockConstructor    = \node ->
@@ -877,9 +878,9 @@ fencedCodeSpec :: (Monad m, IsBlock il bl)
 fencedCodeSpec = BlockSpec
      { blockType           = "FencedCode"
      , blockStart          = try $ do
-             prepos <- getPosition
+             prepos <- getOffset
              nonindentSpaces
-             pos <- getPosition
+             pos <- getOffset
              let indentspaces = sourceColumn pos - sourceColumn prepos
              (c, ticks) <-  (('`',) <$> many1 (symbol '`'))
                         <|> (('~',) <$> many1 (symbol '~'))
@@ -904,7 +905,7 @@ fencedCodeSpec = BlockSpec
                                    (blockData (rootLabel node))
                                    ('`', 3, 0, mempty)
              nonindentSpaces
-             pos <- getPosition
+             pos <- getOffset
              ts <- many1 (symbol c)
              guard $ length ts >= fencelength
              skipWhile (hasType Spaces)
@@ -915,7 +916,7 @@ fencedCodeSpec = BlockSpec
                               :: (Char, Int, Int, Text)) = fromDyn
                                    (blockData (rootLabel node))
                                    ('`', 3, 0, mempty)
-                       pos <- getPosition
+                       pos <- getOffset
                        _ <- gobbleUpToSpaces indentspaces
                        return (pos, node))
      , blockConstructor    = \node -> do
@@ -933,7 +934,7 @@ rawHtmlSpec :: (Monad m, IsBlock il bl)
 rawHtmlSpec = BlockSpec
      { blockType           = "RawHTML"
      , blockStart          = try $ do
-         pos <- getPosition
+         pos <- getOffset
          (rawHtmlType, toks) <- withRaw $
            do nonindentSpaces
               symbol '<'
@@ -959,13 +960,13 @@ rawHtmlSpec = BlockSpec
      , blockContainsLines  = True
      , blockParagraph      = False
      , blockContinue       = \node@(Node ndata children) -> try $ do
-         pos <- getPosition
+         pos <- getOffset
          case fromDyn (blockData (rootLabel node)) (0 :: Int) of
               0 -> mzero  -- 0 means that the block start already closed
               6 -> (pos, node) <$ notFollowedBy blankLine
               7 -> (pos, node) <$ notFollowedBy blankLine
               n ->
-                (do pos' <- getPosition
+                (do pos' <- getOffset
                     lookAhead (endCond n)
                     endOfBlock
                     toks <- many (satisfyTok (not . hasType LineEnd))

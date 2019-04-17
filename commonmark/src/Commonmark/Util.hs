@@ -183,10 +183,10 @@ blankLine = try $ do
 -- | Efficiently parse the remaining tokens on a line,
 -- return them plus the source position of the line end
 -- (if there is one).
-restOfLine :: Monad m => ParsecT [Tok] s m ([Tok], SourcePos)
+restOfLine :: Monad m => ParsecT [Tok] s m ([Tok], Offset)
 restOfLine = do
   ts <- many (satisfyTok (not . hasType LineEnd))
-  pos <- getPosition
+  pos <- getOffset
   (do le <- lineEnd
       return (ts ++ [le], pos)) <|> (do eof
                                         guard (not (null ts))

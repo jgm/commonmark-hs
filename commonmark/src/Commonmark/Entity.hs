@@ -2311,38 +2311,38 @@ htmlEntities =
 
 charEntity :: Monad m => ParsecT [Tok] s m [Tok]
 charEntity = do
-  wc@(Tok WordChars _ ts) <- satisfyTok (hasType WordChars)
+  wc <- satisfyTok (hasType WordChars)
   semi <- symbol ';'
-  guard $ isJust $ lookupEntity (T.unpack (ts <> ";"))
+  guard $ isJust $ lookupEntity (tokToString wc <> ";")
   return [wc, semi]
 
 numEntity :: Monad m => ParsecT [Tok] s m [Tok]
 numEntity = do
   octo <- symbol '#'
-  wc@(Tok WordChars _ t) <- satisfyTok (hasType WordChars)
+  wc <- satisfyTok (hasType WordChars)
   guard $
-    case T.uncons t of
-         Just (x, rest)
+    case tokToString wc of
+         (x : rest)
           | x == 'x' || x == 'X' ->
-            T.all isHexDigit rest &&
-            not (T.null rest) &&
-            T.length rest <= 6
-          | otherwise -> T.all isDigit t &&
-            T.length t <= 7
-         _ -> False
+            all isHexDigit rest &&
+            not (null rest) &&
+            length rest <= 6
+          | otherwise -> all isDigit (x : rest) &&
+            length (x : rest) <= 7
+         [] -> False
   semi <- symbol ';'
   return [octo, wc, semi]
 
 unEntity :: [Tok] -> Text
-unEntity ts = untokenize $
-  case parse (many (pEntity' <|> anyTok)) "" ts of
-        Left _    -> ts
-        Right ts' -> ts'
-  where pEntity' :: ParsecT [Tok] () Identity Tok
+unEntity ts =
+  case parse (many (  T.pack <$> pEntity'
+                  <|> T.pack . tokToString <$> anyTok)) "" ts of
+        Left _    -> untokenize ts
+        Right ts' -> mconcat ts'
+  where pEntity' :: ParsecT [Tok] () Identity String
         pEntity' = try $ do
-          pos <- getPosition
           symbol '&'
           ent <- untokenize <$> (numEntity <|> charEntity)
           case lookupEntity (T.unpack ent) of
-                Just s  -> return $ Tok WordChars pos (T.pack s)
+                Just s  -> return s
                 Nothing -> mzero

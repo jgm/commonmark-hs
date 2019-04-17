@@ -741,8 +741,7 @@ processBs bracketedSpecs st =
                    (do (spec, constructor) <- choice $
                            map (\s -> (s,) <$> bracketedSuffix s rm key)
                            specs
-                       pos <- getOffset
-                       return (spec, constructor, pos)))
+                       return (spec, constructor)))
                  ""
                  (mconcat (map chunkToks (afters right))) of
                    Left _ -> -- match but no link/image
@@ -750,7 +749,7 @@ processBs bracketedSpecs st =
                             st{ leftCursor = moveLeft (leftCursor st)
                               , rightCursor = fixSingleQuote $
                                     moveRight (rightCursor st) }
-                   Right ((spec, constructor, newpos), desttoks) ->
+                   Right ((spec, constructor), desttoks) ->
                      let left' = case bracketedPrefix spec of
                                       Just _  -> moveLeft left
                                       Nothing -> left
@@ -768,10 +767,7 @@ processBs bracketedSpecs st =
                                   $ constructor $ unChunks $
                                        processEmphasis chunksinside
                          eltchunk = Chunk (Parsed elt) openerPos elttoks
-                         inChunk = case newpos of
-                                      Just np -> (< np) . chunkPos
-                                      Nothing -> const True
-                         afterchunks = dropWhile inChunk (afters right)
+                         afterchunks = drop (length desttoks) (afters right)
                      in case afterchunks of
                            []     -> processBs bracketedSpecs
                                       st{ rightCursor = Cursor Nothing

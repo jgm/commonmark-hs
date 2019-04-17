@@ -45,10 +45,8 @@ satisfyTok f = tokenPrim tokToString updatePos matcher
 {-# INLINEABLE satisfyTok #-}
 
 -- | Return offset of next token if any.
-getOffset :: Monad m => ParsecT [Tok] s m (Maybe Int)
-getOffset = (do
-  t <- lookAhead anyTok
-  return $ Just $ tokOffset t) <|> return Nothing
+getOffset :: Monad m => ParsecT [Tok] s m Int
+getOffset = tokOffset <$> lookAhead anyTok
 
 -- | Parses any 'Tok'.
 anyTok :: Monad m => ParsecT [Tok] s m Tok

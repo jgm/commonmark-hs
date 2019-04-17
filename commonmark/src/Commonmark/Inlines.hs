@@ -335,6 +335,9 @@ pDelimChunk specmap = do
                     Nothing -> toks
                     -- change tokens to unmatched fallback
                     -- this is mainly for quotes
+                    -- TODO: have to change this with new approach to
+                    -- Tokens, because we can't just change tokContents...
+                    -- Put this logic in unChunk instead?
                     Just spec
                       | formattingWhenUnmatched spec /= c ->
                          map (\t -> t{ tokContents =

@@ -39,10 +39,12 @@ import           Commonmark.Util
 import           Commonmark.ReferenceMap
 import           Commonmark.Types
 import           Control.Monad              (guard, mzero)
-import           Data.Char                  (isAscii, isLetter)
+import           Data.Char                  (isAscii, isLetter, isSpace,
+                                              isSymbol, isPunctuation)
 import           Data.Dynamic               (Dynamic)
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map                   as M
+import qualified Data.Vector.Unboxed        as V
 import           Data.List                  (foldl')
 import           Data.Maybe                 (isJust, mapMaybe)
 import qualified Data.Set                   as Set
@@ -62,11 +64,12 @@ mkInlineParser :: (Monad m, IsInline a)
                -> [FormattingSpec a]
                -> [InlineParser m a]
                -> ReferenceMap
+               -> SourcePos
                -> [Tok]
                -> m (Either ParseError a)
-mkInlineParser bracketedSpecs formattingSpecs ilParsers rm toks = do
+mkInlineParser bracketedSpecs formattingSpecs ilParsers rm startpos toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
-  res <- parseChunks bracketedSpecs formattingSpecs ilParsers rm
+  res <- parseChunks bracketedSpecs formattingSpecs ilParsers rm startpos
          (dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks)
   return $
     case res of
@@ -111,7 +114,7 @@ unChunk chunk =
                                 (_:_) -> SourceRange
                                            [(chunkPos chunk,
                                              incSourceColumn
-                                               (tokPos (last ts)) 1)]
+                                               (chunkPos chunk) len)]
        Parsed ils -> ils
 
 parseChunks :: (Monad m, IsInline a)
@@ -119,14 +122,13 @@ parseChunks :: (Monad m, IsInline a)
             -> [FormattingSpec a]
             -> [InlineParser m a]
             -> ReferenceMap
+            -> SourcePos
             -> [Tok]
             -> m (Either ParseError [Chunk a])
-parseChunks _ _ _ _ []             = return (Right [])
-parseChunks bspecs specs ilParsers rm (t:ts) =
-  runParserT (setPosition (tokPos t) >> many (pChunk specmap ilParsers) <* eof)
-          IPState{ afterPunct = initialPos "",
-                   afterSpace = tokPos t,
-                   backtickSpans = getBacktickSpans (t:ts),
+parseChunks _ _ _ _ _ []             = return (Right [])
+parseChunks bspecs specs ilParsers rm startpos (t:ts) =
+  runParserT (setPosition startpos >> many (pChunk specmap ilParsers) <* eof)
+          IPState{ backtickSpans = getBacktickSpans (t:ts),
                    userState = undefined,
                    formattingDelimChars = Set.fromList $
                      '[' : ']' : suffixchars ++ prefixchars
@@ -154,9 +156,7 @@ data ChunkType a =
      deriving Show
 
 data IPState = IPState
-     { afterPunct           :: SourcePos -- pos of next token after punctuation
-     , afterSpace           :: SourcePos  -- pos of next token after space
-     , backtickSpans        :: IntMap.IntMap [SourcePos]
+     { backtickSpans        :: IntMap.IntMap [Int]
                                -- record of lengths of
                                -- backtick spans so we don't scan in vain
      , userState            :: Dynamic
@@ -258,10 +258,10 @@ pImageSuffix rm key = do
 
 -- Construct a map of n-length backtick spans, with source positions,
 -- so we can avoid scanning forward when it will be fruitless.
-getBacktickSpans :: [Tok] -> IntMap.IntMap [SourcePos]
-getBacktickSpans = go 0 (initialPos "")
+getBacktickSpans :: [Tok] -> IntMap.IntMap [Int]
+getBacktickSpans = go 0 0
   where
-    go :: Int -> SourcePos -> [Tok] -> IntMap.IntMap [SourcePos]
+    go :: Int -> Int -> [Tok] -> IntMap.IntMap [Int]
     go n pos []
      | n > 0     = IntMap.singleton n [pos]
      | otherwise = IntMap.empty
@@ -290,21 +290,22 @@ pDelimTok :: Monad m => InlineParser m Tok
 pDelimTok = do
   delimChars <- formattingDelimChars <$> getState
   satisfyTok (\case
-               Tok (Symbol c) _ _ -> Set.member c delimChars
+               Tok (Symbol c) _ _ _ -> Set.member c delimChars
                _ -> False)
 
 pNonDelimTok :: Monad m => InlineParser m Tok
 pNonDelimTok = do
   delimChars <- formattingDelimChars <$> getState
   satisfyTok (\case
-               Tok (Symbol c) _ _ -> Set.notMember c delimChars
+               Tok (Symbol c) _ _ _ -> Set.notMember c delimChars
                _ -> True)
 
 pDelimChunk :: (IsInline a, Monad m)
             => FormattingSpecMap a
             -> InlineParser m (Chunk a)
 pDelimChunk specmap = do
-  tok@(Tok (Symbol c) pos _) <- pDelimTok
+  spos <- getPosition
+  tok@(Tok (Symbol c) pos len subj) <- pDelimTok
   let mbspec = M.lookup c specmap
   more <- if isJust mbspec
              then many $ symbol c
@@ -313,13 +314,13 @@ pDelimChunk specmap = do
   newpos <- getPosition
   st <- getState
   next <- option LineEnd (tokType <$> lookAhead anyTok)
-  let precededByWhitespace = afterSpace st == pos
-  let precededByPunctuation = afterPunct st == pos
-  let followedByWhitespace = next == Spaces ||
-                             next == LineEnd ||
-                             next == UnicodeSpace
-  let followedByPunctuation = not followedByWhitespace &&
-                              next /= WordChars
+  let afterChar = subj V.!? (pos + len)
+  let beforeChar = subj V.!? (pos - 1)
+  let isPunct c = isPunctuation c || isSymbol c
+  let precededByWhitespace = maybe True isSpace beforeChar
+  let precededByPunctuation = maybe False isPunct beforeChar
+  let followedByWhitespace = maybe True isSpace afterChar
+  let followedByPunctuation = maybe False isPunct afterChar
   let leftFlanking = not followedByWhitespace &&
          (not followedByPunctuation ||
           precededByWhitespace ||
@@ -338,26 +339,18 @@ pDelimChunk specmap = do
           (maybe True formattingIntraWord mbspec ||
            not leftFlanking ||
            followedByPunctuation)
-  updateState $ \s -> s{ afterPunct = newpos }
   return $ Chunk Delim{ delimType = c
                       , delimCanOpen = canOpen
                       , delimCanClose = canClose
                       , delimSpec = mbspec
-                      , delimLength = length toks'
-                      } pos toks
+                      , delimLength = length toks
+                      } spos toks
 
 pInline :: (IsInline a, Monad m)
         => [InlineParser m a]
         -> InlineParser m (a, [Tok])
 pInline ilParsers = do
   (res, toks) <- withRaw $ choice ilParsers <|> pSymbol
-  newpos <- getPosition
-  case tokType (last toks) of
-       Spaces       -> updateState $ \st -> st{ afterSpace = newpos }
-       UnicodeSpace -> updateState $ \st -> st{ afterSpace = newpos }
-       LineEnd      -> updateState $ \st -> st{ afterSpace = newpos }
-       Symbol _     -> updateState $ \st -> st{ afterPunct = newpos }
-       _            -> return ()
   return (ranged (rangeFromToks toks) res, toks)
 
 rangeFromToks :: [Tok] -> SourceRange
@@ -393,7 +386,7 @@ pBacktickSpan :: Monad m
               => InlineParser m (Either [Tok] [Tok])
 pBacktickSpan = do
   ts <- many1 (symbol '`')
-  pos' <- getPosition
+  let pos' = tokPos $ head ts
   let numticks = length ts
   st' <- getState
   case dropWhile (<= pos') <$> IntMap.lookup numticks (backtickSpans st') of

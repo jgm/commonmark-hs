@@ -74,7 +74,7 @@ mkBlockParser :: (Monad m, IsBlock il bl)
              -> m (Either ParseError bl)  -- ^ Result or error
 mkBlockParser _ _ _ [] = return $ Right mempty
 mkBlockParser specs finalParsers ilParser (t:ts) =
-  runParserT (setPosition (tokPos t) >> processLines specs finalParsers)
+  runParserT (processLines specs finalParsers)
           BPState{ referenceMap     = emptyReferenceMap
                  , inlineParser     = ilParser
                  , nodeStack        = [Node (defBlockData docSpec) []]
@@ -160,10 +160,10 @@ processLine specs = do
       }
   -- showNodeStack
 
-addStartPos :: SourcePos -> BlockNode m il bl -> BlockNode m il bl
+addStartPos :: Offset -> BlockNode m il bl -> BlockNode m il bl
 addStartPos sp (Node bd cs) = Node bd{ blockStartPos = sp : blockStartPos bd } cs
 
-addEndPos :: SourcePos -> BlockNode m il bl -> BlockNode m il bl
+addEndPos :: Offset -> BlockNode m il bl -> BlockNode m il bl
 addEndPos endpos (Node bdata children) =
   Node bdata{ blockEndPos = endpos : blockEndPos bdata } children
 
@@ -238,7 +238,7 @@ showNodeStack = do
 
 data BlockStartResult =
     BlockStartMatch
-  | BlockStartNoMatchBefore SourcePos
+  | BlockStartNoMatchBefore Offset
   deriving (Show, Eq)
 
 -- | Defines a block-level element type.
@@ -252,7 +252,7 @@ data BlockSpec m il bl = BlockSpec
                            -- 'addNodeToStack', returning 'BlockStartMatch' on
                            -- success. If the match fails, the parser can
                            -- either fail or return 'BlockStartNoMatchBefore' and a
-                           -- 'SourcePos' before which the parser is known
+                           -- 'Offset' before which the parser is known
                            -- not to succeed (this will be stored in
                            -- 'failurePositions' for the line, to ensure
                            -- that future matches won't be attempted until
@@ -265,7 +265,7 @@ data BlockSpec m il bl = BlockSpec
      , blockParagraph      :: Bool -- ^ True if this kind of block
                            -- is paragraph.
      , blockContinue       :: BlockNode m il bl
-                           -> BlockParser m il bl (SourcePos, BlockNode m il bl)
+                           -> BlockParser m il bl (Offset, BlockNode m il bl)
                            -- ^ Parser that checks to see if the current
                            -- block (the 'BlockNode') can be kept open.
                            -- If it fails, the block will be closed, unless
@@ -305,8 +305,8 @@ defaultFinalizer child parent =
 data BlockData m il bl = BlockData
      { blockSpec     :: BlockSpec m il bl
      , blockLines    :: [[Tok]]  -- in reverse order
-     , blockStartPos :: [SourcePos]  -- in reverse order
-     , blockEndPos   :: [SourcePos]  -- reverse order
+     , blockStartPos :: [Offset]  -- in reverse order
+     , blockEndPos   :: [Offset]  -- reverse order
      , blockData     :: Dynamic
      , blockBlanks   :: [Int]  -- non-content blank lines in block
      }
@@ -332,7 +332,7 @@ data BPState m il bl = BPState
      , maybeLazy        :: !Bool
      , maybeBlank       :: !Bool
      , counters         :: M.Map Text Dynamic
-     , failurePositions :: M.Map Text SourcePos  -- record known positions
+     , failurePositions :: M.Map Text Offset  -- record known positions
                            -- where parsers fail to avoid repetition
      }
 
@@ -432,7 +432,7 @@ extractReferenceLinks :: (Monad m, IsBlock il bl)
                       -> BlockParser m il bl (Maybe (BlockNode m il bl),
                                               Maybe (BlockNode m il bl))
 extractReferenceLinks node = do
-  case parse ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
+  case parse ((,) <$> ((lookAhead anyTok >>= setPosition . tokOffset) >>
                         many1 linkReferenceDef)
                   <*> getInput) "" (getBlockText removeIndent node) of
         Left _ -> return (Just node, Nothing)
@@ -444,7 +444,7 @@ extractReferenceLinks node = do
                 LinkInfo{ linkDestination = dest, linkTitle = tit }
                 (referenceMap st) }) linkdefs
           let isRefPos = case toks' of
-                           (t:_) -> (< tokPos t)
+                           (t:_) -> (< tokOffset t)
                            _     -> const False
           let node' = if null toks'
                          then Nothing
@@ -459,7 +459,7 @@ extractReferenceLinks node = do
                            }
           let refnode = node{ rootLabel =
                  (rootLabel node){
-                     blockLines = takeWhile (any (isRefPos . tokPos))
+                     blockLines = takeWhile (any (isRefPos . tokOffset))
                        (blockLines (rootLabel node))
                    , blockData = toDyn linkdefs
                    , blockSpec = refLinkDefSpec
@@ -727,7 +727,7 @@ listItemSpec = BlockSpec
                            parent
      }
 
-itemStart :: Monad m => BlockParser m il bl (SourcePos, ListItemData)
+itemStart :: Monad m => BlockParser m il bl (Offset, ListItemData)
 itemStart = do
   beforecol <- sourceColumn <$> getPosition
   gobbleUpToSpaces 3

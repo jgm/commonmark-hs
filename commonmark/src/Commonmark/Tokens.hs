@@ -18,7 +18,7 @@ import           Data.Data       (Data, Typeable)
 import qualified Data.Vector.Unboxed as V
 
 data Tok = Tok { tokType     :: !TokType
-               , tokPos      :: !Int
+               , tokOffset   :: !Int
                , tokLength   :: !Int
                , tokSubject  :: V.Vector Char
                } deriving (Eq, Data, Typeable)

@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Commonmark.Util
   ( satisfyTok
+  , getOffset
   , satisfyWord
   , anyTok
   , anySymbol
@@ -42,6 +43,12 @@ satisfyTok f = tokenPrim tokToString updatePos matcher
         updatePos spos (Tok _ _ len _) _ =
           incSourceColumn spos len
 {-# INLINEABLE satisfyTok #-}
+
+-- | Return offset of next token if any.
+getOffset :: Monad m => ParsecT [Tok] s m (Maybe Int)
+getOffset = (do
+  t <- lookAhead anyTok
+  return $ Just $ tokOffset t) <|> return Nothing
 
 -- | Parses any 'Tok'.
 anyTok :: Monad m => ParsecT [Tok] s m Tok
@@ -132,7 +139,7 @@ withRaw parser = do
   toks <- getInput
   res <- parser
   rawtoks <- (do Tok _ pos _ _ <- lookAhead anyTok
-                 return $ takeWhile ((< pos) . tokPos) toks)
+                 return $ takeWhile ((< pos) . tokOffset) toks)
              <|> return toks
   return (res, rawtoks)
 {-# INLINEABLE withRaw #-}

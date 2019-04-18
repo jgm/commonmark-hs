@@ -97,9 +97,9 @@ benchCommonmark :: SyntaxSpec Identity (Html ()) (Html ())
 benchCommonmark spec (name, contents) =
   bench name $
     nf (either (error . show) renderHtml
-        . runIdentity . parseCommonmarkWith spec . tokenize name)
+        . runIdentity . parseCommonmarkWith spec . tokenize)
     contents
 
 benchTokenize :: (String, Text) -> Benchmark
 benchTokenize (name, contents) =
-  bench ("tokenize " ++ name) $ nf (length . tokenize name) contents
+  bench ("tokenize " ++ name) $ nf (length . tokenize) contents

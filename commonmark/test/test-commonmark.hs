@@ -83,7 +83,7 @@ toSpecTest parser st =
           expected = normalizeHtml $ html st
           actual = normalizeHtml .  TL.toStrict . renderHtml .
                    fromRight mempty $
-                     (parser (tokenize "" (markdown st))
+                     (parser (tokenize (markdown st))
                       :: Either ParseError (Html ()))
 
 normalizeHtml :: Text -> Text
@@ -95,7 +95,7 @@ fromRight fallback (Left _) = fallback
 fromRight _ (Right x)       = x
 
 tokenize_roundtrip :: String -> Bool
-tokenize_roundtrip s = untokenize (tokenize "source" t) == t
+tokenize_roundtrip s = untokenize (tokenize t) == t
   where t = T.pack s
 
 --- parser for spec test cases

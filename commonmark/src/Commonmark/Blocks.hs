@@ -144,7 +144,7 @@ processLine specs = do
 
   (cur:rest) <- nodeStack <$> getState
   -- add line contents
-  curpos <- getPosition
+  curline <- sourceLine <$> getPosition
   (toks, endpos) <- restOfLine
   let curdata = rootLabel cur
   updateState $ \st -> st{
@@ -154,7 +154,7 @@ processLine specs = do
                   then curdata{ blockLines = toks : blockLines curdata }
                   else
                     if isblank
-                       then curdata{ blockBlanks = sourceLine curpos :
+                       then curdata{ blockBlanks = curline :
                                         blockBlanks curdata }
                        else curdata
            } : rest
@@ -433,8 +433,7 @@ extractReferenceLinks :: (Monad m, IsBlock il bl)
                       -> BlockParser m il bl (Maybe (BlockNode m il bl),
                                               Maybe (BlockNode m il bl))
 extractReferenceLinks node = do
-  case parse ((,) <$> ((lookAhead anyTok >>= setPosition . tokOffset) >>
-                        many1 linkReferenceDef)
+  case parse ((,) <$> many1 linkReferenceDef
                   <*> getInput) "" (getBlockText removeIndent node) of
         Left _ -> return (Just node, Nothing)
         Right (linkdefs, toks') -> do
@@ -547,14 +546,14 @@ atxHeaderSpec = BlockSpec
              raw <- many (satisfyTok (not . hasType LineEnd))
              -- trim off closing ###
              let removeClosingHash (_ :: Int) [] = []
-                 removeClosingHash 0 (Tok Spaces _ _ : xs) =
+                 removeClosingHash 0 (Tok Spaces _ _ _ : xs) =
                    removeClosingHash 0 xs
-                 removeClosingHash _ (Tok (Symbol '#') _ _ :
-                                      Tok (Symbol '\\') _ _ : _) =
+                 removeClosingHash _ (Tok (Symbol '#') _ _ _ :
+                                      Tok (Symbol '\\') _ _ _ : _) =
                    reverse raw
-                 removeClosingHash _ (Tok (Symbol '#') _ _ : xs) =
+                 removeClosingHash _ (Tok (Symbol '#') _ _ _ : xs) =
                    removeClosingHash 1 xs
-                 removeClosingHash 1 (Tok Spaces _ _ : xs) = xs
+                 removeClosingHash 1 (Tok Spaces _ _ _ : xs) = xs
                  removeClosingHash 1 (x:_)
                   | tokType x /= Symbol '#' = reverse raw
                  removeClosingHash _ xs = xs
@@ -714,7 +713,7 @@ listItemSpec = BlockSpec
                                   map (blockBlanks . rootLabel)
                                   (filter ((== "List") . blockType .
                                    blockSpec . rootLabel) children)
-          curline <- sourceLine <$> getOffset
+          curline <- sourceLine <$> getPosition
           let blanksAtEnd = case blanks of
                                    (l:_) -> l >= curline - 1
                                    _     -> False
@@ -730,11 +729,11 @@ listItemSpec = BlockSpec
 
 itemStart :: Monad m => BlockParser m il bl (Offset, ListItemData)
 itemStart = do
-  beforecol <- sourceColumn <$> getOffset
+  beforecol <- sourceColumn <$> getPosition
   gobbleUpToSpaces 3
   pos <- getOffset
   ty <- bulletListMarker <|> orderedListMarker
-  aftercol <- sourceColumn <$> getOffset
+  aftercol <- sourceColumn <$> getPosition
   lookAhead whitespace
   numspaces <- try (gobbleUpToSpaces 4 <* notFollowedBy whitespace)
            <|> gobbleSpaces 1
@@ -748,14 +747,16 @@ itemStart = do
 
 bulletListMarker :: Monad m => BlockParser m il bl ListType
 bulletListMarker = do
-  Tok (Symbol c) _ _ <- symbol '-' <|> symbol '*' <|> symbol '+'
+  Tok (Symbol c) _ _ _ <- symbol '-' <|> symbol '*' <|> symbol '+'
   return $ BulletList c
 
 orderedListMarker :: Monad m => BlockParser m il bl ListType
 orderedListMarker = do
-  Tok WordChars _ ds <- satisfyWord (\t -> T.all isDigit t && T.length t < 10)
-  (start :: Int) <- either fail (return . fst) (TR.decimal ds)
-  Tok (Symbol delim) _ _ <- symbol '.' <|> symbol ')'
+  t@(Tok WordChars _ _ _) <-
+    satisfyWord ((\t -> T.all isDigit t && T.length t < 10))
+  (start :: Int) <- either fail (return . fst)
+                         (TR.decimal $ T.pack $ tokToString t)
+  Tok (Symbol delim) _ _ _ <- symbol '.' <|> symbol ')'
   return $ OrderedList start delim
 
 listSpec :: (Monad m, IsBlock il bl) => BlockSpec m il bl
@@ -787,7 +788,7 @@ listSpec = BlockSpec
                           _    -> TightList
           blockBlanks' <- case childrenData of
                              c:_ | listItemBlanksAtEnd c -> do
-                                 curline <- sourceLine <$> getOffset
+                                 curline <- sourceLine <$> getPosition
                                  return $ curline - 1 : blockBlanks cdata
                              _ -> return $ blockBlanks cdata
           let ldata' = toDyn (ListData lt ls)
@@ -813,7 +814,7 @@ thematicBreakSpec = BlockSpec
      , blockStart          = try $ do
             nonindentSpaces
             pos <- getOffset
-            Tok (Symbol c) _ _ <- symbol '-'
+            Tok (Symbol c) _ _ _ <- symbol '-'
                               <|> symbol '_'
                               <|> symbol '*'
             skipWhile (hasType Spaces)
@@ -868,10 +869,10 @@ indentedCodeSpec = BlockSpec
      }
 
 isblankLine :: [Tok] -> Bool
-isblankLine []                    = True
-isblankLine [Tok LineEnd _ _]     = True
-isblankLine (Tok Spaces _ _ : xs) = isblankLine xs
-isblankLine _                     = False
+isblankLine []                      = True
+isblankLine [Tok LineEnd _ _ _]     = True
+isblankLine (Tok Spaces _ _ _ : xs) = isblankLine xs
+isblankLine _                       = False
 
 fencedCodeSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
@@ -881,7 +882,7 @@ fencedCodeSpec = BlockSpec
              prepos <- getOffset
              nonindentSpaces
              pos <- getOffset
-             let indentspaces = sourceColumn pos - sourceColumn prepos
+             let indentspaces = pos - prepos
              (c, ticks) <-  (('`',) <$> many1 (symbol '`'))
                         <|> (('~',) <$> many1 (symbol '~'))
              let fencelength = length ticks

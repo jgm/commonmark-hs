@@ -63,12 +63,11 @@ mkInlineParser :: (Monad m, IsInline a)
                -> [FormattingSpec a]
                -> [InlineParser m a]
                -> ReferenceMap
-               -> SourcePos
                -> [Tok]
                -> m (Either ParseError a)
-mkInlineParser bracketedSpecs formattingSpecs ilParsers rm startpos toks = do
+mkInlineParser bracketedSpecs formattingSpecs ilParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
-  res <- parseChunks bracketedSpecs formattingSpecs ilParsers rm startpos
+  res <- parseChunks bracketedSpecs formattingSpecs ilParsers rm
          (dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks)
   return $
     case res of
@@ -115,12 +114,11 @@ parseChunks :: (Monad m, IsInline a)
             -> [FormattingSpec a]
             -> [InlineParser m a]
             -> ReferenceMap
-            -> SourcePos
             -> [Tok]
             -> m (Either ParseError [Chunk a])
-parseChunks _ _ _ _ _ []             = return (Right [])
-parseChunks bspecs specs ilParsers rm startpos (t:ts) =
-  runParserT (setPosition startpos >> many (pChunk specmap ilParsers) <* eof)
+parseChunks _ _ _ _ []             = return (Right [])
+parseChunks bspecs specs ilParsers rm (t:ts) =
+  runParserT (many (pChunk specmap ilParsers) <* eof)
           IPState{ backtickSpans = getBacktickSpans (t:ts),
                    userState = undefined,
                    formattingDelimChars = Set.fromList $

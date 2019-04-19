@@ -10,6 +10,7 @@ module Commonmark.Tokens
   , SourcePos
   , toSubject
   , tok
+  , withRaw
   ) where
 
 import           Text.Parsec
@@ -20,7 +21,8 @@ type Offset = Int
 
 data Subject =
   Subject
-  { subjectOffset    :: Offset
+  { subjectRanges    :: [(Offset,Offset)] -- start, end
+  , subjectOffset    :: Offset  -- current
   , subjectChars     :: V.Vector Char
   , subjectPositions :: V.Vector (Int, Int)
   } deriving (Data, Typeable, Show)
@@ -28,10 +30,12 @@ data Subject =
 toSubject :: String -> Subject
 toSubject s =
   Subject
-  { subjectOffset    = 0
-  , subjectChars     = V.fromList s
+  { subjectRanges   = [(0, V.length chars)]
+  , subjectOffset   = 0
+  , subjectChars     = chars
   , subjectPositions = V.fromList $ snd $ mapAccumL f (1,1) s }
  where
+    chars = V.fromList s
     f :: (Int, Int) -> Char -> ((Int, Int), (Int, Int))
     f !spos !c = (adjustPos spos c, spos)
     adjustPos :: (Int, Int) -> Char -> (Int, Int)
@@ -40,11 +44,26 @@ toSubject s =
     adjustPos (!ln, !col) _    = (ln, col + 1)
 
 instance Monad m => Stream Subject m Char where
-  uncons subj =
-    case subjectChars subj V.!? subjectOffset subj of
-      Just c  -> return $ Just (c, subj{ subjectOffset =
-                                       subjectOffset subj + 1 })
-      Nothing -> return Nothing
+  uncons subj@(Subject
+         { subjectRanges   = ranges
+         , subjectOffset   = offset
+         , subjectChars    = chars
+         }) =
+    case ranges of
+      []               -> return Nothing
+      (cur,end):rest
+        | offset < cur || offset >= end -> return Nothing
+        | otherwise ->
+            case chars V.!? offset of
+              Just c  -> return $ Just
+                (c, if offset + 1 >= end
+                       then subj{ subjectRanges = rest
+                                , subjectOffset =
+                                    case rest of
+                                      (cur',_):_ -> cur'
+                                      _          -> offset }
+                       else subj{ subjectOffset = offset + 1 } )
+              Nothing -> return Nothing
 
 tok :: Monad m => (Char -> Maybe a) -> ParsecT Subject u m a
 tok = tokenPrim pprint updatePos
@@ -53,5 +72,28 @@ tok = tokenPrim pprint updatePos
     pprint c = [c]
     updatePos :: SourcePos -> Char -> Subject -> SourcePos
     updatePos spos _ subj =
-      let (!ln, !col) = subjectPositions subj V.! subjectOffset subj
-      in  setSourceLine (setSourceColumn spos col) ln
+      case subjectRanges subj of
+             [] -> spos
+             (cur,_):_ ->
+                let (!ln, !col) = subjectPositions subj V.! cur
+                in  setSourceLine (setSourceColumn spos col) ln
+
+withRaw :: Monad m => ParsecT Subject u m a -> ParsecT Subject u m (a, [Char])
+withRaw p = do
+  subj <- getInput
+  res <- p
+  subj' <- getInput
+  let prefix = take
+         (length (subjectRanges subj) - length (subjectRanges subj'))
+         (subjectRanges subj)
+  let chars = charsFromOffsets (subjectChars subj) $
+       prefix ++
+       case subjectRanges subj' of
+             [] -> []
+             (start,_):_ -> [(start, subjectOffset subj')]
+  return (res, chars)
+
+charsFromOffsets :: V.Vector Char -> [(Offset, Offset)] -> [Char]
+charsFromOffsets v = V.toList . mconcat . map charsFromOffset
+  where charsFromOffset (start, end) = V.slice start (end - start) v
+

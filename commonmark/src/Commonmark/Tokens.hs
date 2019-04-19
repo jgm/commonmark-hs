@@ -1,93 +1,57 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE UnboxedTuples #-}
 
 module Commonmark.Tokens
-  ( Tok(..)
-  , TokType(..)
+  ( Subject(..)
   , Offset
-  , tokenize
-  , untokenize
-  , tokToString
+  , SourcePos
+  , toSubject
+  , tok
   ) where
 
-import           Data.Char       (isAlphaNum, isSpace)
-import           Data.Text       (Text)
-import qualified Data.Text       as T
+import           Text.Parsec
 import           Data.Data       (Data, Typeable)
 import qualified Data.Vector.Unboxed as V
-
+import           Data.List       (mapAccumL)
 type Offset = Int
 
-data Tok = Tok { tokType     :: !TokType
-               , tokOffset   :: !Offset
-               , tokLength   :: !Int
-               , tokSubject  :: V.Vector Char
-               } deriving (Eq, Data, Typeable)
+data Subject =
+  Subject
+  { subjectOffset    :: Offset
+  , subjectChars     :: V.Vector Char
+  , subjectPositions :: V.Vector (Int, Int)
+  } deriving (Data, Typeable, Show)
 
-instance Show Tok where
-  show (Tok tt pos len subj) =
-    show tt ++ " " ++ show pos ++ " " ++ show (V.unsafeSlice pos len subj)
+toSubject :: String -> Subject
+toSubject s =
+  Subject
+  { subjectOffset    = 0
+  , subjectChars     = V.fromList s
+  , subjectPositions = V.fromList $ snd $ mapAccumL f (1,1) s }
+ where
+    f :: (Int, Int) -> Char -> ((Int, Int), (Int, Int))
+    f !spos !c = (adjustPos spos c, spos)
+    adjustPos :: (Int, Int) -> Char -> (Int, Int)
+    adjustPos (!ln, _)    '\n' = (ln + 1, 1)
+    adjustPos (!ln, !col) '\t' = (ln, col + (4 - ((col - 1) `mod` 4)))
+    adjustPos (!ln, !col) _    = (ln, col + 1)
 
+instance Monad m => Stream Subject m Char where
+  uncons subj =
+    case subjectChars subj V.!? subjectOffset subj of
+      Just c  -> return $ Just (c, subj{ subjectOffset =
+                                       subjectOffset subj + 1 })
+      Nothing -> return Nothing
 
-data TokType =
-       Spaces
-     | Tab
-     | UnicodeSpace
-     | LineEnd
-     | WordChars
-     | Symbol !Char
-     deriving (Show, Eq, Ord, Data, Typeable)
-
--- | Convert a 'Text' into a list of 'Tok'. The first parameter
--- species the source name.
-tokenize :: Text -> [Tok]
-tokenize t = go 0
+tok :: Monad m => (Char -> Maybe a) -> ParsecT Subject u m a
+tok = tokenPrim pprint updatePos
   where
-    v = V.fromList (T.unpack t)
-    go pos =
-      case v V.!? pos of
-        Nothing  -> []
-        Just !c  ->
-          let (!tok, !newpos) = getTok c pos
-          in  (tok : go newpos)
-    getTok c pos =
-      case c of
-        ' ' -> case V.findIndex (/=' ') (V.drop (pos + 1) v) of
-                 Just firstNonspace ->
-                   (Tok Spaces pos (1 + firstNonspace) v,
-                    pos + 1 + firstNonspace)
-                 Nothing ->
-                   (Tok Spaces pos (V.length v - pos) v,
-                    V.length v)
-        '\t' -> (Tok Tab pos 1 v, pos + 1)
-        '\n' -> (Tok LineEnd pos 1 v, pos + 1)
-        '\r' -> case v V.!? (pos + 1) of
-                   Just '\n' ->
-                     (Tok LineEnd pos 2 v, pos + 2)
-                   _         ->
-                     (Tok LineEnd pos 1 v, pos + 1)
-        _ | isAlphaNum c ->
-               case V.findIndex (not . isAlphaNum) (V.drop (pos + 1) v) of
-                 Just firstNonAlphaNum ->
-                   (Tok WordChars pos (1 + firstNonAlphaNum) v,
-                    pos + 1 + firstNonAlphaNum)
-                 Nothing ->
-                   (Tok WordChars pos (V.length v - pos) v,
-                    V.length v)
-          | isSpace c -> (Tok UnicodeSpace pos 1 v, pos + 1)
-          | otherwise -> (Tok (Symbol c) pos 1 v, pos + 1)
-
--- | Reverses 'tokenize'.  @untokenize . tokenize ""@ should be
--- the identity.
-untokenize :: [Tok] -> Text
-untokenize = mconcat . map (T.pack . tokToString)
-
--- | Render token contents as a String.
-tokToString :: Tok -> String
-tokToString (Tok Spaces pos len subj) =
-      case V.toList $ V.unsafeSlice pos len subj of
-        "\t"  -> replicate len ' '
-        s     -> s
-tokToString (Tok _ pos len subj) = V.toList $ V.unsafeSlice pos len subj
+    pprint :: Char -> String
+    pprint c = [c]
+    updatePos :: SourcePos -> Char -> Subject -> SourcePos
+    updatePos spos _ subj =
+      let (!ln, !col) = subjectPositions subj V.! subjectOffset subj
+      in  setSourceLine (setSourceColumn spos col) ln

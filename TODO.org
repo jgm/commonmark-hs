@@ -1,3 +1,9 @@
+* TODO plan for fast2 version
+** Don't use tokens
+** Use parsec
+** In Inlines, define a custom Stream type that includes source location information
+e.g. [Tok] where
+data Tok = SourceLoc SourcePos | SourceLine Text
 * TODO stack overflow
 The stack space required goes up with size of input:
 

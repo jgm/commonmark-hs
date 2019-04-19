@@ -1,3 +1,14 @@
+* TODO plan for fast2 version
+** Don't use tokens
+** Use parsec
+** In Inlines, define a custom Stream type that includes source location information
+e.g. [Tok] where
+data Tok = SourceLoc SourcePos | SourceLine Text
+Or, why not something like:
+(Data.Vector.Unboxed Char, Int)
+so we can lookbehind?
+for source pos, just use Int and have
+some kind of table mapping Int to SourcePos?
 * TODO stack overflow
 The stack space required goes up with size of input:
 

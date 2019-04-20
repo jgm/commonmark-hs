@@ -16,6 +16,7 @@ import Commonmark.SourceMap
 import Commonmark.Util
 import Commonmark.Blocks
 import Commonmark.Html (escapeHtml, addAttribute, HtmlAttribute)
+import Data.Dynamic
 import Data.Tree
 import Control.Monad (mzero)
 import Text.Parsec
@@ -58,7 +59,13 @@ atxHeaderWithAttributesSpec = atxHeaderSpec
               nodeStack = Node nd{ blockSpec = atxHeaderWithAttributesSpec
                                  } cs : ns }
        return res
-  , blockConstructor = \node ->
-      addAttributes [("test","value")] <$> blockConstructor atxHeaderSpec node
+  , blockConstructor    = \node -> do
+       let level = fromDyn (blockData (rootLabel node)) 1
+       let toks = getBlockText removeIndent node
+       let (content, attr) = parseAttributes toks
+       ils <- runInlineParser content
+       return $ (addRange node . addAttributes attr . header level) ils
   }
 
+parseAttributes :: [Tok] -> ([Tok], Attributes)
+parseAttributes ts = (ts, [("fakeattr","fakedata")]) -- for now

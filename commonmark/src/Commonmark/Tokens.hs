@@ -12,13 +12,13 @@ module Commonmark.Tokens
   , tok
   , withRaw
   , charBehind
+  , getOffset
   ) where
 
 import           Text.Parsec
 import           Data.Data       (Data, Typeable)
 import qualified Data.Vector.Unboxed as V
 import           Data.List       (mapAccumL)
-import           Control.Monad   (guard, mzero)
 
 type Offset = Int
 

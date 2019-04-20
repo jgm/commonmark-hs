@@ -11,6 +11,7 @@ module Commonmark
     , module Commonmark.Extensions.Autolink
     , module Commonmark.Extensions.Footnote
     , module Commonmark.Extensions.DefinitionList
+    , module Commonmark.Extensions.Attributes
     ) where
 
 import           Commonmark.Tokens
@@ -25,4 +26,5 @@ import           Commonmark.Extensions.Math
 import           Commonmark.Extensions.Autolink
 import           Commonmark.Extensions.Footnote
 import           Commonmark.Extensions.DefinitionList
+import           Commonmark.Extensions.Attributes
 

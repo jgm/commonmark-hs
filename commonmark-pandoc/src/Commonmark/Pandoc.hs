@@ -27,6 +27,7 @@ import Commonmark.Extensions.PipeTable
 import Commonmark.Extensions.Strikethrough
 import Commonmark.Extensions.DefinitionList
 import Commonmark.Extensions.Footnote
+import Commonmark.Extensions.Attributes
 import Data.Char (isSpace)
 import Data.Coerce (coerce)
 
@@ -114,6 +115,18 @@ instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
 
 instance HasStrikethrough (Cm a B.Inlines) where
   strikethrough ils = B.strikeout <$> ils
+
+instance HasAttributes (Cm a B.Blocks) where
+  addAttributes attrs b = fmap (addAttrs attrs) <$> b
+
+addAttrs :: [(T.Text, T.Text)] -> Block -> Block
+addAttrs attrs (Header n (id',classes',kvs') ils) =
+  Header n (id'',classes'',kvs'') ils
+ where
+   id'' = maybe id' T.unpack $ lookup "id" attrs
+   classes'' = maybe classes' (words . T.unpack) $ lookup "class" attrs
+   kvs'' = kvs' ++ [(T.unpack k, T.unpack v) | (k,v) <- attrs,
+                         k /= "id", k /= "class"]
 
 instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
      => HasFootnote (Cm a B.Inlines) (Cm a B.Blocks) where

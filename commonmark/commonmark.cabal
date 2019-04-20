@@ -80,6 +80,7 @@ library
       Commonmark.Extensions.Autolink
       Commonmark.Extensions.Footnote
       Commonmark.Extensions.DefinitionList
+      Commonmark.Extensions.Attributes
   other-modules:
       Commonmark.Html
       Commonmark.Tag

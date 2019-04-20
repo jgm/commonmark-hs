@@ -128,6 +128,7 @@ extensions :: (Monad m, Typeable m,
                IsBlock il bl, IsInline il,
                HasPipeTable il bl,
                HasMath il,
+               HasAttributes bl,
                HasStrikethrough il,
                HasDefinitionList il bl,
                HasFootnote il bl)
@@ -140,6 +141,7 @@ extensions =
   ,("math", mathSpec)
   ,("footnote", footnoteSpec)
   ,("definition_list", definitionListSpec)
+  ,("header_attributes", headerAttributesSpec)
   ]
 
 extensionList :: [String]
@@ -154,6 +156,7 @@ listExtensions =
 specFromExtensionNames ::
  (Monad m, Typeable m, Typeable bl, Typeable il,
   IsBlock il bl, IsInline il,
+  HasAttributes bl,
   HasPipeTable il bl, HasMath il,
   HasStrikethrough il,
   HasDefinitionList il bl,

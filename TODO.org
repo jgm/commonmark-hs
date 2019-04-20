@@ -1,3 +1,7 @@
+* TODO create a sample markdown linter
+do a specific transformation on semantically identified
+text (e.g. capitalization)
+without changing anything else about the source text.
 * TODO example roff man writer
 In roff, the effect of an 'emph' might
 be `\f[I]`, but it might be `\f[BI]` (if we're already in a
@@ -10,26 +14,22 @@ handle this.
 Solution: make the IsInline type for roff be a newtype
 embeddding State EmphState Builder or something like
 that.  Then the effect can be state dependenet.
+
+Would it make sense to do this for footnotes instead of
+including the ad hoc after document thing?
 * TODO extensions
-** DONE fix definition list
-currently it just creates one item lists.
-Fix: when finalizing a list item, check to see if previous
-node is a def list; if so, merge the two.
 ** TODO attributes (link/image/code/codeblock/header)
 - [ ] attribute parser
 - [ ] for header, parse inlines
 ** TODO bracketed spans
 ** TODO code_identifiers
 ** TODO fenced divs
+** TODO raw attribute
 ** TODO auto_identifiers (headers)
 ** TODO grid tables
 * TODO documentation
 ** TODO example of creating instances for roff man
 ** TODO example of modifying existing HTML output
 ** TODO example of adding an inline parser: abbreviations?
-* TODO create a sample markdown linter
-do a specific transformation on semantically identified
-text (e.g. capitalization)
-without changing anything else about the source text.
 * TODO reduce memory usage, increase performance
 

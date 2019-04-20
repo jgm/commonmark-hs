@@ -11,12 +11,15 @@ module Commonmark.Tokens
   , toSubject
   , tok
   , withRaw
+  , charBehind
   ) where
 
 import           Text.Parsec
 import           Data.Data       (Data, Typeable)
 import qualified Data.Vector.Unboxed as V
 import           Data.List       (mapAccumL)
+import           Control.Monad   (guard, mzero)
+
 type Offset = Int
 
 data Subject =
@@ -97,3 +100,17 @@ charsFromOffsets :: V.Vector Char -> [(Offset, Offset)] -> [Char]
 charsFromOffsets v = V.toList . mconcat . map charsFromOffset
   where charsFromOffset (start, end) = V.slice start (end - start) v
 
+getOffset :: Monad m => ParsecT Subject u m Offset
+getOffset = do
+  subj <- getInput
+  return $ subjectOffset subj
+
+charBehind :: Monad m => ParsecT Subject u m (Maybe Char)
+charBehind = do
+  subj <- getInput
+  let offset = subjectOffset subj
+  case subjectRanges subj of
+    (start,end):_
+      | offset > start
+      , offset <= end -> return $ subjectChars subj V.!? (offset - 1)
+    _                 -> return Nothing

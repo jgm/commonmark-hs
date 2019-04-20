@@ -27,8 +27,6 @@ import           Data.Data       (Data, Typeable)
 import qualified Data.Vector.Unboxed as V
 import           Data.List       (mapAccumL)
 
-import Debug.Trace
-
 type Offset = Int
 
 data Subject =
@@ -86,6 +84,7 @@ tok = tokenPrim pprint updatePos
     updatePos spos _ subj =
       let (!ln, !col) = subjectPositions subj V.! subjectOffset subj
       in  setSourceLine (setSourceColumn spos col) ln
+{-# INLINEABLE tok #-}
 
 withRaw :: Monad m => ParsecT Subject u m a -> ParsecT Subject u m (a, [Char])
 withRaw p = do
@@ -101,6 +100,7 @@ withRaw p = do
              [] -> []
              (start,_):_ -> [(start, subjectOffset subj')]
   return (res, chars)
+{-# INLINEABLE withRaw #-}
 
 charsFromOffsets :: V.Vector Char -> [(Offset, Offset)] -> [Char]
 charsFromOffsets v = V.toList . mconcat . map charsFromOffset
@@ -110,6 +110,7 @@ getOffset :: Monad m => ParsecT Subject u m Offset
 getOffset = do
   subj <- getInput
   return $ subjectOffset subj
+{-# INLINEABLE getOffset #-}
 
 charBehind :: Monad m => ParsecT Subject u m (Maybe Char)
 charBehind = do
@@ -123,18 +124,23 @@ charBehind = do
 
 satisfy :: Monad m => (Char -> Bool) -> ParsecT Subject u m Char
 satisfy f = tok (\c -> if f c then Just c else Nothing)
+{-# INLINEABLE satisfy #-}
 
 anyChar :: Monad m => ParsecT Subject u m Char
 anyChar = tok Just
+{-# INLINEABLE anyChar #-}
 
 char :: Monad m => Char -> ParsecT Subject u m Char
 char c = satisfy (== c)
+{-# INLINEABLE char #-}
 
 oneOf :: Monad m => [Char] -> ParsecT Subject u m Char
 oneOf cs = satisfy (`elem` cs)
+{-# INLINEABLE oneOf #-}
 
 noneOf :: Monad m => [Char] -> ParsecT Subject u m Char
 noneOf cs = satisfy (`notElem` cs)
+{-# INLINEABLE noneOf #-}
 
 -- | Parses exactly @n@ spaces. If tabs are encountered,
 -- they are split into spaces before being consumed; so
@@ -157,7 +163,6 @@ gobble' requireAll numspaces
    <|>
    (do startpos <- getPosition
        endpos <- lookAhead $ satisfy (== '\t') *> getPosition
-       return $! traceShowId $! (startpos, endpos)
        case sourceColumn endpos - sourceColumn startpos of
          n | n < numspaces  -> do
                char '\t'

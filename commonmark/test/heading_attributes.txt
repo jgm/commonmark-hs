@@ -3,5 +3,5 @@ This is a stub:
 ```````````````````````````````` example
 # Heading {#ident .class1 .class2 key=value key2="quoted value&amp;entity" }
 .
-<h1 id="ident" class="class1 class2" key="value" key2="quoted value&amp; entity">Heading</h1>
+<h1 id="ident" class="class1 class2" key="value" key2="quoted value&amp;entity">Heading</h1>
 ````````````````````````````````

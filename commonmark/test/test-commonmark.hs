@@ -8,6 +8,7 @@ import           Commonmark.Extensions.Smart
 import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.Math
 import           Commonmark.Extensions.DefinitionList
+import           Commonmark.Extensions.Attributes
 import           Commonmark.Extensions.Footnote
 import           Control.Monad         (when)
 import           Data.Functor.Identity
@@ -34,6 +35,7 @@ main = do
              , ("test/math.txt", mathSpec)
              , ("test/autolinks.txt", autolinkSpec)
              , ("test/definition_list.txt", definitionListSpec)
+             , ("test/heading_attributes.txt", headingAttributesSpec)
              ]
   defaultMain $ testGroup "Tests"
      (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip

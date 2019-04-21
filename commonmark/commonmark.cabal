@@ -40,6 +40,7 @@ extra-source-files:
     test/definition_list.txt
     test/autolinks.txt
     test/pipe_tables.txt
+    test/header_attributes.txt
     test/footnotes.txt
     test/math.txt
     test/smart_punct.txt

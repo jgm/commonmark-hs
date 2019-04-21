@@ -3,6 +3,8 @@ module Commonmark.Tag
   ( htmlTag
   , htmlOpenTag
   , htmlClosingTag
+  , htmlAttributeName
+  , htmlAttributeValue
   )
 where
 import           Commonmark.Tokens

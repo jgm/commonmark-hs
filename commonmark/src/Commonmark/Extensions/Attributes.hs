@@ -6,15 +6,18 @@ module Commonmark.Extensions.Attributes
   ( Attributes(..)
   , HasAttributes(..)
   , headerAttributesSpec
+  , pAttributes
   )
 where
 import Commonmark.Types
+import Commonmark.Tag (htmlAttributeName, htmlAttributeValue)
 import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.SourceMap
 import Commonmark.Util
 import Commonmark.Blocks
+import Commonmark.Entity (unEntity)
 import Commonmark.Html (escapeHtml, addAttribute, HtmlAttribute)
 import Data.Dynamic
 import qualified Data.Text as T
@@ -104,7 +107,7 @@ pIdentifier = try $ do
         satisfyWord (const True)
     <|> satisfyTok (\c -> hasType (Symbol '-') c || hasType (Symbol '_') c
                         || hasType (Symbol ':') c || hasType (Symbol '.') c)
-  return ("id", untokenize xs)
+  return ("id", unEntity xs)
 
 pClass :: Monad m => ParsecT [Tok] u m HtmlAttribute
 pClass = do
@@ -112,8 +115,16 @@ pClass = do
   xs <- many1 $
         satisfyWord (const True)
     <|> satisfyTok (\c -> hasType (Symbol '-') c || hasType (Symbol '_') c)
-  return ("class", untokenize xs)
+  return ("class", unEntity xs)
 
 pKeyValue :: Monad m => ParsecT [Tok] u m HtmlAttribute
-pKeyValue = mzero
+pKeyValue = do
+  name <- htmlAttributeName
+  symbol '='
+  val <- htmlAttributeValue
+  let val' = case val of
+               Tok (Symbol '"') _ _:_:_  -> drop 1 $ init $ val
+               Tok (Symbol '\'') _ _:_:_ -> mzero
+               _ -> val
+  return (unEntity name, unEntity val')
 

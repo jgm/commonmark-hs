@@ -5,7 +5,7 @@ module Commonmark.Tag
   , htmlClosingTag
   , htmlAttributeName
   , htmlAttributeValue
-  )
+  , htmlDoubleQuotedAttributeValue )
 where
 import           Commonmark.Tokens
 import           Commonmark.Util

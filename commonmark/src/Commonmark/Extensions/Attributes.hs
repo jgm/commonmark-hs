@@ -10,7 +10,7 @@ module Commonmark.Extensions.Attributes
   )
 where
 import Commonmark.Types
-import Commonmark.Tag (htmlAttributeName, htmlAttributeValue)
+import Commonmark.Tag (htmlAttributeName, htmlDoubleQuotedAttributeValue)
 import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.SourceMap
@@ -94,9 +94,10 @@ setextHeadingWithAttributesSpec = atxHeadingSpec
 
 parseAttributes :: [Tok] -> ([Tok], Attributes)
 parseAttributes ts =
-  case parse
-       ((,) <$> many (notFollowedBy pAttributes >> anyTok)
-            <*> option [] pAttributes) "heading contents" ts of
+  let pAttributes' = pAttributes <* optional whitespace <* eof
+  in case parse
+       ((,) <$> many (notFollowedBy pAttributes' >> anyTok)
+            <*> option [] pAttributes') "heading contents" ts of
     Left _        -> (ts, [])
     Right (xs,ys) -> (xs, collapseAttrs ys)
   where
@@ -142,10 +143,13 @@ pKeyValue :: Monad m => ParsecT [Tok] u m HtmlAttribute
 pKeyValue = do
   name <- htmlAttributeName
   symbol '='
-  val <- htmlAttributeValue
+  val <- htmlDoubleQuotedAttributeValue
+       <|> many1 (noneOfToks [Spaces, LineEnd, Symbol '<', Symbol '>',
+                      Symbol '=', Symbol '`', Symbol '\'', Symbol '"',
+                      Symbol '}'])
   let val' = case val of
                Tok (Symbol '"') _ _:_:_  -> drop 1 $ init $ val
                Tok (Symbol '\'') _ _:_:_ -> mzero
                _ -> val
-  return (unEntity name, unEntity val')
+  return (untokenize name, unEntity val')
 

@@ -1,9 +1,4 @@
-* TODO header_attributes
-x Change naming, also internally, to heading_attributes?
-x Implement for setext headers too
-_ Add full tests
-_ Modify monoid so that we replace something with same name
-  instead of appending?
+* TODO Modify monoid so that we replace something with same name instead of appending?
 * TODO create a sample markdown linter
 do a specific transformation on semantically identified
 text (e.g. capitalization)

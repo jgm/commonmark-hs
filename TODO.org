@@ -1,5 +1,5 @@
 * TODO header_attributes
-_ Change naming, also internally, to heading_attributes?
+x Change naming, also internally, to heading_attributes?
 _ Implement for setext headers too
 _ Add full tests
 _ Modify monoid so that we replace something with same name

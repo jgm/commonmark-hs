@@ -106,9 +106,9 @@ class (Monoid b, Show b, Rangeable b, IsInline il)
   thematicBreak :: b
   blockQuote :: b -> b
   codeBlock :: Text -> Text -> b
-  header :: Int -- ^ Level
-         -> il  -- ^ text
-         -> b
+  heading :: Int -- ^ Level
+          -> il  -- ^ text
+          -> b
   rawBlock :: Format -> Text -> b
   referenceLinkDefinition :: Text -- ^ Label
                           -> (Text, Text) -- ^ Destination, title
@@ -127,7 +127,7 @@ instance IsInline (Html a) => IsBlock (Html a) (Html a) where
         else addAttribute ("class", "language-" <> lang)) $
     htmlInline "code" $ Just (htmlText t)
     where lang = T.takeWhile (not . isSpace) info
-  header level ils = htmlBlock h (Just ils)
+  heading level ils = htmlBlock h (Just ils)
     where h = case level of
                    1 -> "h1"
                    2 -> "h2"

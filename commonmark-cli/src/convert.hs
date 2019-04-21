@@ -141,7 +141,7 @@ extensions =
   ,("math", mathSpec)
   ,("footnote", footnoteSpec)
   ,("definition_list", definitionListSpec)
-  ,("header_attributes", headerAttributesSpec)
+  ,("heading_attributes", headingAttributesSpec)
   ]
 
 extensionList :: [String]

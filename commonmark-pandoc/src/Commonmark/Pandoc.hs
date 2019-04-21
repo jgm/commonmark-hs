@@ -68,7 +68,7 @@ instance (Rangeable (Cm a B.Inlines),
   codeBlock info t = Cm $ B.codeBlockWith attr (T.unpack t)
     where attr = ("", [T.unpack lang | not (T.null lang)], [])
           lang = T.takeWhile (not . isSpace) info
-  header level ils = Cm $ B.header level $ unCm ils
+  heading level ils = Cm $ B.header level $ unCm ils
   rawBlock (C.Format f) t = Cm $ B.rawBlock (T.unpack f) (T.unpack t)
   referenceLinkDefinition _ _ = Cm mempty
   list (C.BulletList _) lSpacing items = Cm $ B.bulletList items'

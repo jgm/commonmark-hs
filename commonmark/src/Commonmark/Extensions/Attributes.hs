@@ -5,7 +5,7 @@
 module Commonmark.Extensions.Attributes
   ( Attributes(..)
   , HasAttributes(..)
-  , headerAttributesSpec
+  , headingAttributesSpec
   , pAttributes
   )
 where
@@ -27,11 +27,11 @@ import Text.Parsec
 import Data.Text (Text)
 import Data.Semigroup (Semigroup(..))
 
-headerAttributesSpec
+headingAttributesSpec
              :: (Monad m, IsBlock il bl, IsInline il, HasAttributes bl)
              => SyntaxSpec m il bl
-headerAttributesSpec = SyntaxSpec
-  { syntaxBlockSpecs = [atxHeaderWithAttributesSpec]
+headingAttributesSpec = SyntaxSpec
+  { syntaxBlockSpecs = [atxHeadingWithAttributesSpec]
   , syntaxBracketedSpecs = []
   , syntaxFormattingSpecs = []
   , syntaxInlineParsers = []
@@ -49,18 +49,18 @@ instance HasAttributes (WithSourceMap a) where
 
 type Attributes = [HtmlAttribute]
 
-atxHeaderWithAttributesSpec
+atxHeadingWithAttributesSpec
     :: (Monad m, IsBlock il bl, IsInline il, HasAttributes bl)
     => BlockSpec m il bl
-atxHeaderWithAttributesSpec = atxHeaderSpec
-  { blockType = "ATXHeaderWithAttributes"
+atxHeadingWithAttributesSpec = atxHeadingSpec
+  { blockType = "ATXHeadingWithAttributes"
   , blockStart = do
-       res <- blockStart atxHeaderSpec
+       res <- blockStart atxHeadingSpec
        nodestack <- nodeStack <$> getState
        case nodestack of
          [] -> mzero
          (Node nd cs:ns) -> updateState $ \st -> st{
-              nodeStack = Node nd{ blockSpec = atxHeaderWithAttributesSpec
+              nodeStack = Node nd{ blockSpec = atxHeadingWithAttributesSpec
                                  } cs : ns }
        return res
   , blockConstructor    = \node -> do
@@ -68,7 +68,7 @@ atxHeaderWithAttributesSpec = atxHeaderSpec
        let toks = getBlockText removeIndent node
        let (content, attr) = parseAttributes toks
        ils <- runInlineParser content
-       return $ (addRange node . addAttributes attr . header level) ils
+       return $ (addRange node . addAttributes attr . heading level) ils
   }
 
 parseAttributes :: [Tok] -> ([Tok], Attributes)

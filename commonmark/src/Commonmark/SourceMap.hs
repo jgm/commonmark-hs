@@ -87,8 +87,8 @@ instance (IsBlock b a, IsInline b, IsInline (WithSourceMap b), Semigroup a)
   thematicBreak = thematicBreak <$ addName "thematicBreak"
   blockQuote x = (blockQuote <$> x) <* addName "blockQuote"
   codeBlock i t = codeBlock i t <$ addName "codeBlock"
-  header lev x = (header lev <$> x) <*
-                     addName ("header" <> T.pack (show lev))
+  heading lev x = (heading lev <$> x) <*
+                     addName ("heading" <> T.pack (show lev))
   rawBlock f t = rawBlock f t <$ addName "rawBlock"
   referenceLinkDefinition k x = referenceLinkDefinition k x <$
                addName "referenceLinkDefinition"

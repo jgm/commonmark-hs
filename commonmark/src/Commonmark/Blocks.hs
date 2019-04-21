@@ -32,8 +32,8 @@ module Commonmark.Blocks
   , indentedCodeSpec
   , fencedCodeSpec
   , blockQuoteSpec
-  , atxHeaderSpec
-  , setextHeaderSpec
+  , atxHeadingSpec
+  , setextHeadingSpec
   , thematicBreakSpec
   , listItemSpec
   , rawHtmlSpec
@@ -289,8 +289,8 @@ defaultBlockSpecs =
     [ indentedCodeSpec
     , fencedCodeSpec
     , blockQuoteSpec
-    , atxHeaderSpec
-    , setextHeaderSpec
+    , atxHeadingSpec
+    , setextHeadingSpec
     , thematicBreakSpec
     , listItemSpec
     , rawHtmlSpec
@@ -530,10 +530,10 @@ linkReferenceDef = try $ do
   return ((SourceRange [(startpos, endpos)], lab),
           (unEntity dest, unEntity title))
 
-atxHeaderSpec :: (Monad m, IsBlock il bl)
+atxHeadingSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
-atxHeaderSpec = BlockSpec
-     { blockType           = "ATXHeader"
+atxHeadingSpec = BlockSpec
+     { blockType           = "ATXHeading"
      , blockStart          = try $ do
              nonindentSpaces
              pos <- getPosition
@@ -558,7 +558,7 @@ atxHeaderSpec = BlockSpec
                   | tokType x /= Symbol '#' = reverse raw
                  removeClosingHash _ xs = xs
              let raw' = reverse . removeClosingHash 0 . reverse $ raw
-             addNodeToStack $ Node (defBlockData atxHeaderSpec){
+             addNodeToStack $ Node (defBlockData atxHeadingSpec){
                             blockLines = [raw'],
                             blockData = toDyn level,
                             blockStartPos = [pos] } []
@@ -568,16 +568,16 @@ atxHeaderSpec = BlockSpec
      , blockParagraph      = False
      , blockContinue       = const mzero
      , blockConstructor    = \node ->
-           (addRange node . header
+           (addRange node . heading
      (fromDyn (blockData (rootLabel node)) 1))
   <$> runInlineParser (getBlockText removeIndent node)
      , blockFinalize       = defaultFinalizer
      }
 
-setextHeaderSpec :: (Monad m, IsBlock il bl)
+setextHeadingSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
-setextHeaderSpec = BlockSpec
-     { blockType           = "SetextHeader"
+setextHeadingSpec = BlockSpec
+     { blockType           = "SetextHeading"
      , blockStart          = try $ do
              (cur:rest) <- nodeStack <$> getState
              guard $ blockParagraph (bspec cur)
@@ -601,10 +601,10 @@ setextHeaderSpec = BlockSpec
              case mbcur of
                Nothing -> mzero -- should not happen
                Just cur' -> do
-                 -- replace cur with new setext header node
+                 -- replace cur with new setext heading node
                  addNodeToStack $
                       Node (rootLabel cur'){
-                              blockSpec  = setextHeaderSpec,
+                              blockSpec  = setextHeadingSpec,
                               blockData = toDyn level,
                               blockStartPos =
                                    blockStartPos (rootLabel cur') ++ [pos] }
@@ -615,7 +615,7 @@ setextHeaderSpec = BlockSpec
      , blockParagraph      = False
      , blockContinue       = const mzero
      , blockConstructor    = \node ->
-           (addRange node . header
+           (addRange node . heading
                  (fromDyn (blockData (rootLabel node)) 1))
              <$> runInlineParser (getBlockText removeIndent node)
      , blockFinalize       = defaultFinalizer

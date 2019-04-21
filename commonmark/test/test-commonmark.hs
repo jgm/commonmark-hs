@@ -29,11 +29,11 @@ main = do
              , ("test/regression.txt", mempty)
              , ("test/smart_punct.txt", smartPunctuationSpec)
              , ("test/strikethrough.txt", strikethroughSpec)
-             , ("test/pipe-tables.txt", pipeTableSpec)
+             , ("test/pipe_tables.txt", pipeTableSpec)
              , ("test/footnotes.txt", footnoteSpec)
              , ("test/math.txt", mathSpec)
              , ("test/autolinks.txt", autolinkSpec)
-             , ("test/definition-list.txt", definitionListSpec)
+             , ("test/definition_list.txt", definitionListSpec)
              ]
   defaultMain $ testGroup "Tests"
      (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip

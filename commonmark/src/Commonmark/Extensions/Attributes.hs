@@ -31,7 +31,8 @@ headingAttributesSpec
              :: (Monad m, IsBlock il bl, IsInline il, HasAttributes bl)
              => SyntaxSpec m il bl
 headingAttributesSpec = SyntaxSpec
-  { syntaxBlockSpecs = [atxHeadingWithAttributesSpec]
+  { syntaxBlockSpecs = [atxHeadingWithAttributesSpec,
+                        setextHeadingWithAttributesSpec]
   , syntaxBracketedSpecs = []
   , syntaxFormattingSpecs = []
   , syntaxInlineParsers = []
@@ -61,6 +62,28 @@ atxHeadingWithAttributesSpec = atxHeadingSpec
          [] -> mzero
          (Node nd cs:ns) -> updateState $ \st -> st{
               nodeStack = Node nd{ blockSpec = atxHeadingWithAttributesSpec
+                                 } cs : ns }
+       return res
+  , blockConstructor    = \node -> do
+       let level = fromDyn (blockData (rootLabel node)) 1
+       let toks = getBlockText removeIndent node
+       let (content, attr) = parseAttributes toks
+       ils <- runInlineParser content
+       return $ (addRange node . addAttributes attr . heading level) ils
+  }
+
+setextHeadingWithAttributesSpec
+    :: (Monad m, IsBlock il bl, IsInline il, HasAttributes bl)
+    => BlockSpec m il bl
+setextHeadingWithAttributesSpec = atxHeadingSpec
+  { blockType = "SetextHeadingWithAttributes"
+  , blockStart = do
+       res <- blockStart setextHeadingSpec
+       nodestack <- nodeStack <$> getState
+       case nodestack of
+         [] -> mzero
+         (Node nd cs:ns) -> updateState $ \st -> st{
+              nodeStack = Node nd{ blockSpec = setextHeadingWithAttributesSpec
                                  } cs : ns }
        return res
   , blockConstructor    = \node -> do

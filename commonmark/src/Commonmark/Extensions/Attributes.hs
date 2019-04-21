@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Commonmark.Extensions.Attributes
-  ( Attributes(..)
+  ( Attributes
   , HasAttributes(..)
   , headingAttributesSpec
   , pAttributes
@@ -13,18 +13,16 @@ import Commonmark.Types
 import Commonmark.Tag (htmlAttributeName, htmlAttributeValue)
 import Commonmark.Tokens
 import Commonmark.Syntax
-import Commonmark.Inlines
 import Commonmark.SourceMap
 import Commonmark.Util
 import Commonmark.Blocks
 import Commonmark.Entity (unEntity)
-import Commonmark.Html (escapeHtml, addAttribute, HtmlAttribute)
+import Commonmark.Html (addAttribute, HtmlAttribute)
 import Data.Dynamic
 import qualified Data.Text as T
 import Data.Tree
 import Control.Monad (mzero)
 import Text.Parsec
-import Data.Text (Text)
 import Data.Semigroup (Semigroup(..))
 
 headingAttributesSpec

@@ -68,4 +68,16 @@ atxHeaderWithAttributesSpec = atxHeaderSpec
   }
 
 parseAttributes :: [Tok] -> ([Tok], Attributes)
-parseAttributes ts = (ts, [("fakeattr","fakedata")]) -- for now
+parseAttributes ts =
+  case parse
+       ((,) <$> many (notFollowedBy pAttributes >> anyTok)
+            <*> option [] pAttributes) "heading contents" ts of
+    Left _        -> (ts, [])
+    Right (xs,ys) -> (xs, ys)
+
+pAttributes :: Monad m => ParsecT [Tok] u m Attributes
+pAttributes = try $ do
+  symbol '{'
+  symbol '#'
+  xs <- manyTill anyTok (symbol '}')
+  return [("id", untokenize xs)]

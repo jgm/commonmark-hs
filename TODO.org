@@ -19,14 +19,16 @@ that.  Then the effect can be state dependenet.
 Would it make sense to do this for footnotes instead of
 including the ad hoc after document thing?
 * TODO extensions
-** TODO attributes (link/image/code/codeblock/header)
-- [ ] attribute parser
-- [ ] for header, parse inlines
-** TODO bracketed spans
-** TODO code_identifiers
-** TODO fenced divs
-** TODO raw attribute
 ** TODO auto_identifiers (headers)
+** TODO code block attributes
+** TODO code span attributes
+** TODO raw attribute
+** TODO image and link attributes
+** TODO bracketed spans
+** TODO citations
+** TODO fenced divs
+** TODO simple tables
+** TODO multiline tables
 ** TODO grid tables
 * TODO documentation
 ** TODO example of creating instances for roff man

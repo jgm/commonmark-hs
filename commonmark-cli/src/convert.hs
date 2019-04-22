@@ -45,7 +45,7 @@ options =
   [ Option ['t'] ["tokenize"] (NoArg Tokenize) "tokenize"
   , Option ['x'] ["extension"] (ReqArg Extension "extension") "use extension"
   , Option ['p'] ["sourcepos"] (NoArg SourcePos) "source positions"
-  , Option ['h'] ["highlight"] (NoArg Highlight) "highlight"
+  , Option [] ["highlight"] (NoArg Highlight) "highlight"
   , Option ['j'] ["json"] (NoArg PandocJSON) "pandoc JSON output"
   , Option ['v'] ["version"] (NoArg Version) "version info"
   , Option [] ["list-extensions"] (NoArg ListExtensions) "list extensions"

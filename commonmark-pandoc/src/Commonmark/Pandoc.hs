@@ -40,7 +40,7 @@ instance Functor (Cm b) where
 instance Rangeable (Cm b B.Inlines) => IsInline (Cm b B.Inlines) where
   lineBreak = Cm B.linebreak
   softBreak = Cm B.softbreak
-  str t = Cm $ B.str (T.unpack t)
+  str t = Cm $ B.text (T.unpack t)
   entity t
     | illegalCodePoint t = Cm $ B.str "\xFFFD"
     | otherwise = Cm $ B.str (T.unpack t)
@@ -127,6 +127,7 @@ addAttrs attrs (Header n (id',classes',kvs') ils) =
    classes'' = maybe classes' (words . T.unpack) $ lookup "class" attrs
    kvs'' = kvs' ++ [(T.unpack k, T.unpack v) | (k,v) <- attrs,
                          k /= "id", k /= "class"]
+addAttrs _attrs x = x
 
 instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
      => HasFootnote (Cm a B.Inlines) (Cm a B.Blocks) where

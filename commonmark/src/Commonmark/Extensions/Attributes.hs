@@ -23,7 +23,6 @@ import qualified Data.Text as T
 import Data.Tree
 import Control.Monad (mzero)
 import Text.Parsec
-import Data.Semigroup (Semigroup(..))
 
 headingAttributesSpec
              :: (Monad m, IsBlock il bl, IsInline il, HasAttributes bl)

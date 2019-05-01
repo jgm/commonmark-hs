@@ -60,8 +60,8 @@ commands:
           # https://github.com/haskell/cabal/issues/4247
           cat build.log
           ! grep -q "warning:" build.log
-          cabal v2-test --ghc-options="${GHC_OPTS} -Werror" all
-          cabal v2-haddock --ghc-options="${GHC_OPTS} -Werror" all
+          cabal v2-test --ghc-options="${GHC_OPTS}" all
+          cabal v2-haddock --ghc-options="${GHC_OPTS}" all
       - *save
 
 #-----------------------------------------------------------------------------

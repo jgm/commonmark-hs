@@ -33,6 +33,8 @@ The following optional extensions are provided:
 - LaTeX math
 - Autolink bare URLs and email addresses
 - Footnotes
+- Definition lists
+- Header attributes
 
 ## Notes on the design
 

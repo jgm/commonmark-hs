@@ -71,6 +71,7 @@ main = catch (do
   when (Version `elem` opts) $ do
     putStrLn $ prg ++ " " ++ showVersion version
     exitSuccess
+  let popts = defaultOptions{ sourcePositions = SourcePos `elem` opts }
   toks <- if null files
             then tokenize "stdin" <$> TIO.getContents
             else mconcat <$> mapM (\f -> tokenize f <$> TIO.readFile f) files
@@ -80,9 +81,9 @@ main = catch (do
   if Highlight `elem` opts then do
       spec <- specFromExtensionNames [x | Extension x <- opts]
       case runWithSourceMap <$>
-              runIdentity (parseCommonmarkWith spec toks) of
+              runIdentity (parseCommonmarkWith spec popts toks) of
            Left e -> errExit e
-           Right ((_ :: Html ()), sm) -> do
+           Right ((_ :: Html), sm) -> do
              TLIO.putStr $ toLazyText $
                "<!DOCTYPE html>\n<head>\n" <>
                "<title>" <> (case files of
@@ -94,25 +95,18 @@ main = catch (do
                highlightWith sm toks <>
                "</body>\n"
   else
-    if SourcePos `elem` opts then do
-       spec <- specFromExtensionNames [x | Extension x <- opts]
-       case runIdentity (parseCommonmarkWith spec toks) of
-            Left e -> errExit e
-            Right (r :: Html SourceRange)
-                   -> TLIO.putStr . renderHtml $ r
-    else
-      if PandocJSON `elem` opts then do
-        spec <- specFromExtensionNames [x | Extension x <- opts]
-        case runIdentity (parseCommonmarkWith spec toks) of
-             Left e -> errExit e
-             Right (r :: Cm () B.Blocks) -> do
-               BL.putStr . encode $ B.doc $ unCm r
-               BL.putStr "\n"
-      else do
-        spec <- specFromExtensionNames [x | Extension x <- opts]
-        case runIdentity (parseCommonmarkWith spec toks) of
-             Left e -> errExit e
-             Right (r :: Html ()) -> TLIO.putStr . renderHtml $ r)
+    if PandocJSON `elem` opts then do
+      spec <- specFromExtensionNames [x | Extension x <- opts]
+      case runIdentity (parseCommonmarkWith spec popts toks) of
+           Left e -> errExit e
+           Right (r :: B.Blocks) -> do
+             BL.putStr . encode $ B.doc r
+             BL.putStr "\n"
+    else do
+      spec <- specFromExtensionNames [x | Extension x <- opts]
+      case runIdentity (parseCommonmarkWith spec popts toks) of
+           Left e -> errExit e
+           Right (r :: Html) -> TLIO.putStr . renderHtml $ r)
    (\(e :: AsyncException) -> do
              currentCallStack >>= mapM_ (hPutStrLn stderr)
              throwIO e)
@@ -146,7 +140,7 @@ extensions =
 
 extensionList :: [String]
 extensionList = map fst
-  (extensions :: [(String, SyntaxSpec IO (Html ()) (Html ()))])
+  (extensions :: [(String, SyntaxSpec IO Html Html)])
 
 listExtensions :: IO ()
 listExtensions =

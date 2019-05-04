@@ -26,7 +26,7 @@ strikethroughSpec = SyntaxSpec
 class HasStrikethrough a where
   strikethrough :: a -> a
 
-instance HasStrikethrough (Html a) where
+instance HasStrikethrough Html where
   strikethrough x = htmlInline "del" (Just x)
 
 instance (HasStrikethrough i, Monoid i)

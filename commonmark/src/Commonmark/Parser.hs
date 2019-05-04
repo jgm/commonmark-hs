@@ -34,19 +34,23 @@ import           Data.Functor.Identity   (runIdentity)
 --        Right html -> TLIO.putStr (Lucid.renderText html)
 -- @
 parseCommonmark :: IsBlock il bl
-                => [Tok] -- ^ Tokenized commonmark input
+                => Options
+                -> [Tok] -- ^ Tokenized commonmark input
                 -> Either ParseError bl  -- ^ Result or error
-parseCommonmark = runIdentity . parseCommonmarkWith defaultSyntaxSpec
+parseCommonmark opts = runIdentity . parseCommonmarkWith defaultSyntaxSpec opts
 
 -- | Parse a tokenized commonmark document using specified
 -- syntax elements.
 parseCommonmarkWith :: (Monad m, IsBlock il bl, IsInline il)
                     => SyntaxSpec m il bl -- ^ Defines syntax
+                    -> Options
                     -> [Tok] -- ^ Tokenized commonmark input
                     -> m (Either ParseError bl)  -- ^ Result or error
-parseCommonmarkWith syntax =
-    mkBlockParser (syntaxBlockSpecs syntax)
+parseCommonmarkWith syntax opts =
+    mkBlockParser opts
+      (syntaxBlockSpecs syntax)
       (syntaxFinalParsers syntax)
-      (mkInlineParser (syntaxBracketedSpecs syntax)
-                      (syntaxFormattingSpecs syntax)
-                      (syntaxInlineParsers syntax))
+      (mkInlineParser opts
+        (syntaxBracketedSpecs syntax)
+        (syntaxFormattingSpecs syntax)
+        (syntaxInlineParsers syntax))

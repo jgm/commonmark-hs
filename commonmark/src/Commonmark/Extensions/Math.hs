@@ -31,7 +31,7 @@ class HasMath a where
   inlineMath :: Text -> a
   displayMath :: Text -> a
 
-instance HasMath (Html a) where
+instance HasMath Html where
   inlineMath t = addAttribute ("class", "math inline") $
     htmlInline "span" $ Just $ htmlRaw "\\(" <> htmlText t <> htmlRaw "\\)"
   displayMath t = addAttribute ("class", "math display") $

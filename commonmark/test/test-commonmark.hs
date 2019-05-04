@@ -42,7 +42,7 @@ main = do
       : tests)
 
 getSpecTestTree :: FilePath
-                -> SyntaxSpec Identity (Html ()) (Html ())
+                -> SyntaxSpec Identity Html Html
                 -> IO TestTree
 getSpecTestTree fp syntaxspec = do
   spectests <- getSpecTests fp
@@ -50,7 +50,7 @@ getSpecTestTree fp syntaxspec = do
                           spectests
   let spectestsecs = [(section (head xs), xs) | xs <- spectestgroups]
   let parser = runIdentity . parseCommonmarkWith
-                   (syntaxspec <> defaultSyntaxSpec)
+                   (syntaxspec <> defaultSyntaxSpec) defaultOptions
   return $ testGroup fp $
     map (\(secname, tests) ->
            testGroup (T.unpack secname) $
@@ -75,7 +75,7 @@ data SpecTest = SpecTest
      , html       :: Text }
   deriving (Show)
 
-toSpecTest :: ([Tok] -> Either ParseError (Html ()))
+toSpecTest :: ([Tok] -> Either ParseError Html)
            -> SpecTest -> TestTree
 toSpecTest parser st =
   testCase name (actual @?= expected)
@@ -86,7 +86,7 @@ toSpecTest parser st =
           actual = normalizeHtml .  TL.toStrict . renderHtml .
                    fromRight mempty $
                      (parser (tokenize "" (markdown st))
-                      :: Either ParseError (Html ()))
+                      :: Either ParseError Html)
 
 normalizeHtml :: Text -> Text
 normalizeHtml = T.replace "\n</li>" "</li>" .

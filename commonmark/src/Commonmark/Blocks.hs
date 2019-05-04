@@ -10,6 +10,7 @@
 module Commonmark.Blocks
   ( mkBlockParser
   , defaultBlockSpecs
+  , getParseOptions
   , BlockStartResult(..)
   , BlockSpec(..)
   , BlockData(..)
@@ -66,16 +67,18 @@ import           Data.Tree
 import           Text.Parsec
 
 mkBlockParser :: (Monad m, IsBlock il bl)
-             => [BlockSpec m il bl] -- ^ Defines block syntax
+             => Options
+             -> [BlockSpec m il bl] -- ^ Defines block syntax
              -> [BlockParser m il bl bl] -- ^ Parsers to run at end
              -> (ReferenceMap -> [Tok]
                   -> m (Either ParseError il)) -- ^ Inline parser
              -> [Tok] -- ^ Tokenized commonmark input
              -> m (Either ParseError bl)  -- ^ Result or error
-mkBlockParser _ _ _ [] = return $ Right mempty
-mkBlockParser specs finalParsers ilParser (t:ts) =
+mkBlockParser _ _ _ _ [] = return $ Right mempty
+mkBlockParser opts specs finalParsers ilParser (t:ts) =
   runParserT (setPosition (tokPos t) >> processLines specs finalParsers)
           BPState{ referenceMap     = emptyReferenceMap
+                 , parseOptions     = opts
                  , inlineParser     = ilParser
                  , nodeStack        = [Node (defBlockData docSpec) []]
                  , blockMatched     = False
@@ -326,6 +329,7 @@ type BlockNode m il bl = Tree (BlockData m il bl)
 
 data BPState m il bl = BPState
      { referenceMap     :: ReferenceMap
+     , parseOptions     :: Options
      , inlineParser     :: ReferenceMap -> [Tok] -> m (Either ParseError il)
      , nodeStack        :: [BlockNode m il bl]   -- reverse order, head is tip
      , blockMatched     :: !Bool
@@ -350,6 +354,9 @@ data ListItemData = ListItemData
      , listItemBlanksAtEnd  :: Bool
      } deriving (Show, Eq)
 
+getParseOptions :: Monad m => BlockParser m il bl Options
+getParseOptions = parseOptions <$> getState
+
 runInlineParser :: Monad m
                 => [Tok]
                 -> BlockParser m il bl il
@@ -363,10 +370,13 @@ runInlineParser toks = do
                     -- pass up ParseError
 
 addRange :: (Monad m, IsBlock il bl)
-         => BlockNode m il bl -> bl -> bl
-addRange (Node b _)
- = ranged (SourceRange
+         => Options
+         -> BlockNode m il bl -> bl -> bl
+addRange opts (Node b _)
+ = if sourcePositions opts
+      then ranged (SourceRange
             (reverse $ zip (blockStartPos b) (blockEndPos b)))
+      else id
 
 -- Add a new node to the block stack.  If current tip can contain
 -- it, add it there; otherwise, close the tip and repeat til we get
@@ -416,11 +426,14 @@ refLinkDefSpec = BlockSpec
      , blockParagraph      = False
      , blockContinue       = const mzero
      , blockConstructor    = \node -> do
+         opts <- getParseOptions
          let linkdefs = fromDyn (blockData (rootLabel node))
                   [] :: [((SourceRange, Text), (Text, Text))]
          return $ mconcat $ map (\((range, lab), (dest, tit)) ->
-            (ranged range
-              (referenceLinkDefinition lab (dest, tit)))) linkdefs
+             (if sourcePositions opts
+                 then ranged range
+                 else id) $
+              referenceLinkDefinition lab (dest, tit)) linkdefs
      , blockFinalize       = defaultFinalizer
      }
 
@@ -487,8 +500,9 @@ paraSpec = BlockSpec
              pos <- getPosition
              notFollowedBy lineEnd
              return (pos, n)
-     , blockConstructor    = \node ->
-         (addRange node . paragraph)
+     , blockConstructor    = \node -> do
+         opts <- getParseOptions
+         (addRange opts node . paragraph)
              <$> runInlineParser (getBlockText removeIndent node)
      , blockFinalize       = \child parent -> do
          (mbchild, mbrefdefs) <- extractReferenceLinks child
@@ -505,8 +519,9 @@ paraSpec = BlockSpec
 plainSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 plainSpec = paraSpec{
-    blockConstructor    = \node ->
-         (addRange node . plain)
+    blockConstructor    = \node -> do
+         opts <- getParseOptions
+         (addRange opts node . plain)
              <$> runInlineParser (getBlockText removeIndent node)
   }
 
@@ -567,10 +582,10 @@ atxHeadingSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = const mzero
-     , blockConstructor    = \node ->
-           (addRange node . heading
-     (fromDyn (blockData (rootLabel node)) 1))
-  <$> runInlineParser (getBlockText removeIndent node)
+     , blockConstructor    = \node -> do
+           opts <- getParseOptions
+           (addRange opts node . heading (fromDyn (blockData (rootLabel node)) 1))
+             <$> runInlineParser (getBlockText removeIndent node)
      , blockFinalize       = defaultFinalizer
      }
 
@@ -614,8 +629,9 @@ setextHeadingSpec = BlockSpec
      , blockContainsLines  = True
      , blockParagraph      = False
      , blockContinue       = const mzero
-     , blockConstructor    = \node ->
-           (addRange node . heading
+     , blockConstructor    = \node -> do
+           opts <- getParseOptions
+           (addRange opts node . heading
                  (fromDyn (blockData (rootLabel node)) 1))
              <$> runInlineParser (getBlockText removeIndent node)
      , blockFinalize       = defaultFinalizer
@@ -642,11 +658,12 @@ blockQuoteSpec = BlockSpec
              _ <- symbol '>'
              _ <- gobbleUpToSpaces 1
              return (pos, n)
-     , blockConstructor    = \node ->
-          (addRange node . blockQuote . mconcat)
-   <$> mapM (\n ->
-              blockConstructor (blockSpec (rootLabel n)) n)
-         (reverse (subForest node))
+     , blockConstructor    = \node -> do
+          opts <- getParseOptions
+          (addRange opts node . blockQuote . mconcat)
+             <$> mapM (\n ->
+                   blockConstructor (blockSpec (rootLabel n)) n)
+                   (reverse (subForest node))
      , blockFinalize       = defaultFinalizer
      }
 
@@ -766,10 +783,11 @@ listSpec = BlockSpec
      , blockParagraph      = False
      , blockContinue       = \n -> (,n) <$> getPosition
      , blockConstructor    = \node -> do
+          opts <- getParseOptions
           let ListData lt ls = fromDyn (blockData (rootLabel node))
                                  (ListData undefined undefined)
           let constructor n = blockConstructor (blockSpec (rootLabel n)) n
-          (addRange node . list lt ls)
+          (addRange opts node . list lt ls)
              <$> mapM constructor (reverse (subForest node))
      , blockFinalize       = \(Node cdata children) parent -> do
           let ListData lt _ = fromDyn (blockData cdata)
@@ -828,8 +846,9 @@ thematicBreakSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = const mzero
-     , blockConstructor    = \node ->
-             return (addRange node thematicBreak)
+     , blockConstructor    = \node -> do
+             opts <- getParseOptions
+             return (addRange opts node thematicBreak)
      , blockFinalize       = defaultFinalizer
      }
 
@@ -855,8 +874,9 @@ indentedCodeSpec = BlockSpec
              pos <- getPosition
              return (pos, node)
 
-     , blockConstructor    = \node ->
-             return (addRange node
+     , blockConstructor    = \node -> do
+             opts <- getParseOptions
+             return (addRange opts node
                         (codeBlock mempty
                            (untokenize (getBlockText id node))))
      , blockFinalize       = \(Node cdata children) parent -> do
@@ -919,9 +939,10 @@ fencedCodeSpec = BlockSpec
                        _ <- gobbleUpToSpaces indentspaces
                        return (pos, node))
      , blockConstructor    = \node -> do
+             opts <- getParseOptions
              let ((_, _, _, info) :: (Char, Int, Int, Text)) =
                      fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty)
-             return (addRange node
+             return (addRange opts node
                         (codeBlock info
                             -- drop initial lineend token
                             (untokenize $ drop 1 (getBlockText id node))))
@@ -974,8 +995,9 @@ rawHtmlSpec = BlockSpec
                                     blockData = toDyn (0 :: Int)
                                   , blockLines = (toks ++ le) : blockLines ndata
                                   } children)) <|> return (pos, node)
-     , blockConstructor    = \node ->
-             return (addRange node
+     , blockConstructor    = \node -> do
+             opts <- getParseOptions
+             return (addRange opts node
                         (rawBlock (Format "html")
                            (untokenize (getBlockText id node))))
      , blockFinalize       = defaultFinalizer

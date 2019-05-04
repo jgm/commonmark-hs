@@ -23,15 +23,14 @@ import           Data.Functor.Identity   (runIdentity)
 --
 -- @
 -- import Commonmark
--- import Lucid as Lucid
 -- import Data.Text.IO as TIO
 -- import Data.Text.Lazy.IO as TLIO
 --
 -- main = do
 --   inp <- TIO.getContents
---   case parseCommonmark (tokenize "stdin" inp) of
+--   case parseCommonmark defaultOptions (tokenize "stdin" inp) of
 --        Left e     -> error (show e)
---        Right html -> TLIO.putStr (Lucid.renderText html)
+--        Right html -> TLIO.putStr (renderHtml html)
 -- @
 parseCommonmark :: IsBlock il bl
                 => Options

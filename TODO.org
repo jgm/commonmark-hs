@@ -1,3 +1,8 @@
+* TODO Modify ranges
+instead of having differnt types, e.g. Html SourceRange vs Html (),
+we could just have a parsing option specifying whether ranges are
+to be added.  This simplifies the types and would make everything
+easier.
 * TODO Modify monoid so that we replace something with same name instead of appending?
 * TODO create a sample markdown linter
 do a specific transformation on semantically identified

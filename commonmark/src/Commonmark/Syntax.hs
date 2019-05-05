@@ -16,7 +16,7 @@ import Data.Semigroup
 -- elements or an extension.  'SyntaxSpec's can be composed
 -- using monoidal 'mappend'.
 data SyntaxSpec m il bl = SyntaxSpec
-    { syntaxBlockSpecs      :: [BlockSpec m il bl]
+     { syntaxBlockSpecs      :: [BlockSpec m il bl]
         -- ^ Defines block structure
      , syntaxBracketedSpecs  :: [BracketedSpec il]
         -- ^ Defines bracketed inline containers (inline, image)

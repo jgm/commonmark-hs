@@ -100,3 +100,10 @@ instances for the element.  See the examples in
 `Commonmark.Extensions.*`.  Note that `SyntaxSpec` is a Monoid,
 so you can specify `myNewSyntaxSpec <> defaultSyntaxSpec`.
 
+## Performance
+
+On one sample (ten concatenated copies of `benchmark/sample.md`)
+this library is roughly the same speed as commonmark.js; roughly
+twice as fast as pandoc; and an order of magnitude slower than
+cmark.  It would be good to improve this (help welcome).
+

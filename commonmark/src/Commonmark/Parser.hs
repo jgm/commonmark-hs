@@ -22,15 +22,16 @@ import           Data.Functor.Identity   (runIdentity)
 -- use 'parseCommonmarkWith'.  Simple usage example:
 --
 -- @
+-- {-# LANGUAGE ScopedTypeVariables #-}
 -- import Commonmark
 -- import Data.Text.IO as TIO
 -- import Data.Text.Lazy.IO as TLIO
 --
 -- main = do
 --   inp <- TIO.getContents
---   case parseCommonmark defaultOptions (tokenize "stdin" inp) of
+--   case parseCommonmark (tokenize "stdin" inp) of
 --        Left e     -> error (show e)
---        Right html -> TLIO.putStr (renderHtml html)
+--        Right (html :: Html ()) -> TLIO.putStr (renderHtml html)
 -- @
 parseCommonmark :: IsBlock il bl
                 => [Tok] -- ^ Tokenized commonmark input

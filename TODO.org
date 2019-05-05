@@ -24,14 +24,13 @@ that.  Then the effect can be state dependenet.
 Would it make sense to do this for footnotes instead of
 including the ad hoc after document thing?
 * TODO extensions
-** TODO auto_identifiers (headers)
 ** TODO code block attributes
 ** TODO code span attributes
-** TODO raw attribute
 ** TODO image and link attributes
 ** TODO bracketed spans
-** TODO citations
+** TODO raw attribute
 ** TODO fenced divs
+** TODO citations
 ** TODO simple tables
 ** TODO multiline tables
 ** TODO grid tables

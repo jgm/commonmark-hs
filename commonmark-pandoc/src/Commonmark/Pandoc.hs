@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-orphans       #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE ExtendedDefaultRules       #-}
 {-# LANGUAGE ExtendedDefaultRules       #-}
@@ -17,6 +16,7 @@ where
 
 import qualified Data.Text as T
 import qualified Data.Text.Read as TR
+import Data.Semigroup       (Semigroup)
 import Text.Pandoc.Definition
 import qualified Text.Pandoc.Builder as B
 import Commonmark.Types as C
@@ -27,6 +27,7 @@ import Commonmark.Extensions.DefinitionList
 import Commonmark.Extensions.Footnote
 import Commonmark.Extensions.Attributes
 import Data.Char (isSpace)
+import Data.Coerce (coerce)
 
 instance IsInline B.Inlines where
   lineBreak = B.linebreak

@@ -86,9 +86,8 @@ footnoteBlockSpec = BlockSpec
                <|> (skipWhile (hasType Spaces) >> () <$ lookAhead lineEnd)
              pos <- getPosition
              return (pos, n)
-     , blockConstructor    = \node -> do
-          opts <- getParseOptions
-          (addRange opts node . mconcat) <$> mapM (\n ->
+     , blockConstructor    = \node ->
+          (addRange node . mconcat) <$> mapM (\n ->
               blockConstructor (blockSpec (rootLabel n)) n)
             (reverse (subForest node))
      , blockFinalize       = \(Node root children) parent -> do
@@ -150,7 +149,7 @@ class IsBlock il bl => HasFootnote il bl | il -> bl where
   footnoteList :: [bl] -> bl
   footnoteRef :: Text -> Text -> bl -> il
 
-instance HasFootnote Html Html where
+instance Rangeable (Html a) => HasFootnote (Html a) (Html a) where
   footnote num lab' x =
     addAttribute ("class", "footnote") $
     addAttribute ("id", "fn-" <> lab') $

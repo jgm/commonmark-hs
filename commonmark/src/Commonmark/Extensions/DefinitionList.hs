@@ -78,11 +78,10 @@ definitionListItemBlockSpec = BlockSpec
      , blockContinue       = \n -> (,n) <$> getPosition
      , blockConstructor    = undefined
      , blockFinalize       = \(Node cdata children) parent -> do
-         opts <- getParseOptions
          let listSpacing   = fromDyn (blockData cdata) LooseList
          let plainSpec = paraSpec{
                blockConstructor    = \node ->
-                   (addRange opts node . plain)
+                   (addRange node . plain)
                        <$> runInlineParser (getBlockText removeIndent node)
                }
          let totight (Node nd cs)
@@ -183,12 +182,13 @@ definitionListDefinitionBlockSpec = BlockSpec
 class IsBlock il bl => HasDefinitionList il bl | il -> bl where
   definitionList :: ListSpacing -> [(il,[bl])] -> bl
 
-instance HasDefinitionList Html Html where
+instance Rangeable (Html a) =>
+         HasDefinitionList (Html a) (Html a) where
   definitionList spacing items =
     htmlBlock "dl" $ Just $ htmlRaw "\n" <>
        mconcat (map (definitionListItem spacing) (reverse items))
 
-definitionListItem :: ListSpacing -> (Html, [Html]) -> Html
+definitionListItem :: ListSpacing -> (Html a, [Html a]) -> Html a
 definitionListItem spacing (term, defns) =
   htmlBlock "dt" (Just term) <>
    mconcat (map (\defn ->

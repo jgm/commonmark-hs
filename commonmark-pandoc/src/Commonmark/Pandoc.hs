@@ -10,7 +10,9 @@
 {-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Commonmark.Pandoc ()
+module Commonmark.Pandoc
+  ( Cm(..)
+  )
 
 where
 
@@ -29,77 +31,93 @@ import Commonmark.Extensions.Attributes
 import Data.Char (isSpace)
 import Data.Coerce (coerce)
 
-instance IsInline B.Inlines where
-  lineBreak = B.linebreak
-  softBreak = B.softbreak
-  str t = B.text (T.unpack t)
+newtype Cm b a = Cm { unCm :: a }
+  deriving (Show, Semigroup, Monoid)
+
+instance Functor (Cm b) where
+  fmap f (Cm x) = Cm (f x)
+
+instance Rangeable (Cm b B.Inlines) => IsInline (Cm b B.Inlines) where
+  lineBreak = Cm B.linebreak
+  softBreak = Cm B.softbreak
+  str t = Cm $ B.text (T.unpack t)
   entity t
-    | illegalCodePoint t = B.str "\xFFFD"
-    | otherwise = B.str (T.unpack t)
-  escapedChar c = B.str [c]
-  emph = B.emph
-  strong = B.strong
-  link target title = B.link (T.unpack target) (T.unpack title)
-  image target title = B.image (T.unpack target) (T.unpack title)
-  code t = B.code (T.unpack t)
-  rawInline (C.Format f) t = B.rawInline (T.unpack f) (T.unpack t)
+    | illegalCodePoint t = Cm $ B.str "\xFFFD"
+    | otherwise = Cm $ B.str (T.unpack t)
+  escapedChar c = Cm $ B.str [c]
+  emph ils = B.emph <$> ils
+  strong ils = B.strong <$> ils
+  link target title ils = B.link (T.unpack target) (T.unpack title) <$> ils
+  image target title ils = B.image (T.unpack target) (T.unpack title) <$> ils
+  code t = Cm $ B.code (T.unpack t)
+  rawInline (C.Format f) t = Cm $ B.rawInline (T.unpack f) (T.unpack t)
 
-instance Rangeable B.Inlines where
-  ranged r = B.spanWith ("",[],[("data-pos",show r)])
+instance Rangeable (Cm () B.Inlines) where
+  ranged _r x = x
 
-instance IsBlock B.Inlines B.Blocks where
-  paragraph = B.para
-  plain = B.plain
-  thematicBreak = B.horizontalRule
-  blockQuote = B.blockQuote
-  codeBlock info t = B.codeBlockWith attr (T.unpack t)
+instance Rangeable (Cm SourceRange B.Inlines) where
+  ranged r x = B.spanWith ("",[],[("data-pos",show r)]) <$> x
+
+instance (Rangeable (Cm a B.Inlines),
+          Rangeable (Cm a B.Blocks))
+      => IsBlock (Cm a B.Inlines) (Cm a B.Blocks) where
+  paragraph ils = Cm $ B.para $ unCm ils
+  plain ils = Cm $ B.plain $ unCm ils
+  thematicBreak = Cm B.horizontalRule
+  blockQuote bs = B.blockQuote <$> bs
+  codeBlock info t = Cm $ B.codeBlockWith attr (T.unpack t)
     where attr = ("", [T.unpack lang | not (T.null lang)], [])
           lang = T.takeWhile (not . isSpace) info
-  heading level = B.header level
-  rawBlock (C.Format f) t = B.rawBlock (T.unpack f) (T.unpack t)
-  referenceLinkDefinition _ _ = mempty
-  list (C.BulletList _) lSpacing items = B.bulletList items'
+  heading level ils = Cm $ B.header level $ unCm ils
+  rawBlock (C.Format f) t = Cm $ B.rawBlock (T.unpack f) (T.unpack t)
+  referenceLinkDefinition _ _ = Cm mempty
+  list (C.BulletList _) lSpacing items = Cm $ B.bulletList items'
     where items' = if lSpacing == TightList
-                      then map (B.fromList . map paraToPlain . B.toList)
+                      then map (B.fromList . map paraToPlain . B.toList. unCm)
                            items
-                      else items
+                      else map unCm items
           paraToPlain (Para xs) = Plain xs
           paraToPlain x = x
   list (C.OrderedList startnum _) lSpacing items =
-    B.orderedListWith attr items'
+    Cm $ B.orderedListWith attr items'
     where items' = if lSpacing == TightList
-                      then map (B.fromList . map paraToPlain . B.toList)
+                      then map (B.fromList . map paraToPlain . B.toList. unCm)
                            items
-                      else items
+                      else map unCm items
           paraToPlain (Para xs) = Plain xs
           paraToPlain x = x
           attr = (startnum, DefaultStyle, DefaultDelim)
 
-instance Rangeable B.Blocks where
-  ranged r = B.divWith ("",[],[("data-pos",show r)])
+instance Rangeable (Cm () B.Blocks) where
+  ranged _r x = x
 
-instance HasMath B.Inlines where
-  inlineMath t = B.math (T.unpack t)
-  displayMath t = B.displayMath (T.unpack t)
+instance Rangeable (Cm SourceRange B.Blocks) where
+  ranged r x = B.divWith ("",[],[("data-pos",show r)]) <$> x
 
-instance HasPipeTable B.Inlines B.Blocks where
+instance HasMath (Cm b B.Inlines) where
+  inlineMath t = Cm $ B.math (T.unpack t)
+  displayMath t = Cm $ B.displayMath (T.unpack t)
+
+instance HasPipeTable (Cm a B.Inlines) (Cm a B.Blocks) where
   pipeTable aligns headerCells rows =
-    B.table mempty colspecs (map B.plain headerCells)
-                     (map (map B.plain) rows)
+    Cm $ B.table mempty colspecs (map (B.plain . unCm) headerCells)
+                     (map (map (B.plain . unCm)) rows)
     where toPandocAlignment LeftAlignedCol = AlignLeft
           toPandocAlignment CenterAlignedCol = AlignCenter
           toPandocAlignment RightAlignedCol = AlignRight
           toPandocAlignment DefaultAlignedCol = AlignDefault
           colspecs = map (\al -> (toPandocAlignment al, 0.0)) aligns
 
-instance HasDefinitionList B.Inlines B.Blocks where
-  definitionList _ = B.definitionList
+instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
+  => HasDefinitionList (Cm a B.Inlines) (Cm a B.Blocks) where
+  definitionList _ items =
+    Cm $ B.definitionList $ map coerce items
 
-instance HasStrikethrough B.Inlines where
-  strikethrough = B.strikeout
+instance HasStrikethrough (Cm a B.Inlines) where
+  strikethrough ils = B.strikeout <$> ils
 
-instance HasAttributes B.Blocks where
-  addAttributes attrs = fmap (addAttrs attrs)
+instance HasAttributes (Cm a B.Blocks) where
+  addAttributes attrs b = fmap (addAttrs attrs) <$> b
 
 addAttrs :: [(T.Text, T.Text)] -> Block -> Block
 addAttrs attrs (Header n (id',classes',kvs') ils) =
@@ -111,10 +129,11 @@ addAttrs attrs (Header n (id',classes',kvs') ils) =
                          k /= "id", k /= "class"]
 addAttrs _attrs x = x
 
-instance HasFootnote B.Inlines B.Blocks where
+instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
+     => HasFootnote (Cm a B.Inlines) (Cm a B.Blocks) where
   footnote _num _lab _x = mempty
   footnoteList _xs = mempty
-  footnoteRef _num _lab = B.note
+  footnoteRef _num _lab contents = B.note <$> contents
 
 illegalCodePoint :: T.Text -> Bool
 illegalCodePoint t =

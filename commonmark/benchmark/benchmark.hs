@@ -21,14 +21,12 @@ main = do
     [ bgroup "tokenize"
       [ benchTokenize ("sample.md", sample) ]
     , bgroup "parse sample.md"
-      [ benchCommonmark defaultSyntaxSpec defaultOptions ("commonmark default", sample)
-      , benchCommonmark (smartPunctuationSpec <> defaultSyntaxSpec) defaultOptions
+      [ benchCommonmark defaultSyntaxSpec ("commonmark default", sample)
+      , benchCommonmark (smartPunctuationSpec <> defaultSyntaxSpec)
           ("commonmark +smart", sample)
       , benchCommonmark (autolinkSpec <> defaultSyntaxSpec)
-          defaultOptions
           ("commonmark +autolink", sample)
       , benchCommonmark (defaultSyntaxSpec <> pipeTableSpec)
-          defaultOptions
           ("commonmark +pipe_table", sample)
       ]
     , bgroup "pathological"
@@ -39,7 +37,7 @@ toPathBench :: (String, Int -> T.Text) -> Benchmark
 toPathBench (name, ptest) =
   bgroup name
   [ bgroup "commonmark"
-    (map (\n -> benchCommonmark defaultSyntaxSpec defaultOptions (show n, ptest n))
+    (map (\n -> benchCommonmark defaultSyntaxSpec (show n, ptest n))
       [1000, 2000, 3000, 4000])
   ]
 
@@ -93,14 +91,13 @@ pathtests =
     mconcat $ map (\x -> "e" <> T.replicate x "`") [1..num])
   ]
 
-benchCommonmark :: SyntaxSpec Identity Html Html
-                -> Options
+benchCommonmark :: SyntaxSpec Identity (Html ()) (Html ())
                 -> (String, Text)
                 -> Benchmark
-benchCommonmark spec opts (name, contents) =
+benchCommonmark spec (name, contents) =
   bench name $
     nf (either (error . show) renderHtml
-        . runIdentity . parseCommonmarkWith spec opts . tokenize name)
+        . runIdentity . parseCommonmarkWith spec . tokenize name)
     contents
 
 benchTokenize :: (String, Text) -> Benchmark

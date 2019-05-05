@@ -53,41 +53,37 @@ To support both kinds of extension, we export the function
 
 ```haskell
 parseCommonmarkWith :: (Monad m, IsBlock il bl, IsInline il)
-                    => SyntaxSpec m il bl
-                    -> Options
-                    -> [Tok]
-                    -> m (Either ParseError bl)
+                    => SyntaxSpec m il bl -- ^ Defines syntax
+                    -> [Tok] -- ^ Tokenized commonmark input
+                    -> m (Either ParseError bl)  -- ^ Result or error
 ```
 
-The parser function takes three arguments:  a `SyntaxSpec` which
-defines parsing for the various syntactic elements, a
-specification of parser `Options` (currently this just
-determines whether source positions are added), and a list
+The parser function takes two arguments:  a `SyntaxSpec` which
+defines parsing for the various syntactic elements, and a list
 of tokens.  Output is polymorphic:  you can
 convert commonmark to any type that is an instance of the
 `IsBlock` typeclass.  This gives tremendous flexibility.
-Want to produce HTML? You can use the `Html` type defined
-in `Commonmark.Html`.
+Want to produce HTML? You can use the `Html ()` type defined
+in `Commonmark.Types` for basic HTML, or `Html SourceRange`
+for HTML with source range attributes on every element.
 
 ```haskell
 GHCI> :set -XOverloadedStrings
 GHCI>
-GHCI> parseCommonmarkWith defaultSyntaxSpec defaultOptions
-        (tokenize "source" "Hi there") :: IO (Either ParseError Html)
+GHCI> parseCommonmarkWith defaultSyntaxSpec (tokenize "source" "Hi there") :: IO (Either ParseError (Html ()))
 Right <p>Hi there</p>
-GHCI> parseCommonmarkWith defaultSyntaxSpec
-        defaultOptions{ sourcePositions = True }
-        (tokenize "source" "Hi there") :: IO (Either ParseError Html)
-Right <p data-sourcepos="stdin@1:1-1:9">Hi there</p>
+> parseCommonmarkWith defaultSyntaxSpec (tokenize "source" "Hi there") :: IO (Either ParseError (Html SourceRange))
+Right <p data-sourcepos="source@1:1-1:9">Hi there</p>
 ```
 
 Want to produce a Pandoc AST?  You can use the type
-`Text.Pandoc.Builder.Blocks` defined in `commonmark-pandoc`.
+`Cm a Text.Pandoc.Builder.Blocks` defined in `commonmark-pandoc`.
 
 ```haskell
-GHCI> parseCommonmarkWith defaultSyntaxSpec defaultOptions
-        (tokenize "source" "Hi there") :: Maybe (Either ParseError B.Blocks)
-Just (Right (Many {unMany = fromList [Para [Str "Hi",Space,Str "there"]]}}))
+GHCI> parseCommonmarkWith defaultSyntaxSpec (tokenize "source" "Hi there") :: Maybe (Either ParseError (Cm () B.Blocks))
+Just (Right (Cm {unCm = Many {unMany = fromList [Para [Str "Hi",Space,Str "there"]]}}))
+GHCI> parseCommonmarkWith defaultSyntaxSpec (tokenize "source" "Hi there") :: Maybe (Either ParseError (Cm SourceRange B.Blocks))
+Just (Right (Cm {unCm = Many {unMany = fromList [Div ("",[],[("data-pos","source@1:1-1:9")]) [Para [Span ("",[],[("data-pos","source@1:1-1:3")]) [Str "Hi"],Span ("",[],[("data-pos","source@1:3-1:4")]) [Space],Span ("",[],[("data-pos","source@1:4-1:9")]) [Str "there"]]]]}}))
 ```
 
 If you want to support another format (for example, Haddock's `DocH`),

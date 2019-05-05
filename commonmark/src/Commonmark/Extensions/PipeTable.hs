@@ -42,7 +42,7 @@ data PipeTableData = PipeTableData
 class HasPipeTable il bl where
   pipeTable :: [ColAlignment] -> [il] -> [[il]] -> bl
 
-instance HasPipeTable Html Html where
+instance HasPipeTable (Html a) (Html a) where
   pipeTable aligns headerCells rows =
     htmlBlock "table" $ Just $ htmlRaw "\n" <>
     (if null headerCells

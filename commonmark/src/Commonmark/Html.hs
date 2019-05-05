@@ -30,48 +30,48 @@ data ElementType =
     InlineElement
   | BlockElement
 
-data Html =
-    HtmlElement ElementType Text [HtmlAttribute] (Maybe Html)
+data Html a =
+    HtmlElement ElementType Text [HtmlAttribute] (Maybe (Html a))
   | HtmlText Text
   | HtmlRaw Text
   | HtmlNull
-  | HtmlConcat Html Html
+  | HtmlConcat (Html a) (Html a)
 
-instance Show Html where
+instance Show (Html a) where
   show = TL.unpack . renderHtml
 
 type HtmlAttribute = (Text, Text)
 
-instance Semigroup Html where
+instance Semigroup (Html a) where
   x <> HtmlNull = x
   HtmlNull <> x = x
   x <> y        = HtmlConcat x y
 
-instance Monoid Html where
+instance Monoid (Html a) where
   mempty = HtmlNull
   mappend = (<>)
 
-htmlInline :: Text -> Maybe Html -> Html
+htmlInline :: Text -> Maybe (Html a) -> Html a
 htmlInline tagname mbcontents = HtmlElement InlineElement tagname [] mbcontents
 
-htmlBlock :: Text -> Maybe Html -> Html
+htmlBlock :: Text -> Maybe (Html a) -> Html a
 htmlBlock tagname mbcontents = HtmlElement BlockElement tagname [] mbcontents
 
-htmlText :: Text -> Html
+htmlText :: Text -> Html a
 htmlText = HtmlText
 
-htmlRaw :: Text -> Html
+htmlRaw :: Text -> Html a
 htmlRaw = HtmlRaw
 
-addAttribute :: HtmlAttribute -> Html -> Html
+addAttribute :: HtmlAttribute -> Html a -> Html a
 addAttribute attr (HtmlElement eltType tagname attrs mbcontents) =
   HtmlElement eltType tagname (attr:attrs) mbcontents
 addAttribute _ elt = elt
 
-renderHtml :: Html -> TL.Text
+renderHtml :: Html a -> TL.Text
 renderHtml = toLazyText . toBuilder
 
-toBuilder :: Html -> Builder
+toBuilder :: Html a -> Builder
 toBuilder (HtmlNull) = mempty
 toBuilder (HtmlConcat x y) = toBuilder x <> toBuilder y
 toBuilder (HtmlRaw t) = fromText t
@@ -110,7 +110,7 @@ escapeURIChar c
                                      '#','!','$','\'','(',')','*','+',',',
                                      ';','=']
 
-innerText :: Html -> Text
+innerText :: Html a -> Text
 innerText (HtmlElement InlineElement "img" attrs Nothing) =
   fromMaybe mempty $ lookup "alt" attrs
 innerText (HtmlElement _ _ _ (Just x)) = innerText x

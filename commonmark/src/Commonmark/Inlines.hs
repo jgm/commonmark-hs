@@ -58,25 +58,24 @@ import           Text.Parsec.Pos
 -- import Debug.Trace
 
 mkInlineParser :: (Monad m, IsInline a)
-               => Options
-               -> [BracketedSpec a]
+               => [BracketedSpec a]
                -> [FormattingSpec a]
                -> [InlineParser m a]
                -> ReferenceMap
                -> [Tok]
                -> m (Either ParseError a)
-mkInlineParser opts bracketedSpecs formattingSpecs ilParsers rm toks = do
+mkInlineParser bracketedSpecs formattingSpecs ilParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
-  res <- parseChunks opts bracketedSpecs formattingSpecs ilParsers rm
+  res <- parseChunks bracketedSpecs formattingSpecs ilParsers rm
          (dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks)
   return $
     case res of
        Left err     -> Left err
        Right chunks ->
          (Right .
-          unChunks opts .
-          processEmphasis opts .
-          processBrackets opts bracketedSpecs rm) chunks
+          unChunks .
+          processEmphasis .
+          processBrackets bracketedSpecs rm) chunks
 
 defaultInlineParsers :: (Monad m, IsInline a) => [InlineParser m a]
 defaultInlineParsers =
@@ -90,37 +89,33 @@ defaultInlineParsers =
                 , pAutolink
                 ]
 
-unChunks :: IsInline a => Options -> [Chunk a] -> a
-unChunks opts = foldl' mappend mempty . map (unChunk opts)
+unChunks :: IsInline a => [Chunk a] -> a
+unChunks = foldl' mappend mempty . map unChunk
 
-unChunk :: IsInline a => Options -> Chunk a -> a
-unChunk opts chunk =
+unChunk :: IsInline a => Chunk a -> a
+unChunk chunk =
   case chunkType chunk of
-       Delim{} -> addrange (str (untokenize ts))
+       Delim{} -> ranged range (str (untokenize ts))
                    where ts = chunkToks chunk
-                         addrange =
-                           if sourcePositions opts
-                              then ranged
-                                (case ts of
-                                  []    -> mempty
-                                  (_:_) -> SourceRange
-                                             [(chunkPos chunk,
-                                               incSourceColumn
-                                                 (tokPos (last ts)) 1)])
-                              else id
+                         range =
+                           case ts of
+                                []    -> mempty
+                                (_:_) -> SourceRange
+                                           [(chunkPos chunk,
+                                             incSourceColumn
+                                               (tokPos (last ts)) 1)]
        Parsed ils -> ils
 
 parseChunks :: (Monad m, IsInline a)
-            => Options
-            -> [BracketedSpec a]
+            => [BracketedSpec a]
             -> [FormattingSpec a]
             -> [InlineParser m a]
             -> ReferenceMap
             -> [Tok]
             -> m (Either ParseError [Chunk a])
-parseChunks _ _ _ _ _ []             = return (Right [])
-parseChunks opts bspecs specs ilParsers rm (t:ts) =
-  runParserT (setPosition (tokPos t) >> many (pChunk opts specmap ilParsers) <* eof)
+parseChunks _ _ _ _ []             = return (Right [])
+parseChunks bspecs specs ilParsers rm (t:ts) =
+  runParserT (setPosition (tokPos t) >> many (pChunk specmap ilParsers) <* eof)
           IPState{ afterPunct = initialPos "",
                    afterSpace = tokPos t,
                    backtickSpans = getBacktickSpans (t:ts),
@@ -274,13 +269,12 @@ getBacktickSpans = go 0 (initialPos "")
          | otherwise -> go 0 pos ts
 
 pChunk :: (IsInline a, Monad m)
-       => Options
-       -> FormattingSpecMap a
+       => FormattingSpecMap a
        -> [InlineParser m a]
        -> InlineParser m (Chunk a)
-pChunk opts specmap ilParsers =
+pChunk specmap ilParsers =
       (do pos <- getPosition
-          (ils, ts) <- unzip <$> many1 (pInline opts ilParsers)
+          (ils, ts) <- unzip <$> many1 (pInline ilParsers)
           return $ Chunk (Parsed (mconcat ils)) pos (mconcat ts))
    <|> pDelimChunk specmap
 
@@ -355,10 +349,9 @@ pDelimChunk specmap = do
                       } pos toks'
 
 pInline :: (IsInline a, Monad m)
-        => Options
-        -> [InlineParser m a]
+        => [InlineParser m a]
         -> InlineParser m (a, [Tok])
-pInline opts ilParsers = do
+pInline ilParsers = do
   (res, toks) <- withRaw $ choice ilParsers <|> pSymbol
   newpos <- getPosition
   case tokType (last toks) of
@@ -367,9 +360,7 @@ pInline opts ilParsers = do
        LineEnd      -> updateState $ \st -> st{ afterSpace = newpos }
        Symbol _     -> updateState $ \st -> st{ afterPunct = newpos }
        _            -> return ()
-  return ((if sourcePositions opts
-              then ranged (rangeFromToks toks)
-              else id) res, toks)
+  return (ranged (rangeFromToks toks) res, toks)
 
 rangeFromToks :: [Tok] -> SourceRange
 rangeFromToks = SourceRange . go
@@ -521,7 +512,7 @@ getWord (t1@Tok{ tokType = WordChars } : rest) =
   t1:getWord rest
 getWord _ = []
 -}
-
+  
 pSymbol :: (IsInline a, Monad m) => InlineParser m a
 pSymbol = str . tokContents <$> pNonDelimTok
 
@@ -531,11 +522,10 @@ data DState a = DState
      , refmap         :: ReferenceMap
      , stackBottoms   :: M.Map Text SourcePos
      , absoluteBottom :: SourcePos
-     , parserOptions  :: Options
      }
 
-processEmphasis :: IsInline a => Options -> [Chunk a] -> [Chunk a]
-processEmphasis opts xs =
+processEmphasis :: IsInline a => [Chunk a] -> [Chunk a]
+processEmphasis xs =
   case break (\case
                (Chunk Delim{} _ _) -> True
                _ -> False) xs of
@@ -546,8 +536,7 @@ processEmphasis opts xs =
                                , rightCursor = startcursor
                                , refmap = emptyReferenceMap
                                , stackBottoms = mempty
-                               , absoluteBottom = chunkPos z
-                               , parserOptions = opts }
+                               , absoluteBottom = chunkPos z }
 
 {- for debugging:
 prettyCursors :: (IsInline a) => Cursor (Chunk a) -> Cursor (Chunk a) -> String
@@ -559,7 +548,7 @@ prettyCursors left right =
           toS (afters right)
  where middles = take (length (afters left) - length (afters right) -
                          maybe 0 (const 1) (center right)) (afters left)
-       toS = show . unChunks opts
+       toS = show . unChunks
        inBrs x = "{" ++ x ++ "}"
 -}
 
@@ -619,14 +608,11 @@ processEm st =
                                 then id
                                 else (closedelim{ chunkToks = closerest } :)
                emphtoks = opentoks ++ concatMap chunkToks contents ++ closetoks
-               opts = parserOptions st
                newelt = Chunk
                          (Parsed $
-                           (if sourcePositions opts
-                               then ranged (rangeFromToks emphtoks)
-                               else id) $
+                           ranged (rangeFromToks emphtoks) $
                              constructor $ mconcat $
-                                map (unChunk opts) contents)
+                                map unChunk contents)
                          (chunkPos chunk)
                          emphtoks
                newcursor = Cursor (Just newelt)
@@ -669,9 +655,8 @@ delimsMatch (Chunk open@Delim{} _ opents) (Chunk close@Delim{} _ closets) =
 delimsMatch _ _ = False
 
 processBrackets :: IsInline a
-                => Options
-                -> [BracketedSpec a] -> ReferenceMap -> [Chunk a] -> [Chunk a]
-processBrackets opts bracketedSpecs rm xs =
+                => [BracketedSpec a] -> ReferenceMap -> [Chunk a] -> [Chunk a]
+processBrackets bracketedSpecs rm xs =
   case break (\case
                (Chunk Delim{ delimType = '[' } _ _) -> True
                _ -> False) xs of
@@ -684,7 +669,6 @@ processBrackets opts bracketedSpecs rm xs =
                        , refmap = rm
                        , stackBottoms = mempty
                        , absoluteBottom = chunkPos z
-                       , parserOptions = opts
                        }
 
 data Cursor a = Cursor
@@ -791,12 +775,9 @@ processBs bracketedSpecs st =
                          elttoks = concatMap chunkToks
                                      (openers ++ chunksinside ++ [closer])
                                       ++ desttoks
-                         opts = parserOptions st
-                         elt = (if sourcePositions opts
-                                   then ranged (rangeFromToks elttoks)
-                                   else id)
-                                  $ constructor $ unChunks opts $
-                                       processEmphasis (parserOptions st) chunksinside
+                         elt = ranged (rangeFromToks elttoks)
+                                  $ constructor $ unChunks $
+                                       processEmphasis chunksinside
                          eltchunk = Chunk (Parsed elt) openerPos elttoks
                          afterchunks = dropWhile ((< newpos) . chunkPos)
                                          (afters right)

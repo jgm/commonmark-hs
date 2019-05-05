@@ -9,9 +9,7 @@
 {-# LANGUAGE MonoLocalBinds             #-}
 
 module Commonmark.Types
-  ( Options(..)
-  , defaultOptions
-  , Format(..)
+  ( Format(..)
   , ListSpacing(..)
   , ListType(..)
   , IsInline(..)
@@ -36,15 +34,6 @@ import           Commonmark.Html      (Html, escapeURI, innerText,
                                        htmlInline, htmlBlock, addAttribute,
                                        htmlText, htmlRaw)
 import           Commonmark.Entity    (lookupEntity)
-
-data Options =
-  Options
-  { sourcePositions :: Bool
-  } deriving (Show, Data, Typeable)
-
-defaultOptions :: Options
-defaultOptions =
-  Options { sourcePositions = False }
 
 newtype Format = Format Text
   deriving (Show, Data, Typeable)
@@ -82,7 +71,7 @@ class (Monoid a, Show a, Rangeable a) => IsInline a where
   rawInline :: Format -> Text -> a
 
 -- This instance mirrors what is expected in the spec tests.
-instance IsInline Html where
+instance Rangeable (Html a) => IsInline (Html a) where
   lineBreak = htmlInline "br" Nothing <> nl
   softBreak = nl
   str t = htmlText t
@@ -126,7 +115,7 @@ class (Monoid b, Show b, Rangeable b, IsInline il)
                           -> b
   list :: ListType -> ListSpacing -> [b] -> b
 
-instance IsBlock Html Html where
+instance IsInline (Html a) => IsBlock (Html a) (Html a) where
   paragraph ils = htmlBlock "p" (Just ils)
   plain ils = ils <> nl
   thematicBreak = htmlBlock "hr" Nothing
@@ -168,7 +157,7 @@ instance IsBlock Html Html where
                              then mempty
                              else nl) <> x)
 
-nl :: Html
+nl :: Html a
 nl = htmlRaw "\n"
 
 newtype SourceRange = SourceRange
@@ -198,7 +187,10 @@ instance Show SourceRange where
 class Rangeable a where
   ranged :: SourceRange -> a -> a
 
-instance Rangeable Html where
+instance Rangeable (Html ()) where
+  ranged _ x = x
+
+instance Rangeable (Html SourceRange) where
   ranged sr x = addAttribute ("data-sourcepos", T.pack (prettyRange sr)) x
 
 prettyRange :: SourceRange -> String

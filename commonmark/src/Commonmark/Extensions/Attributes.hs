@@ -39,7 +39,7 @@ headingAttributesSpec = SyntaxSpec
 class HasAttributes a where
   addAttributes :: Attributes -> a -> a
 
-instance HasAttributes Html where
+instance HasAttributes (Html a) where
   addAttributes attrs x = foldr addAttribute x attrs
 
 instance HasAttributes (WithSourceMap a) where
@@ -65,9 +65,8 @@ atxHeadingWithAttributesSpec = atxHeadingSpec
        let level = fromDyn (blockData (rootLabel node)) 1
        let toks = getBlockText removeIndent node
        let (content, attr) = parseAttributes toks
-       opts <- getParseOptions
        ils <- runInlineParser content
-       return $ (addRange opts node . addAttributes attr . heading level) ils
+       return $ (addRange node . addAttributes attr . heading level) ils
   }
 
 setextHeadingWithAttributesSpec
@@ -88,9 +87,8 @@ setextHeadingWithAttributesSpec = atxHeadingSpec
        let level = fromDyn (blockData (rootLabel node)) 1
        let toks = getBlockText removeIndent node
        let (content, attr) = parseAttributes toks
-       opts <- getParseOptions
        ils <- runInlineParser content
-       return $ (addRange opts node . addAttributes attr . heading level) ils
+       return $ (addRange node . addAttributes attr . heading level) ils
   }
 
 parseAttributes :: [Tok] -> ([Tok], Attributes)

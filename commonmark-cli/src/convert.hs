@@ -4,7 +4,7 @@
 module Main where
 
 import           Commonmark
-import           Commonmark.Pandoc ()
+import           Commonmark.Pandoc
 import           Data.Aeson                 (encode)
 import qualified Data.ByteString.Lazy       as BL
 import qualified Text.Pandoc.Builder        as B

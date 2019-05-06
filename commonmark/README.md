@@ -98,8 +98,23 @@ so you can specify `myNewSyntaxSpec <> defaultSyntaxSpec`.
 
 ## Performance
 
-On one sample (ten concatenated copies of `benchmark/sample.md`)
-this library is roughly the same speed as commonmark.js; roughly
-twice as fast as pandoc; and an order of magnitude slower than
-cmark.  It would be good to improve this (help welcome).
+Here are some benchmarks on real-world commonmark documents.
+To get `benchmark.md`, we concatenated a number of READMEs
+collected
+[here](https://github.com/fitzgen/common-mark-benchmarks/tree/master/github-explore-frontend-js).
+The [`bench`](http://hackage.haskell.org/package/bench) tool was
+used to run the benchmarks.
+
+| program | time (ms) |
+| ------- | ---- |
+| cmark | 10 |
+| cheapskate | 48 |
+| commonmark.js | 164 |
+| **commonmark-hs** | **169** |
+| pandoc -f markdown_strict | 482 |
+| pandoc -f markdown | 810 |
+
+It would be good to close the gap somewhat between commonmark-hs
+and cheapskate.  I'd welcome suggestions about how to accomplish
+this.
 

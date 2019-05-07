@@ -106,7 +106,7 @@ The [`bench`](http://hackage.haskell.org/package/bench) tool was
 used to run the benchmarks.
 
 | program | time (ms) |
-| ------- | ---- |
+| ------- | ----: |
 | cmark | 10 |
 | cheapskate | 48 |
 | commonmark.js | 164 |

@@ -105,15 +105,15 @@ collected
 The [`bench`](http://hackage.haskell.org/package/bench) tool was
 used to run the benchmarks.
 
-| program | time (ms) |
-| ------- | ----: |
-| cmark | 10 |
-| cheapskate | 48 |
-| comark-hs | 86 |
-| commonmark.js | 164 |
-| **commonmark-hs** | **169** |
-| pandoc -f markdown_strict | 482 |
-| pandoc -f markdown | 810 |
+ | program                   | time (ms) |
+ | -------                   | ---------:|
+ | cmark                     | 10        |
+ | cheapskate                | 48        |
+ | comark-hs                 | 86        |
+ | commonmark.js             | 164       |
+ | **commonmark-hs**         | 169       |
+ | pandoc -f markdown_strict | 482       |
+ | pandoc -f markdown        | 810       |
 
 It would be good to close the gap somewhat between commonmark-hs
 and cheapskate and comark-hs (which is based on cheapskate).

@@ -116,18 +116,8 @@ parseAttributes ts =
   in case parse
        ((,) <$> many (notFollowedBy pAttributes' >> anyTok)
             <*> option [] pAttributes') "heading contents" ts of
-    Left _        -> (ts, [])
-    Right (xs,ys) -> (xs, collapseAttrs ys)
-  where
-    collapseAttrs xs =
-      let classes = [y | ("class", y) <- xs] in
-     (case lookup "id" xs of
-         Just id' -> (("id",id'):)
-         Nothing  -> id) .
-      (if null classes
-          then id
-          else (("class", T.unwords classes):)) $
-      [(k,v) | (k,v) <- xs, k /= "id" && k /= "class"]
+    Left _         -> (ts, [])
+    Right (xs, ys) -> (xs, ys)
 
 pAttributes :: Monad m => ParsecT [Tok] u m Attributes
 pAttributes = try $ do
@@ -138,7 +128,17 @@ pAttributes = try $ do
   as <- many $ try (whitespace *> (pIdentifier <|> pClass <|> pKeyValue))
   optional whitespace
   symbol '}'
-  return (a:as)
+  return $ collapseAttrs (a:as)
+ where
+    collapseAttrs xs =
+      let classes = [y | ("class", y) <- xs] in
+     (case lookup "id" xs of
+         Just id' -> (("id",id'):)
+         Nothing  -> id) .
+      (if null classes
+          then id
+          else (("class", T.unwords classes):)) $
+      [(k,v) | (k,v) <- xs, k /= "id" && k /= "class"]
 
 pIdentifier :: Monad m => ParsecT [Tok] u m HtmlAttribute
 pIdentifier = try $ do

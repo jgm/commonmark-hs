@@ -16,6 +16,8 @@ module Commonmark.Inlines
   , pLinkLabel
   , pLinkDestination
   , pLinkTitle
+  , pReferenceLink
+  , pInlineLink
   , pEscaped
   , processEmphasis
   , processBrackets

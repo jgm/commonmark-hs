@@ -18,6 +18,8 @@ Reference links work too:
 
 ```````````````````````````````` example
 [foo]{#ident .centered .big}
+
+[foo]: bar
 .
 <p><a id="ident" class="centered big" href="bar">foo</a></p>
 ````````````````````````````````

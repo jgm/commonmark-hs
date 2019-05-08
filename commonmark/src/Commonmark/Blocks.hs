@@ -438,12 +438,9 @@ extractReferenceLinks node = do
         Left _ -> return (Just node, Nothing)
         Right (linkdefs, toks') -> do
           mapM_
-            (\((_,lab),(dest,tit)) ->
+            (\((_,lab),linkinfo) ->
              updateState $ \st -> st{
-              referenceMap = insertReference lab
-                LinkInfo{ linkDestination = dest
-                        , linkTitle = tit
-                        , linkAttributes = mempty }
+              referenceMap = insertReference lab linkinfo
                 (referenceMap st) }) linkdefs
           let isRefPos = case toks' of
                            (t:_) -> (< tokPos t)
@@ -513,7 +510,7 @@ plainSpec = paraSpec{
   }
 
 
-linkReferenceDef :: Parsec [Tok] s ((SourceRange, Text), (Text, Text))
+linkReferenceDef :: Parsec [Tok] s ((SourceRange, Text), LinkInfo)
 linkReferenceDef = try $ do
   startpos <- getPosition
   lab <- pLinkLabel
@@ -530,7 +527,9 @@ linkReferenceDef = try $ do
   endpos <- getPosition
   void lineEnd <|> eof
   return ((SourceRange [(startpos, endpos)], lab),
-          (unEntity dest, unEntity title))
+                LinkInfo{ linkDestination = unEntity dest
+                        , linkTitle = unEntity title
+                        , linkAttributes = mempty })
 
 atxHeadingSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl

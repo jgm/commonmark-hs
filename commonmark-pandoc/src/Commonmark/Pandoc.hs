@@ -22,7 +22,6 @@ import Data.Semigroup       (Semigroup)
 import Text.Pandoc.Definition
 import qualified Text.Pandoc.Builder as B
 import Commonmark.Types as C
-import Commonmark.Attributes
 import Commonmark.Extensions.Math
 import Commonmark.Extensions.PipeTable
 import Commonmark.Extensions.Strikethrough

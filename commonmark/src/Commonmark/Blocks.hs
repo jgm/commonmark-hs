@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -68,15 +69,17 @@ import           Text.Parsec
 mkBlockParser :: (Monad m, IsBlock il bl)
              => [BlockSpec m il bl] -- ^ Defines block syntax
              -> [BlockParser m il bl bl] -- ^ Parsers to run at end
+             -> [ParsecT [Tok] (BPState m il bl) m Attributes] -- ^ Attribute parsers
              -> (ReferenceMap -> [Tok]
                   -> m (Either ParseError il)) -- ^ Inline parser
              -> [Tok] -- ^ Tokenized commonmark input
              -> m (Either ParseError bl)  -- ^ Result or error
-mkBlockParser _ _ _ [] = return $ Right mempty
-mkBlockParser specs finalParsers ilParser (t:ts) =
+mkBlockParser _ _ _ _ [] = return $ Right mempty
+mkBlockParser specs finalParsers attrParsers ilParser (t:ts) =
   runParserT (setPosition (tokPos t) >> processLines specs finalParsers)
           BPState{ referenceMap     = emptyReferenceMap
                  , inlineParser     = ilParser
+                 , attributeParser  = option mempty (choice attrParsers)
                  , nodeStack        = [Node (defBlockData docSpec) []]
                  , blockMatched     = False
                  , maybeLazy        = False
@@ -327,6 +330,7 @@ type BlockNode m il bl = Tree (BlockData m il bl)
 data BPState m il bl = BPState
      { referenceMap     :: ReferenceMap
      , inlineParser     :: ReferenceMap -> [Tok] -> m (Either ParseError il)
+     , attributeParser  :: ParsecT [Tok] (BPState m il bl) m Attributes
      , nodeStack        :: [BlockNode m il bl]   -- reverse order, head is tip
      , blockMatched     :: !Bool
      , maybeLazy        :: !Bool
@@ -432,9 +436,12 @@ extractReferenceLinks :: (Monad m, IsBlock il bl)
                       -> BlockParser m il bl (Maybe (BlockNode m il bl),
                                               Maybe (BlockNode m il bl))
 extractReferenceLinks node = do
-  case parse ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
+  st' <- getState
+  res <- lift $ runParserT
+            ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
                         many1 linkReferenceDef)
-                  <*> getInput) "" (getBlockText removeIndent node) of
+                  <*> getInput) st' "" (getBlockText removeIndent node)
+  case res of
         Left _ -> return (Just node, Nothing)
         Right (linkdefs, toks') -> do
           mapM_
@@ -510,7 +517,8 @@ plainSpec = paraSpec{
   }
 
 
-linkReferenceDef :: Parsec [Tok] s ((SourceRange, Text), LinkInfo)
+linkReferenceDef :: Monad m
+    => ParsecT [Tok] (BPState m il bl) m ((SourceRange, Text), LinkInfo)
 linkReferenceDef = try $ do
   startpos <- getPosition
   lab <- pLinkLabel
@@ -524,12 +532,14 @@ linkReferenceDef = try $ do
              <* skipWhile (hasType Spaces)
              <* lookAhead (void lineEnd <|> eof)
   skipWhile (hasType Spaces)
+  attrParser <- attributeParser <$> getState
+  attrs <- attrParser
   endpos <- getPosition
   void lineEnd <|> eof
   return ((SourceRange [(startpos, endpos)], lab),
                 LinkInfo{ linkDestination = unEntity dest
                         , linkTitle = unEntity title
-                        , linkAttributes = mempty })
+                        , linkAttributes = attrs })
 
 atxHeadingSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl

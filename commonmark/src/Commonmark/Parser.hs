@@ -47,6 +47,7 @@ parseCommonmarkWith :: (Monad m, IsBlock il bl, IsInline il)
 parseCommonmarkWith syntax =
     mkBlockParser (syntaxBlockSpecs syntax)
       (syntaxFinalParsers syntax)
+      (syntaxAttributeParsers syntax)
       (mkInlineParser (syntaxBracketedSpecs syntax)
                       (syntaxFormattingSpecs syntax)
                       (syntaxInlineParsers syntax))

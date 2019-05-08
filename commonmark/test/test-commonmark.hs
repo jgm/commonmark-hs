@@ -1,15 +1,8 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-import           Commonmark.Parser
-import           Commonmark.Extensions.Autolink
-import           Commonmark.Extensions.PipeTable
-import           Commonmark.Extensions.Smart
-import           Commonmark.Extensions.Strikethrough
-import           Commonmark.Extensions.Math
-import           Commonmark.Extensions.DefinitionList
-import           Commonmark.Extensions.Attributes
-import           Commonmark.Extensions.Footnote
+import           Commonmark
+import           Commonmark.Html
 import           Control.Monad         (when)
 import           Data.Functor.Identity
 import           Data.List             (groupBy)
@@ -115,9 +108,9 @@ parseSpecTest :: Parsec [(Int, Text)] (Text, Int) SpecTest
 parseSpecTest = do
   startpos <- getPosition
   () <$ satisfyLine (== "```````````````````````````````` example")
-  markdownText <- T.unlines <$> manyTill (satisfyLine (const True))
+  markdownTxt <- T.unlines <$> manyTill (satisfyLine (const True))
                                  (satisfyLine (=="."))
-  htmlText <- T.unlines <$> manyTill (satisfyLine (const True))
+  htmlTxt <- T.unlines <$> manyTill (satisfyLine (const True))
               (satisfyLine (== "````````````````````````````````"))
   endline <- (\x -> x - 1) . sourceLine <$> getPosition
   (sectionName, exampleNumber) <- getState
@@ -125,10 +118,10 @@ parseSpecTest = do
   return SpecTest{
        section = sectionName
      , example = exampleNumber
-     , markdown = markdownText
+     , markdown = markdownTxt
      , end_line = endline
      , start_line = sourceLine startpos
-     , html = htmlText
+     , html = htmlTxt
    }
 
 normalLine :: Parsec [(Int, Text)] (Text, Int) ()

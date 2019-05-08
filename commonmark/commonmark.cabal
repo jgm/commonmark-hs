@@ -68,6 +68,7 @@ library
       Commonmark
       Commonmark.Parser
       Commonmark.Types
+      Commonmark.Html
       Commonmark.Syntax
       Commonmark.ReferenceMap
       Commonmark.Tokens
@@ -85,7 +86,6 @@ library
       Commonmark.Extensions.DefinitionList
       Commonmark.Extensions.Attributes
   other-modules:
-      Commonmark.Html
       Commonmark.Tag
       Commonmark.Entity
   ghc-options: -Wall -fno-warn-unused-do-bind

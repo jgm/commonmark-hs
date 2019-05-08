@@ -1,7 +1,4 @@
 {-# LANGUAGE DeriveDataTypeable         #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
@@ -17,8 +14,6 @@ module Commonmark.Types
   , SourceRange(..)
   , SourcePos
   , Rangeable(..)
-  , Html
-  , renderHtml
   )
 where
 import           Data.Data            (Data)
@@ -28,12 +23,6 @@ import           Data.Typeable        (Typeable)
 import           Text.Parsec.Pos      (SourcePos, sourceColumn, sourceLine,
                                        sourceName)
 import           Data.Semigroup       (Semigroup, (<>))
-import           Data.Char            (isSpace)
-import           Commonmark.Html      (Html, escapeURI, innerText,
-                                       renderHtml,
-                                       htmlInline, htmlBlock, addAttribute,
-                                       htmlText, htmlRaw)
-import           Commonmark.Entity    (lookupEntity)
 
 newtype Format = Format Text
   deriving (Show, Data, Typeable)
@@ -70,35 +59,6 @@ class (Monoid a, Show a, Rangeable a) => IsInline a where
   code :: Text -> a
   rawInline :: Format -> Text -> a
 
--- This instance mirrors what is expected in the spec tests.
-instance Rangeable (Html a) => IsInline (Html a) where
-  lineBreak = htmlInline "br" Nothing <> nl
-  softBreak = nl
-  str t = htmlText t
-  entity t = case lookupEntity (drop 1 $ T.unpack t) of
-                   Just t' -> htmlText (T.pack t')
-                   Nothing -> htmlRaw t
-  escapedChar c = htmlText (T.singleton c)
-  emph ils = htmlInline "em" (Just ils)
-  strong ils = htmlInline "strong" (Just ils)
-  link target title ils =
-    addAttribute ("href", escapeURI target) .
-    (if T.null title
-        then id
-        else addAttribute ("title", title)) $
-    htmlInline "a" (Just ils)
-  image target title ils =
-    addAttribute ("src", escapeURI target) .
-    addAttribute ("alt", innerText ils) .
-    (if T.null title
-        then id
-        else addAttribute ("title", title)) $
-    htmlInline "img" Nothing
-  code t = htmlInline "code" (Just (htmlText t))
-  rawInline f t
-    | f == Format "html" = htmlRaw t
-    | otherwise          = mempty
-
 class (Monoid b, Show b, Rangeable b, IsInline il)
       => IsBlock il b | b -> il where
   paragraph :: il -> b
@@ -114,51 +74,6 @@ class (Monoid b, Show b, Rangeable b, IsInline il)
                           -> (Text, Text) -- ^ Destination, title
                           -> b
   list :: ListType -> ListSpacing -> [b] -> b
-
-instance IsInline (Html a) => IsBlock (Html a) (Html a) where
-  paragraph ils = htmlBlock "p" (Just ils)
-  plain ils = ils <> nl
-  thematicBreak = htmlBlock "hr" Nothing
-  blockQuote bs = htmlBlock "blockquote" $ Just (nl <> bs)
-  codeBlock info t =
-    htmlBlock "pre" $ Just $
-    (if T.null lang
-        then id
-        else addAttribute ("class", "language-" <> lang)) $
-    htmlInline "code" $ Just (htmlText t)
-    where lang = T.takeWhile (not . isSpace) info
-  heading level ils = htmlBlock h (Just ils)
-    where h = case level of
-                   1 -> "h1"
-                   2 -> "h2"
-                   3 -> "h3"
-                   4 -> "h4"
-                   5 -> "h5"
-                   6 -> "h6"
-                   _ -> "p"
-  rawBlock f t
-    | f == Format "html" = htmlRaw t
-    | otherwise          = mempty
-  referenceLinkDefinition _ _ = mempty
-  list (BulletList _) lSpacing items =
-    htmlBlock "ul" $ Just (nl <> mconcat (map li items))
-   where li x = htmlBlock "li" $
-                   Just ((if lSpacing == TightList
-                             then mempty
-                             else nl) <> x)
-  list (OrderedList startnum _) lSpacing items =
-    (if startnum /= 1
-        then addAttribute ("start", T.pack (show startnum))
-        else id) $
-    htmlBlock "ol" $
-      Just (nl <> mconcat (map li items))
-   where li x = htmlBlock "li" $
-                   Just ((if lSpacing == TightList
-                             then mempty
-                             else nl) <> x)
-
-nl :: Html a
-nl = htmlRaw "\n"
 
 newtype SourceRange = SourceRange
         { unSourceRange :: [(SourcePos, SourcePos)] }
@@ -186,12 +101,6 @@ instance Show SourceRange where
 
 class Rangeable a where
   ranged :: SourceRange -> a -> a
-
-instance Rangeable (Html ()) where
-  ranged _ x = x
-
-instance Rangeable (Html SourceRange) where
-  ranged sr x = addAttribute ("data-sourcepos", T.pack (prettyRange sr)) x
 
 prettyRange :: SourceRange -> String
 prettyRange (SourceRange []) = ""

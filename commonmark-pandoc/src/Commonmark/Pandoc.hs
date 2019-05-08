@@ -22,12 +22,12 @@ import Data.Semigroup       (Semigroup)
 import Text.Pandoc.Definition
 import qualified Text.Pandoc.Builder as B
 import Commonmark.Types as C
+import Commonmark.Attributes
 import Commonmark.Extensions.Math
 import Commonmark.Extensions.PipeTable
 import Commonmark.Extensions.Strikethrough
 import Commonmark.Extensions.DefinitionList
 import Commonmark.Extensions.Footnote
-import Commonmark.Extensions.Attributes
 import Data.Char (isSpace)
 import Data.Coerce (coerce)
 

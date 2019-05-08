@@ -117,17 +117,37 @@ instance HasStrikethrough (Cm a B.Inlines) where
   strikethrough ils = B.strikeout <$> ils
 
 instance HasAttributes (Cm a B.Blocks) where
-  addAttributes attrs b = fmap (addAttrs attrs) <$> b
+  addAttributes attrs b = fmap (addBlockAttrs attrs) <$> b
 
-addAttrs :: [(T.Text, T.Text)] -> Block -> Block
-addAttrs attrs (Header n (id',classes',kvs') ils) =
-  Header n (id'',classes'',kvs'') ils
+instance HasAttributes (Cm a B.Inlines) where
+  addAttributes attrs il = fmap (addInlineAttrs attrs) <$> il
+
+addBlockAttrs :: [(T.Text, T.Text)] -> Block -> Block
+addBlockAttrs attrs (Header n curattrs ils) =
+  Header n (addToPandocAttr attrs curattrs) ils
+addBlockAttrs attrs (CodeBlock curattrs s) =
+  CodeBlock (addToPandocAttr attrs curattrs) s
+addBlockAttrs _attrs x = x
+
+addInlineAttrs :: [(T.Text, T.Text)] -> Inline -> Inline
+addInlineAttrs attrs (Link curattrs ils target) =
+  Link (addToPandocAttr attrs curattrs) ils target
+addInlineAttrs attrs (Image curattrs ils target) =
+  Image (addToPandocAttr attrs curattrs) ils target
+addInlineAttrs attrs (Span curattrs ils) =
+  Span (addToPandocAttr attrs curattrs) ils
+addInlineAttrs attrs (Code curattrs s) =
+  Code (addToPandocAttr attrs curattrs) s
+addInlineAttrs _attrs x = x
+
+addToPandocAttr :: Attributes -> Attr -> Attr
+addToPandocAttr attrs curattrs = (id'', classes'', kvs'')
  where
+   (id', classes', kvs') = curattrs
    id'' = maybe id' T.unpack $ lookup "id" attrs
    classes'' = maybe classes' (words . T.unpack) $ lookup "class" attrs
    kvs'' = kvs' ++ [(T.unpack k, T.unpack v) | (k,v) <- attrs,
                          k /= "id", k /= "class"]
-addAttrs _attrs x = x
 
 instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
      => HasFootnote (Cm a B.Inlines) (Cm a B.Blocks) where

@@ -13,11 +13,11 @@ module Commonmark.Inlines
   , defaultFormattingSpecs
   , BracketedSpec(..)
   , defaultBracketedSpecs
+  , imageSpec
+  , linkSpec
   , pLinkLabel
   , pLinkDestination
   , pLinkTitle
-  , pReferenceLink
-  , pInlineLink
   , pEscaped
   , processEmphasis
   , processBrackets

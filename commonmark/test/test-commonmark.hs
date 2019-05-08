@@ -36,6 +36,7 @@ main = do
              , ("test/autolinks.txt", autolinkSpec)
              , ("test/definition_list.txt", definitionListSpec)
              , ("test/heading_attributes.txt", headingAttributesSpec)
+             , ("test/link_attributes.txt", linkAttributesSpec)
              ]
   defaultMain $ testGroup "Tests"
      (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip

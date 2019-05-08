@@ -2,9 +2,11 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Commonmark.Extensions.Attributes
   ( Attributes
   , HasAttributes(..)
+  , linkAttributesSpec
   , headingAttributesSpec
   , pAttributes
   )
@@ -13,6 +15,7 @@ import Commonmark.Types
 import Commonmark.Tag (htmlAttributeName, htmlDoubleQuotedAttributeValue)
 import Commonmark.Tokens
 import Commonmark.Syntax
+import Commonmark.Inlines
 import Commonmark.SourceMap
 import Commonmark.Util
 import Commonmark.Blocks
@@ -24,18 +27,6 @@ import Data.Tree
 import Control.Monad (mzero)
 import Text.Parsec
 
-headingAttributesSpec
-             :: (Monad m, IsBlock il bl, IsInline il, HasAttributes bl)
-             => SyntaxSpec m il bl
-headingAttributesSpec = SyntaxSpec
-  { syntaxBlockSpecs = [atxHeadingWithAttributesSpec,
-                        setextHeadingWithAttributesSpec]
-  , syntaxBracketedSpecs = []
-  , syntaxFormattingSpecs = []
-  , syntaxInlineParsers = []
-  , syntaxFinalParsers = []
-  }
-
 class HasAttributes a where
   addAttributes :: Attributes -> a -> a
 
@@ -46,6 +37,34 @@ instance HasAttributes (WithSourceMap a) where
   addAttributes _attrs x = x
 
 type Attributes = [HtmlAttribute]
+
+-- | Allow attributes on both links and images.
+linkAttributesSpec
+             :: (Monad m, IsInline il, HasAttributes il)
+             => SyntaxSpec m il bl
+linkAttributesSpec = mempty
+  { syntaxBracketedSpecs = [ addInlineAttributes imageSpec
+                           , addInlineAttributes linkSpec
+                           ]
+  }
+
+addInlineAttributes :: (IsInline il, HasAttributes il)
+                    => BracketedSpec il -> BracketedSpec il
+addInlineAttributes spec =
+  spec{ bracketedSuffix = \rm key -> do
+          constructor <- (bracketedSuffix spec) rm key
+          do attr <- pAttributes
+             return (addAttributes attr . constructor)
+           <|> return constructor
+      }
+
+headingAttributesSpec
+             :: (Monad m, IsBlock il bl, IsInline il, HasAttributes bl)
+             => SyntaxSpec m il bl
+headingAttributesSpec = mempty
+  { syntaxBlockSpecs = [atxHeadingWithAttributesSpec,
+                        setextHeadingWithAttributesSpec]
+  }
 
 atxHeadingWithAttributesSpec
     :: (Monad m, IsBlock il bl, IsInline il, HasAttributes bl)

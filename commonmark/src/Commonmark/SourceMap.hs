@@ -17,6 +17,7 @@ import qualified Data.Text            as T
 import qualified Data.Map             as M
 import qualified Data.Sequence as Seq
 import Commonmark.Types
+import Commonmark.Attributes
 import Control.Monad.Trans.State
 
 -- | A map from source positions to a pair of sequences:
@@ -33,6 +34,10 @@ instance Semigroup SourceMap where
 instance Monoid SourceMap where
   mempty = SourceMap mempty
   mappend = (<>)
+
+instance HasAttributes (WithSourceMap a) where
+  addAttributes _attrs x = x
+
 
 combine :: (Seq.Seq Text, Seq.Seq Text)
         -> (Seq.Seq Text, Seq.Seq Text)

@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Commonmark.Html
   ( Html
-  , HtmlAttribute
   , htmlInline
   , htmlBlock
   , htmlText
@@ -15,6 +14,7 @@ module Commonmark.Html
   )
 where
 
+import           Commonmark.Attributes
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
@@ -31,7 +31,7 @@ data ElementType =
   | BlockElement
 
 data Html a =
-    HtmlElement ElementType Text [HtmlAttribute] (Maybe (Html a))
+    HtmlElement ElementType Text [Attribute] (Maybe (Html a))
   | HtmlText Text
   | HtmlRaw Text
   | HtmlNull
@@ -39,8 +39,6 @@ data Html a =
 
 instance Show (Html a) where
   show = TL.unpack . renderHtml
-
-type HtmlAttribute = (Text, Text)
 
 instance Semigroup (Html a) where
   x <> HtmlNull = x
@@ -50,6 +48,9 @@ instance Semigroup (Html a) where
 instance Monoid (Html a) where
   mempty = HtmlNull
   mappend = (<>)
+
+instance HasAttributes (Html a) where
+  addAttributes attrs x = foldr addAttribute x attrs
 
 htmlInline :: Text -> Maybe (Html a) -> Html a
 htmlInline tagname mbcontents = HtmlElement InlineElement tagname [] mbcontents
@@ -63,7 +64,7 @@ htmlText = HtmlText
 htmlRaw :: Text -> Html a
 htmlRaw = HtmlRaw
 
-addAttribute :: HtmlAttribute -> Html a -> Html a
+addAttribute :: Attribute -> Html a -> Html a
 addAttribute attr (HtmlElement eltType tagname attrs mbcontents) =
   HtmlElement eltType tagname (attr:attrs) mbcontents
 addAttribute _ elt = elt

@@ -4,39 +4,25 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Commonmark.Extensions.Attributes
-  ( Attributes
-  , HasAttributes(..)
-  , linkAttributesSpec
+  ( linkAttributesSpec
   , headingAttributesSpec
   , pAttributes
   )
 where
 import Commonmark.Types
+import Commonmark.Attributes
 import Commonmark.Tag (htmlAttributeName, htmlDoubleQuotedAttributeValue)
 import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.Inlines
-import Commonmark.SourceMap
 import Commonmark.Util
 import Commonmark.Blocks
 import Commonmark.Entity (unEntity)
-import Commonmark.Html (addAttribute, HtmlAttribute)
 import Data.Dynamic
 import qualified Data.Text as T
 import Data.Tree
 import Control.Monad (mzero)
 import Text.Parsec
-
-class HasAttributes a where
-  addAttributes :: Attributes -> a -> a
-
-instance HasAttributes (Html a) where
-  addAttributes attrs x = foldr addAttribute x attrs
-
-instance HasAttributes (WithSourceMap a) where
-  addAttributes _attrs x = x
-
-type Attributes = [HtmlAttribute]
 
 -- | Allow attributes on both links and images.
 linkAttributesSpec
@@ -140,7 +126,7 @@ pAttributes = try $ do
           else (("class", T.unwords classes):)) $
       [(k,v) | (k,v) <- xs, k /= "id" && k /= "class"]
 
-pIdentifier :: Monad m => ParsecT [Tok] u m HtmlAttribute
+pIdentifier :: Monad m => ParsecT [Tok] u m Attribute
 pIdentifier = try $ do
   symbol '#'
   xs <- many1 $
@@ -149,7 +135,7 @@ pIdentifier = try $ do
                         || hasType (Symbol ':') c || hasType (Symbol '.') c)
   return ("id", unEntity xs)
 
-pClass :: Monad m => ParsecT [Tok] u m HtmlAttribute
+pClass :: Monad m => ParsecT [Tok] u m Attribute
 pClass = do
   symbol '.'
   xs <- many1 $
@@ -157,7 +143,7 @@ pClass = do
     <|> satisfyTok (\c -> hasType (Symbol '-') c || hasType (Symbol '_') c)
   return ("class", unEntity xs)
 
-pKeyValue :: Monad m => ParsecT [Tok] u m HtmlAttribute
+pKeyValue :: Monad m => ParsecT [Tok] u m Attribute
 pKeyValue = do
   name <- htmlAttributeName
   symbol '='

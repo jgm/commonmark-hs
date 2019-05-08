@@ -74,6 +74,7 @@ library
       Commonmark.Inlines
       Commonmark.Blocks
       Commonmark.Util
+      Commonmark.Attributes
       Commonmark.SourceMap
       Commonmark.Extensions.Smart
       Commonmark.Extensions.Strikethrough

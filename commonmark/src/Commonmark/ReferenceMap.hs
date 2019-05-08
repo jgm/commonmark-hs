@@ -11,13 +11,15 @@ import qualified Data.Text as T
 import qualified Data.Map as M
 import Data.Dynamic
 import Data.Typeable (Typeable)
+import Commonmark.Types
 
 -- | Lookup table for link references.
 newtype ReferenceMap = ReferenceMap { unReferenceMap :: M.Map Text [Dynamic] }
   deriving (Show)
 
 data LinkInfo = LinkInfo{ linkDestination :: Text
-                        , linkTitle       :: Text }
+                        , linkTitle       :: Text
+                        , linkAttributes  :: Attributes }
      deriving (Show, Typeable)
 
 emptyReferenceMap :: ReferenceMap

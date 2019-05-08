@@ -441,7 +441,9 @@ extractReferenceLinks node = do
             (\((_,lab),(dest,tit)) ->
              updateState $ \st -> st{
               referenceMap = insertReference lab
-                LinkInfo{ linkDestination = dest, linkTitle = tit }
+                LinkInfo{ linkDestination = dest
+                        , linkTitle = tit
+                        , linkAttributes = mempty }
                 (referenceMap st) }) linkdefs
           let isRefPos = case toks' of
                            (t:_) -> (< tokPos t)

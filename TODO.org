@@ -1,9 +1,7 @@
-* TODO Modify ranges
-instead of having differnt types, e.g. Html SourceRange vs Html (),
-we could just have a parsing option specifying whether ranges are
-to be added.  This simplifies the types and would make everything
-easier.
-* TODO Modify monoid so that we replace something with same name instead of appending?
+** TODO make Attributes first-class citizens?
+I don't see another clean way to make them work in ref link defns.
+Best approach is to have a configurable attribute parser, perhaps
+as part of the spec.  It can be set to mzero for the default.
 * TODO create a sample markdown linter
 do a specific transformation on semantically identified
 text (e.g. capitalization)

@@ -1,11 +1,14 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE RankNTypes #-}
 module Commonmark.Syntax
   ( SyntaxSpec(..)
   , defaultSyntaxSpec
   )
 where
 
+import Text.Parsec (ParsecT)
 import Commonmark.Types
+import Commonmark.Tokens (Tok)
 import Commonmark.Blocks
 import Commonmark.Inlines
 #if !MIN_VERSION_base(4,11,0)
@@ -26,23 +29,26 @@ data SyntaxSpec m il bl = SyntaxSpec
         -- ^ Defines inline elements that don't contain inlines
      , syntaxFinalParsers    :: [BlockParser m il bl bl]
         -- ^ Run at the end of document, e.g. to collect footnotes
+     , syntaxAttributeParsers :: forall u . [ParsecT [Tok] u m Attributes]
+        -- ^ Parser for generic attribute syntax
      }
 
 instance Semigroup (SyntaxSpec m il bl) where
-  SyntaxSpec bl1 br1 fo1 il1 fp1 <> SyntaxSpec bl2 br2 fo2 il2 fp2
+  SyntaxSpec bl1 br1 fo1 il1 fp1 ap1 <> SyntaxSpec bl2 br2 fo2 il2 fp2 ap2
     = SyntaxSpec (bl1 <> bl2) (br1 <> br2) (fo1 <> fo2) (il1 <> il2)
-                 (fp1 <> fp2)
+                 (fp1 <> fp2) (ap1 <> ap2)
 instance Monoid (SyntaxSpec m il bl) where
-  mempty = SyntaxSpec mempty mempty mempty mempty mempty
+  mempty = SyntaxSpec mempty mempty mempty mempty mempty mempty
   mappend = (<>)
 
 -- | Standard commonmark syntax.
 defaultSyntaxSpec :: (Monad m, IsBlock il bl, IsInline il)
                   => SyntaxSpec m il bl
 defaultSyntaxSpec = SyntaxSpec
-  { syntaxBlockSpecs      = defaultBlockSpecs
-  , syntaxBracketedSpecs  = defaultBracketedSpecs
-  , syntaxFormattingSpecs = defaultFormattingSpecs
-  , syntaxInlineParsers   = defaultInlineParsers
-  , syntaxFinalParsers    = []
+  { syntaxBlockSpecs       = defaultBlockSpecs
+  , syntaxBracketedSpecs   = defaultBracketedSpecs
+  , syntaxFormattingSpecs  = defaultFormattingSpecs
+  , syntaxInlineParsers    = defaultInlineParsers
+  , syntaxFinalParsers     = []
+  , syntaxAttributeParsers = []
   }

@@ -10,7 +10,6 @@ module Commonmark.Extensions.Attributes
   )
 where
 import Commonmark.Types
-import Commonmark.Attributes
 import Commonmark.Tag (htmlAttributeName, htmlDoubleQuotedAttributeValue)
 import Commonmark.Tokens
 import Commonmark.Syntax

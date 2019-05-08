@@ -1,7 +1,6 @@
 module Commonmark
     ( module Commonmark.Tokens
     , module Commonmark.Types
-    , module Commonmark.Attributes
     , module Commonmark.Syntax
     , module Commonmark.Parser
     , module Commonmark.SourceMap
@@ -17,7 +16,6 @@ module Commonmark
 
 import           Commonmark.Tokens
 import           Commonmark.Types
-import           Commonmark.Attributes
 import           Commonmark.Parser
 import           Commonmark.Syntax
 import           Commonmark.SourceMap

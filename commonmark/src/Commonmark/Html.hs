@@ -18,7 +18,6 @@ module Commonmark.Html
   )
 where
 
-import           Commonmark.Attributes
 import           Commonmark.Types
 import           Commonmark.Entity (lookupEntity)
 import           Data.Text (Text)

@@ -14,6 +14,9 @@ module Commonmark.Types
   , SourceRange(..)
   , SourcePos
   , Rangeable(..)
+  , Attribute
+  , Attributes
+  , HasAttributes(..)
   )
 where
 import           Data.Data            (Data)
@@ -121,3 +124,10 @@ prettyRange (SourceRange xs@((p,_):_)) =
          if null rest
             then ""
             else ";" ++ go (sourceName p2) rest
+
+type Attribute = (Text, Text)
+
+type Attributes = [Attribute]
+
+class HasAttributes a where
+  addAttributes :: Attributes -> a -> a

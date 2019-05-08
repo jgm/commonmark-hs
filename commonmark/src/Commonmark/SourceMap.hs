@@ -17,7 +17,6 @@ import qualified Data.Text            as T
 import qualified Data.Map             as M
 import qualified Data.Sequence as Seq
 import Commonmark.Types
-import Commonmark.Attributes
 import Control.Monad.Trans.State
 
 -- | A map from source positions to a pair of sequences:

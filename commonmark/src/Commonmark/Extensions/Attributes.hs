@@ -5,6 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Commonmark.Extensions.Attributes
   ( linkAttributesSpec
+  , fencedCodeAttributesSpec
   , headingAttributesSpec
   , pAttributes
   )
@@ -23,6 +24,37 @@ import Data.Tree
 import Data.Monoid (Alt(..))
 import Control.Monad (mzero)
 import Text.Parsec
+
+fencedCodeAttributesSpec :: (Monad m, IsBlock il bl)
+                         => SyntaxSpec m il bl
+fencedCodeAttributesSpec = mempty
+  { syntaxBlockSpecs = [ fencedCodeAttributesBlockSpec ]
+  }
+
+fencedCodeAttributesBlockSpec :: (Monad m, IsBlock il bl)
+                              => BlockSpec m il bl
+fencedCodeAttributesBlockSpec = fencedCodeSpec
+       { blockType = "FencedCode"
+       , blockStart = do
+           res <- blockStart fencedCodeSpec
+           nodestack <- nodeStack <$> getState
+           case nodestack of
+             [] -> mzero
+             (Node nd cs:ns) -> updateState $ \st -> st{
+                  nodeStack = Node nd{ blockSpec = fencedCodeAttributesBlockSpec
+                                     } cs : ns }
+           return res
+       , blockConstructor =  \node -> do
+           let ((_, _, _, info) :: (Char, Int, Int, T.Text)) =
+                   fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty)
+           let infotoks = tokenize "info string" info
+           -- drop 1 initial lineend token
+           let codetext = untokenize $ drop 1 (getBlockText id node)
+           return $ addRange node $
+             case parse pAttributes "info string" infotoks of
+               Left _ -> codeBlock info codetext
+               Right attrs -> addAttributes attrs $ codeBlock mempty codetext
+       }
 
 -- | Allow attributes on both links and images.
 linkAttributesSpec
@@ -57,7 +89,7 @@ atxHeadingWithAttributesSpec
     :: (Monad m, IsBlock il bl, IsInline il)
     => BlockSpec m il bl
 atxHeadingWithAttributesSpec = atxHeadingSpec
-  { blockType = "ATXHeadingWithAttributes"
+  { blockType = "ATXHeading"
   , blockStart = do
        res <- blockStart atxHeadingSpec
        nodestack <- nodeStack <$> getState
@@ -79,7 +111,7 @@ setextHeadingWithAttributesSpec
     :: (Monad m, IsBlock il bl, IsInline il)
     => BlockSpec m il bl
 setextHeadingWithAttributesSpec = atxHeadingSpec
-  { blockType = "SetextHeadingWithAttributes"
+  { blockType = "SetextHeading"
   , blockStart = do
        res <- blockStart setextHeadingSpec
        nodestack <- nodeStack <$> getState

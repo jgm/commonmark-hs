@@ -143,6 +143,7 @@ extensions =
   ,("definition_list", definitionListSpec)
   ,("heading_attributes", headingAttributesSpec)
   ,("link_attributes", linkAttributesSpec)
+  ,("fenced_code_attributes", fencedCodeAttributesSpec)
   ]
 
 extensionList :: [String]

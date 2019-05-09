@@ -1,0 +1,41 @@
+Attributes have the synatx described in heading_attributes.txt.
+They can occur after either backtick or tilde style code fences.
+
+```````````````````````````````` example
+``` {#ident .class key="value value" key2=value2} 
+xyz
+```
+.
+<pre id="ident" class="class" key="value value" key2="value2"><code>xyz
+</code></pre>
+````````````````````````````````
+
+```````````````````````````````` example
+~~~~{#mycode .ruby .number-lines}
+xyz
+~~~~
+.
+<pre id="mycode" class="ruby number-lines"><code>xyz
+</code></pre>
+````````````````````````````````
+
+If anything but the attribute spec is present, the
+whole thing is treated as a raw info string.
+
+```````````````````````````````` example
+``` {#foo} bar
+xyz
+```
+.
+<pre><code class="language-{#foo}">xyz
+</code></pre>
+````````````````````````````````
+
+```````````````````````````````` example
+``` bar {#foo}
+xyz
+```
+.
+<pre><code class="language-bar">xyz
+</code></pre>
+````````````````````````````````

@@ -51,7 +51,7 @@ fencedCodeAttributesBlockSpec = fencedCodeSpec
            -- drop 1 initial lineend token
            let codetext = untokenize $ drop 1 (getBlockText id node)
            return $ addRange node $
-             case parse pAttributes "info string" infotoks of
+             case parse (pAttributes <* eof) "info string" infotoks of
                Left _ -> codeBlock info codetext
                Right attrs -> addAttributes attrs $ codeBlock mempty codetext
        }

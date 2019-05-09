@@ -526,14 +526,12 @@ linkReferenceDef = try $ do
   symbol ':'
   optional whitespace
   dest <- pLinkDestination
-  title <- option [] $ try $
-             whitespace
-             *> pLinkTitle
-             <* skipWhile (hasType Spaces)
-             <* lookAhead (void lineEnd <|> eof)
-  skipWhile (hasType Spaces)
   attrParser <- attributeParser <$> getState
-  attrs <- attrParser
+  (title, attrs) <- option (mempty, mempty) $ try $
+           (,) <$> option mempty (try (whitespace *> pLinkTitle))
+               <*> (skipWhile (hasType Spaces) *>
+                    attrParser <* skipWhile (hasType Spaces) <*
+                    lookAhead (void lineEnd <|> eof))
   endpos <- getPosition
   void lineEnd <|> eof
   return ((SourceRange [(startpos, endpos)], lab),

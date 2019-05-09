@@ -31,6 +31,7 @@ linkAttributesSpec = mempty
   { syntaxBracketedSpecs = [ addInlineAttributes imageSpec
                            , addInlineAttributes linkSpec
                            ]
+  , syntaxAttributeParsers = [pAttributes]
   }
 
 addInlineAttributes :: (IsInline il, HasAttributes il)

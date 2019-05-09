@@ -1,4 +1,4 @@
-Attributes have the synatx described in heading_attributes.txt.
+Attributes have the syntax described in heading_attributes.txt.
 They can occur after either backtick or tilde style code fences.
 
 ```````````````````````````````` example

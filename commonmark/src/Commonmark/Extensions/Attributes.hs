@@ -159,6 +159,16 @@ pAttributes = try $ do
           else (("class", T.unwords classes):)) $
       [(k,v) | (k,v) <- xs, k /= "id" && k /= "class"]
 
+pRawAttribute :: Monad m => ParsecT [Tok] u m Format
+pRawAttribute = try $ do
+  symbol '{'
+  optional whitespace
+  symbol '='
+  Tok _ _ t <- satisfyWord (const True)
+  optional whitespace
+  symbol '}'
+  return $ Format t
+
 pIdentifier :: Monad m => ParsecT [Tok] u m Attribute
 pIdentifier = try $ do
   symbol '#'

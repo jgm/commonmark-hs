@@ -27,6 +27,7 @@ module Commonmark.Blocks
   , bspec
   , endOfBlock
   , interruptsParagraph
+  , linkReferenceDef
   -- * BlockSpecs
   , docSpec
   , indentedCodeSpec
@@ -67,13 +68,15 @@ import           Text.Parsec
 
 mkBlockParser :: (Monad m, IsBlock il bl)
              => [BlockSpec m il bl] -- ^ Defines block syntax
+             -> Parsec [Tok] () ((SourceRange, Text), LinkInfo)
+                 -- ^ parser for link reference def
              -> [BlockParser m il bl bl] -- ^ Parsers to run at end
              -> (ReferenceMap -> [Tok]
                   -> m (Either ParseError il)) -- ^ Inline parser
              -> [Tok] -- ^ Tokenized commonmark input
              -> m (Either ParseError bl)  -- ^ Result or error
-mkBlockParser _ _ _ [] = return $ Right mempty
-mkBlockParser specs finalParsers ilParser (t:ts) =
+mkBlockParser _ _ _ _ [] = return $ Right mempty
+mkBlockParser specs linkRefDef finalParsers ilParser (t:ts) =
   runParserT (setPosition (tokPos t) >> processLines specs finalParsers)
           BPState{ referenceMap     = emptyReferenceMap
                  , inlineParser     = ilParser
@@ -83,6 +86,7 @@ mkBlockParser specs finalParsers ilParser (t:ts) =
                  , maybeBlank       = True
                  , counters         = M.empty
                  , failurePositions = M.empty
+                 , parseLinkRefDef  = linkRefDef
                  }
           "source" (t:ts)
 
@@ -334,6 +338,7 @@ data BPState m il bl = BPState
      , counters         :: M.Map Text Dynamic
      , failurePositions :: M.Map Text SourcePos  -- record known positions
                            -- where parsers fail to avoid repetition
+     , parseLinkRefDef  :: Parsec [Tok] () ((SourceRange, Text), LinkInfo)
      }
 
 type BlockParser m il bl = ParsecT [Tok] (BPState m il bl) m
@@ -432,8 +437,9 @@ extractReferenceLinks :: (Monad m, IsBlock il bl)
                       -> BlockParser m il bl (Maybe (BlockNode m il bl),
                                               Maybe (BlockNode m il bl))
 extractReferenceLinks node = do
+  linkReferenceDefParser <- parseLinkRefDef <$> getState
   case parse ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
-                        many1 linkReferenceDef)
+                        many1 linkReferenceDefParser)
                   <*> getInput) "" (getBlockText removeIndent node) of
         Left _ -> return (Just node, Nothing)
         Right (linkdefs, toks') -> do
@@ -510,26 +516,29 @@ plainSpec = paraSpec{
   }
 
 
-linkReferenceDef :: Parsec [Tok] s ((SourceRange, Text), LinkInfo)
-linkReferenceDef = try $ do
+linkReferenceDef :: Parsec [Tok] s Attributes
+                 -> Parsec [Tok] s ((SourceRange, Text), LinkInfo)
+linkReferenceDef attrParser = try $ do
   startpos <- getPosition
   lab <- pLinkLabel
   guard $ not $ T.all isSpace lab
   symbol ':'
   optional whitespace
   dest <- pLinkDestination
-  title <- option [] $ try $
+  (title, attrs) <- option (mempty, mempty) $ try $ do
              whitespace
-             *> pLinkTitle
-             <* skipWhile (hasType Spaces)
-             <* lookAhead (void lineEnd <|> eof)
-  skipWhile (hasType Spaces)
+             tit <- option mempty pLinkTitle
+             skipWhile (hasType Spaces)
+             as <- option mempty attrParser
+             skipWhile (hasType Spaces)
+             lookAhead (void lineEnd <|> eof)
+             return (tit, as)
   endpos <- getPosition
   void lineEnd <|> eof
   return ((SourceRange [(startpos, endpos)], lab),
                 LinkInfo{ linkDestination = unEntity dest
                         , linkTitle = unEntity title
-                        , linkAttributes = mempty })
+                        , linkAttributes = attrs })
 
 atxHeadingSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl

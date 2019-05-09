@@ -13,6 +13,7 @@ import           Commonmark.Inlines
 import           Commonmark.Tokens
 import           Commonmark.Types
 import           Commonmark.Syntax (SyntaxSpec(..), defaultSyntaxSpec)
+import           Control.Monad (mzero)
 import           Text.Parsec.Error (ParseError)
 import           Data.Functor.Identity   (runIdentity)
 
@@ -46,6 +47,7 @@ parseCommonmarkWith :: (Monad m, IsBlock il bl, IsInline il)
                     -> m (Either ParseError bl)  -- ^ Result or error
 parseCommonmarkWith syntax =
     mkBlockParser (syntaxBlockSpecs syntax)
+      (linkReferenceDef mzero)
       (syntaxFinalParsers syntax)
       (mkInlineParser (syntaxBracketedSpecs syntax)
                       (syntaxFormattingSpecs syntax)

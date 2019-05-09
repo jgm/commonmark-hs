@@ -24,6 +24,8 @@ main = do
           ("commonmark +smart", sample)
       , benchCommonmark (autolinkSpec <> defaultSyntaxSpec)
           ("commonmark +autolink", sample)
+      , benchCommonmark (linkAttributesSpec <> defaultSyntaxSpec)
+          ("commonmark +link_attributes", sample)
       , benchCommonmark (defaultSyntaxSpec <> pipeTableSpec)
           ("commonmark +pipe_table", sample)
       ]

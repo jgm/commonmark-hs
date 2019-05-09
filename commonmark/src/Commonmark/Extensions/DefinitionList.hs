@@ -30,12 +30,8 @@ import Text.Parsec
 definitionListSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
                        Typeable il, Typeable bl, HasDefinitionList il bl)
                    => SyntaxSpec m il bl
-definitionListSpec = SyntaxSpec
+definitionListSpec = mempty
   { syntaxBlockSpecs = [definitionListDefinitionBlockSpec]
-  , syntaxBracketedSpecs = []
-  , syntaxFormattingSpecs = []
-  , syntaxInlineParsers = []
-  , syntaxFinalParsers = []
   }
 
 definitionListBlockSpec :: (Monad m, IsBlock il bl, HasDefinitionList il bl)

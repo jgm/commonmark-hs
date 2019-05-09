@@ -15,12 +15,9 @@ import Data.Monoid
 
 smartPunctuationSpec :: (Monad m, IsBlock il bl, IsInline il)
                      => SyntaxSpec m il bl
-smartPunctuationSpec = SyntaxSpec
-  { syntaxBlockSpecs = []
-  , syntaxBracketedSpecs = []
-  , syntaxFormattingSpecs = [singleQuotedSpec, doubleQuotedSpec]
+smartPunctuationSpec = mempty
+  { syntaxFormattingSpecs = [singleQuotedSpec, doubleQuotedSpec]
   , syntaxInlineParsers = [pEllipses, pDash]
-  , syntaxFinalParsers  = []
   }
 
 singleQuotedSpec :: IsInline il => FormattingSpec il

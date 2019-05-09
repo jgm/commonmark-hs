@@ -49,10 +49,8 @@ instance Ord (FootnoteDef bl m) where
 footnoteSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
                  Typeable il, Typeable bl, HasFootnote il bl)
              => SyntaxSpec m il bl
-footnoteSpec = SyntaxSpec
+footnoteSpec = mempty
   { syntaxBlockSpecs = [footnoteBlockSpec]
-  , syntaxBracketedSpecs = []
-  , syntaxFormattingSpecs = []
   , syntaxInlineParsers = [pFootnoteRef]
   , syntaxFinalParsers = [addFootnoteList]
   }

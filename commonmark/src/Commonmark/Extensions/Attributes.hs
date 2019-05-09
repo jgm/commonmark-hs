@@ -20,20 +20,22 @@ import Commonmark.Entity (unEntity)
 import Data.Dynamic
 import qualified Data.Text as T
 import Data.Tree
+import Data.Monoid (Alt(..))
 import Control.Monad (mzero)
 import Text.Parsec
 
 -- | Allow attributes on both links and images.
 linkAttributesSpec
-             :: (Monad m, IsInline il, HasAttributes il)
+             :: (Monad m, IsInline il)
              => SyntaxSpec m il bl
 linkAttributesSpec = mempty
   { syntaxBracketedSpecs = [ addInlineAttributes imageSpec
                            , addInlineAttributes linkSpec
                            ]
+  , syntaxReferenceLinkParser = Alt $ Just $ linkReferenceDef pAttributes
   }
 
-addInlineAttributes :: (IsInline il, HasAttributes il)
+addInlineAttributes :: (IsInline il)
                     => BracketedSpec il -> BracketedSpec il
 addInlineAttributes spec =
   spec{ bracketedSuffix = \rm key -> do
@@ -44,7 +46,7 @@ addInlineAttributes spec =
       }
 
 headingAttributesSpec
-             :: (Monad m, IsBlock il bl, IsInline il, HasAttributes bl)
+             :: (Monad m, IsBlock il bl, IsInline il)
              => SyntaxSpec m il bl
 headingAttributesSpec = mempty
   { syntaxBlockSpecs = [atxHeadingWithAttributesSpec,
@@ -52,7 +54,7 @@ headingAttributesSpec = mempty
   }
 
 atxHeadingWithAttributesSpec
-    :: (Monad m, IsBlock il bl, IsInline il, HasAttributes bl)
+    :: (Monad m, IsBlock il bl, IsInline il)
     => BlockSpec m il bl
 atxHeadingWithAttributesSpec = atxHeadingSpec
   { blockType = "ATXHeadingWithAttributes"
@@ -74,7 +76,7 @@ atxHeadingWithAttributesSpec = atxHeadingSpec
   }
 
 setextHeadingWithAttributesSpec
-    :: (Monad m, IsBlock il bl, IsInline il, HasAttributes bl)
+    :: (Monad m, IsBlock il bl, IsInline il)
     => BlockSpec m il bl
 setextHeadingWithAttributesSpec = atxHeadingSpec
   { blockType = "SetextHeadingWithAttributes"

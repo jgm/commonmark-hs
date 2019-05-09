@@ -43,7 +43,7 @@ data ListType =
      | OrderedList !Int !Char
      deriving (Show, Ord, Eq, Data, Typeable)
 
-class (Monoid a, Show a, Rangeable a) => IsInline a where
+class (Monoid a, Show a, Rangeable a, HasAttributes a) => IsInline a where
   lineBreak :: a
   softBreak :: a
   str :: Text -> a
@@ -62,7 +62,7 @@ class (Monoid a, Show a, Rangeable a) => IsInline a where
   code :: Text -> a
   rawInline :: Format -> Text -> a
 
-class (Monoid b, Show b, Rangeable b, IsInline il)
+class (Monoid b, Show b, Rangeable b, IsInline il, HasAttributes b)
       => IsBlock il b | b -> il where
   paragraph :: il -> b
   plain :: il -> b

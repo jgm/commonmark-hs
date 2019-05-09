@@ -129,8 +129,6 @@ extensions :: (Monad m, Typeable m,
                IsBlock il bl, IsInline il,
                HasPipeTable il bl,
                HasMath il,
-               HasAttributes bl,
-               HasAttributes il,
                HasStrikethrough il,
                HasDefinitionList il bl,
                HasFootnote il bl)
@@ -159,8 +157,6 @@ listExtensions =
 specFromExtensionNames ::
  (Monad m, Typeable m, Typeable bl, Typeable il,
   IsBlock il bl, IsInline il,
-  HasAttributes bl,
-  HasAttributes il,
   HasPipeTable il bl, HasMath il,
   HasStrikethrough il,
   HasDefinitionList il bl,

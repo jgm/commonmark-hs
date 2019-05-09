@@ -20,8 +20,12 @@ import Data.Monoid
 
 autolinkSpec :: (Monad m, IsBlock il bl, IsInline il)
              => SyntaxSpec m il bl
-autolinkSpec = mempty
-  { syntaxInlineParsers = [parseAutolink]
+autolinkSpec = SyntaxSpec
+  { syntaxBlockSpecs = []
+  , syntaxBracketedSpecs = []
+  , syntaxFormattingSpecs = []
+  , syntaxInlineParsers = [parseAutolink]
+  , syntaxFinalParsers = []
   }
 
 parseAutolink :: (Monad m, IsInline a) => InlineParser m a

@@ -128,8 +128,12 @@ pDivider = try $ do
 
 pipeTableSpec :: (Monad m, IsBlock il bl, IsInline il, HasPipeTable il bl)
               => SyntaxSpec m il bl
-pipeTableSpec = mempty
+pipeTableSpec = SyntaxSpec
   { syntaxBlockSpecs = [pipeTableBlockSpec]
+  , syntaxBracketedSpecs = []
+  , syntaxFormattingSpecs = []
+  , syntaxInlineParsers = []
+  , syntaxFinalParsers = []
   }
 
 pipeTableBlockSpec :: (Monad m, IsBlock il bl, IsInline il,

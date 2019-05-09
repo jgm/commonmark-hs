@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE RankNTypes #-}
 module Commonmark.Syntax
   ( SyntaxSpec(..)
@@ -19,7 +18,7 @@ import Data.Semigroup
 -- | A 'SyntaxSpec' defines a basic collection of syntax
 -- elements or an extension.  'SyntaxSpec's can be composed
 -- using monoidal 'mappend'.
-data SyntaxSpec m il bl = forall u . SyntaxSpec
+data SyntaxSpec m il bl = SyntaxSpec
      { syntaxBlockSpecs      :: [BlockSpec m il bl]
         -- ^ Defines block structure
      , syntaxBracketedSpecs  :: [BracketedSpec il]

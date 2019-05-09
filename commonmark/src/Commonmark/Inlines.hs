@@ -3,7 +3,6 @@
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module Commonmark.Inlines
   ( mkInlineParser
@@ -848,7 +847,7 @@ pInlineLink = try $ do
                     , linkTitle = title
                     , linkAttributes = mempty }
 
-pLinkDestination :: Monad m => ParsecT [Tok] s m [Tok]
+pLinkDestination :: Parsec [Tok] s [Tok]
 pLinkDestination = try $ pAngleDest <|> pNormalDest 0
   where
     pAngleDest = do
@@ -858,13 +857,15 @@ pLinkDestination = try $ pAngleDest <|> pNormalDest 0
       _ <- symbol '>'
       return res
 
+    pNormalDest :: Int -> Parsec [Tok] s [Tok]
     pNormalDest numparens = do
       res <- pNormalDest' numparens
       if null res
          then res <$ lookAhead (symbol ')')
          else return res
 
-    pNormalDest' (numparens :: Int)
+    pNormalDest' :: Int -> Parsec [Tok] s [Tok]
+    pNormalDest' numparens
      | numparens > 32 = mzero
      | otherwise = (do
           t <- satisfyTok (\case
@@ -892,10 +893,10 @@ asciiSymbol :: Tok -> Bool
 asciiSymbol (Tok (Symbol c) _ _) = isAscii c
 asciiSymbol _                    = False
 
-pLinkTitle :: Monad m => ParsecT [Tok] s m [Tok]
+pLinkTitle :: Parsec [Tok] s [Tok]
 pLinkTitle = inbetween '"' '"' <|> inbetween '\'' '\'' <|> inbetween '(' ')'
 
-inbetween :: Monad m => Char -> Char -> ParsecT [Tok] s m [Tok]
+inbetween :: Char -> Char -> Parsec [Tok] s [Tok]
 inbetween op cl =
   try $ between (symbol op) (symbol cl)
      (many (pEscaped <|> noneOfToks [Symbol op, Symbol cl]))

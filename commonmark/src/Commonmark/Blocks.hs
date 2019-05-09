@@ -17,6 +17,7 @@ module Commonmark.Blocks
   , BlockNode
   , BPState(..)
   , BlockParser
+  , LinkInfo(..)
   , defaultFinalizer
   , runInlineParser
   , addRange
@@ -526,8 +527,7 @@ linkReferenceDef attrParser = try $ do
   optional whitespace
   dest <- pLinkDestination
   (title, attrs) <- option (mempty, mempty) $ try $ do
-             whitespace
-             tit <- option mempty pLinkTitle
+             tit <- option mempty $ try (whitespace *> pLinkTitle)
              skipWhile (hasType Spaces)
              as <- option mempty attrParser
              skipWhile (hasType Spaces)

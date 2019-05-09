@@ -50,4 +50,5 @@ parseCommonmarkWith syntax =
       (syntaxAttributeParsers syntax)
       (mkInlineParser (syntaxBracketedSpecs syntax)
                       (syntaxFormattingSpecs syntax)
+                      (syntaxAttributeParsers syntax)
                       (syntaxInlineParsers syntax))

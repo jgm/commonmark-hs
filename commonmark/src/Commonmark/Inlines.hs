@@ -63,13 +63,11 @@ import           Text.Parsec.Pos
 mkInlineParser :: (Monad m, IsInline a)
                => [BracketedSpec a]
                -> [FormattingSpec a]
-               -> [ParsecT [Tok] IPState m Attributes] -- ^ Attribute parsers
                -> [InlineParser m a]
                -> ReferenceMap
                -> [Tok]
                -> m (Either ParseError a)
-mkInlineParser bracketedSpecs formattingSpecs attrParsers ilParsers rm toks =
-  do
+mkInlineParser bracketedSpecs formattingSpecs ilParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
   res <- parseChunks bracketedSpecs formattingSpecs ilParsers rm
          (dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks)

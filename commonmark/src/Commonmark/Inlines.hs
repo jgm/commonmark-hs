@@ -3,6 +3,7 @@
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Commonmark.Inlines
   ( mkInlineParser
@@ -44,9 +45,9 @@ import           Commonmark.Types
 import           Control.Monad              (guard, mzero)
 import           Data.Char                  (isAscii, isLetter)
 import           Data.Dynamic               (Dynamic)
+import           Data.List                  (foldl')
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map                   as M
-import           Data.List                  (foldl')
 import           Data.Maybe                 (isJust, mapMaybe)
 import qualified Data.Set                   as Set
 #if !MIN_VERSION_base(4,11,0)
@@ -64,12 +65,14 @@ mkInlineParser :: (Monad m, IsInline a)
                => [BracketedSpec a]
                -> [FormattingSpec a]
                -> [InlineParser m a]
+               -> [InlineParser m Attributes]
                -> ReferenceMap
                -> [Tok]
                -> m (Either ParseError a)
-mkInlineParser bracketedSpecs formattingSpecs ilParsers rm toks = do
+mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
-  res <- parseChunks bracketedSpecs formattingSpecs ilParsers rm
+  let attrParser = choice attrParsers
+  res <- parseChunks bracketedSpecs formattingSpecs ilParsers attrParser rm
          (dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks)
   return $
     case res of
@@ -93,32 +96,42 @@ defaultInlineParsers =
                 ]
 
 unChunks :: IsInline a => [Chunk a] -> a
-unChunks = foldl' mappend mempty . map unChunk
+unChunks = foldl' mappend mempty . go
+    where
+      go []     = []
+      go (c:cs) =
+        let (f, rest) =
+             case cs of
+               (Chunk (AddAttributes attrs) _pos _ts : ds) ->
+                 (addAttributes attrs, ds)
+               _ -> (id, cs) in
+        case chunkType c of
+          AddAttributes _ -> go rest
+          Delim{} ->
+            f (ranged range (str (untokenize ts))) : go rest
+              where ts = chunkToks c
+                    range =
+                      case ts of
+                       []    -> mempty
+                       (_:_) -> SourceRange
+                                  [(chunkPos c,
+                                    incSourceColumn
+                                      (tokPos (last ts)) 1)]
+          Parsed ils          -> f ils : go rest
 
-unChunk :: IsInline a => Chunk a -> a
-unChunk chunk =
-  case chunkType chunk of
-       Delim{} -> ranged range (str (untokenize ts))
-                   where ts = chunkToks chunk
-                         range =
-                           case ts of
-                                []    -> mempty
-                                (_:_) -> SourceRange
-                                           [(chunkPos chunk,
-                                             incSourceColumn
-                                               (tokPos (last ts)) 1)]
-       Parsed ils -> ils
 
 parseChunks :: (Monad m, IsInline a)
             => [BracketedSpec a]
             -> [FormattingSpec a]
             -> [InlineParser m a]
+            -> InlineParser m Attributes
             -> ReferenceMap
             -> [Tok]
             -> m (Either ParseError [Chunk a])
-parseChunks _ _ _ _ []             = return (Right [])
-parseChunks bspecs specs ilParsers rm (t:ts) =
-  runParserT (setPosition (tokPos t) >> many (pChunk specmap ilParsers) <* eof)
+parseChunks _ _ _ _ _ []             = return (Right [])
+parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
+  runParserT (setPosition (tokPos t) >>
+    many (pChunk specmap attrParser ilParsers) <* eof)
           IPState{ afterPunct = initialPos "",
                    afterSpace = tokPos t,
                    backtickSpans = getBacktickSpans (t:ts),
@@ -146,6 +159,7 @@ data ChunkType a =
             , delimSpec     :: Maybe (FormattingSpec a)
             }
      | Parsed a
+     | AddAttributes Attributes
      deriving Show
 
 data IPState = IPState
@@ -273,13 +287,15 @@ getBacktickSpans = go 0 (initialPos "")
 
 pChunk :: (IsInline a, Monad m)
        => FormattingSpecMap a
+       -> InlineParser m Attributes
        -> [InlineParser m a]
        -> InlineParser m (Chunk a)
-pChunk specmap ilParsers =
-      (do pos <- getPosition
-          (ils, ts) <- unzip <$> many1 (pInline ilParsers)
-          return $ Chunk (Parsed (mconcat ils)) pos (mconcat ts))
-   <|> pDelimChunk specmap
+pChunk specmap attrParser ilParsers =
+ do pos <- getPosition
+    (res, ts) <- withRaw (AddAttributes <$> attrParser)
+                    <|> (\(x,ts) -> (Parsed x,ts)) <$> pInline ilParsers
+    return $ Chunk res pos ts
+  <|> pDelimChunk specmap
 
 pDelimTok :: Monad m => InlineParser m Tok
 pDelimTok = do
@@ -617,8 +633,7 @@ processEm st =
                newelt = Chunk
                          (Parsed $
                            ranged (rangeFromToks emphtoks) $
-                             constructor $ mconcat $
-                                map unChunk contents)
+                             constructor $ unChunks contents)
                          (chunkPos chunk)
                          emphtoks
                newcursor = Cursor (Just newelt)
@@ -838,7 +853,7 @@ pLink :: ReferenceMap -> Text -> Parsec [Tok] s LinkInfo
 pLink rm key = do
   pInlineLink <|> pReferenceLink rm key
 
-pInlineLink :: Parsec [Tok] s LinkInfo
+pInlineLink :: Monad m => ParsecT [Tok] s m LinkInfo
 pInlineLink = try $ do
   _ <- symbol '('
   optional whitespace
@@ -851,7 +866,7 @@ pInlineLink = try $ do
                     , linkTitle = title
                     , linkAttributes = mempty }
 
-pLinkDestination :: Parsec [Tok] s [Tok]
+pLinkDestination :: Monad m => ParsecT [Tok] s m [Tok]
 pLinkDestination = try $ pAngleDest <|> pNormalDest 0
   where
     pAngleDest = do
@@ -861,14 +876,12 @@ pLinkDestination = try $ pAngleDest <|> pNormalDest 0
       _ <- symbol '>'
       return res
 
-    pNormalDest :: Int -> Parsec [Tok] s [Tok]
-    pNormalDest numparens = do
+    pNormalDest (numparens :: Int) = do
       res <- pNormalDest' numparens
       if null res
          then res <$ lookAhead (symbol ')')
          else return res
 
-    pNormalDest' :: Int -> Parsec [Tok] s [Tok]
     pNormalDest' numparens
      | numparens > 32 = mzero
      | otherwise = (do
@@ -897,10 +910,10 @@ asciiSymbol :: Tok -> Bool
 asciiSymbol (Tok (Symbol c) _ _) = isAscii c
 asciiSymbol _                    = False
 
-pLinkTitle :: Parsec [Tok] s [Tok]
+pLinkTitle :: Monad m => ParsecT [Tok] s m [Tok]
 pLinkTitle = inbetween '"' '"' <|> inbetween '\'' '\'' <|> inbetween '(' ')'
 
-inbetween :: Char -> Char -> Parsec [Tok] s [Tok]
+inbetween :: Monad m => Char -> Char -> ParsecT [Tok] s m [Tok]
 inbetween op cl =
   try $ between (symbol op) (symbol cl)
      (many (pEscaped <|> noneOfToks [Symbol op, Symbol cl]))
@@ -921,4 +934,3 @@ pReferenceLink rm key = do
                 then key
                 else lab
   maybe mzero return $ lookupReference key' rm
-

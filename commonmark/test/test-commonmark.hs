@@ -28,10 +28,8 @@ main = do
              , ("test/math.txt", mathSpec)
              , ("test/autolinks.txt", autolinkSpec)
              , ("test/definition_lists.txt", definitionListSpec)
-             , ("test/heading_attributes.txt", headingAttributesSpec)
-             , ("test/link_attributes.txt", linkAttributesSpec)
-             , ("test/fenced_code_attributes.txt", fencedCodeAttributesSpec)
-             , ("test/inline_code_attributes.txt", inlineCodeAttributesSpec)
+             , ("test/attributes.txt", attributesSpec)
+             , ("test/raw_attribute.txt", rawAttributeSpec)
              , ("test/bracketed_spans.txt", bracketedSpanSpec)
              ]
   defaultMain $ testGroup "Tests"

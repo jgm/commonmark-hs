@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -39,6 +40,7 @@ module Commonmark.Blocks
   , thematicBreakSpec
   , listItemSpec
   , rawHtmlSpec
+  , attributeSpec
   , paraSpec
   )
 where
@@ -69,15 +71,14 @@ import           Text.Parsec
 
 mkBlockParser :: (Monad m, IsBlock il bl)
              => [BlockSpec m il bl] -- ^ Defines block syntax
-             -> Parsec [Tok] () ((SourceRange, Text), LinkInfo)
-                 -- ^ parser for link reference def
              -> [BlockParser m il bl bl] -- ^ Parsers to run at end
              -> (ReferenceMap -> [Tok]
                   -> m (Either ParseError il)) -- ^ Inline parser
+             -> [BlockParser m il bl Attributes] -- ^ attribute parsers
              -> [Tok] -- ^ Tokenized commonmark input
              -> m (Either ParseError bl)  -- ^ Result or error
 mkBlockParser _ _ _ _ [] = return $ Right mempty
-mkBlockParser specs linkRefDef finalParsers ilParser (t:ts) =
+mkBlockParser specs finalParsers ilParser attributeParsers (t:ts) =
   runParserT (setPosition (tokPos t) >> processLines specs finalParsers)
           BPState{ referenceMap     = emptyReferenceMap
                  , inlineParser     = ilParser
@@ -87,7 +88,8 @@ mkBlockParser specs linkRefDef finalParsers ilParser (t:ts) =
                  , maybeBlank       = True
                  , counters         = M.empty
                  , failurePositions = M.empty
-                 , parseLinkRefDef  = linkRefDef
+                 , parseAttributes  = choice attributeParsers
+                 , nextAttributes   = mempty
                  }
           "source" (t:ts)
 
@@ -299,6 +301,7 @@ defaultBlockSpecs =
     , thematicBreakSpec
     , listItemSpec
     , rawHtmlSpec
+    , attributeSpec
     ]
 
 defaultFinalizer :: BlockNode m il bl
@@ -339,7 +342,8 @@ data BPState m il bl = BPState
      , counters         :: M.Map Text Dynamic
      , failurePositions :: M.Map Text SourcePos  -- record known positions
                            -- where parsers fail to avoid repetition
-     , parseLinkRefDef  :: Parsec [Tok] () ((SourceRange, Text), LinkInfo)
+     , parseAttributes  :: ParsecT [Tok] (BPState m il bl) m Attributes
+     , nextAttributes   :: Attributes
      }
 
 type BlockParser m il bl = ParsecT [Tok] (BPState m il bl) m
@@ -397,7 +401,19 @@ interruptsParagraph = do
   (cur:_) <- nodeStack <$> getState
   return $ blockParagraph (bspec cur)
 
-docSpec :: (Monad m, Monoid bl) => BlockSpec m il bl
+renderChildren :: (Monad m, IsBlock il bl)
+               => BlockNode m il bl -> BlockParser m il bl [bl]
+renderChildren node = mapM renderC $ reverse $ subForest node
+  where
+    renderC n = do
+      attrs <- nextAttributes <$> getState
+      updateState $ \st -> st{ nextAttributes = mempty }
+      (if null attrs
+          then id
+          else addAttributes attrs) <$>
+        blockConstructor (blockSpec (rootLabel n)) n
+
+docSpec :: (Monad m, IsBlock il bl, Monoid bl) => BlockSpec m il bl
 docSpec = BlockSpec
      { blockType           = "Doc"
      , blockStart          = mzero
@@ -405,10 +421,7 @@ docSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = \n -> (,n) <$> getPosition
-     , blockConstructor    = \node ->
-            mconcat <$> mapM (\n ->
-                        blockConstructor (blockSpec (rootLabel n)) n)
-                   (reverse (subForest node))
+     , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = defaultFinalizer
      }
 
@@ -438,17 +451,18 @@ extractReferenceLinks :: (Monad m, IsBlock il bl)
                       -> BlockParser m il bl (Maybe (BlockNode m il bl),
                                               Maybe (BlockNode m il bl))
 extractReferenceLinks node = do
-  linkReferenceDefParser <- parseLinkRefDef <$> getState
-  case parse ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
-                        many1 linkReferenceDefParser)
-                  <*> getInput) "" (getBlockText removeIndent node) of
+  st <- getState
+  res <- lift $ runParserT ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
+                        many1 (linkReferenceDef (parseAttributes st)))
+                  <*> getInput) st "" (getBlockText removeIndent node)
+  case res of
         Left _ -> return (Just node, Nothing)
         Right (linkdefs, toks') -> do
           mapM_
             (\((_,lab),linkinfo) ->
-             updateState $ \st -> st{
+             updateState $ \s -> s{
               referenceMap = insertReference lab linkinfo
-                (referenceMap st) }) linkdefs
+                (referenceMap s) }) linkdefs
           let isRefPos = case toks' of
                            (t:_) -> (< tokPos t)
                            _     -> const False
@@ -471,6 +485,42 @@ extractReferenceLinks node = do
                    , blockSpec = refLinkDefSpec
                  }}
           return (node', Just refnode)
+
+attributeSpec :: (Monad m, IsBlock il bl)
+              => BlockSpec m il bl
+attributeSpec = BlockSpec
+     { blockType           = "Attribute"
+     , blockStart          = do
+         interruptsParagraph >>= guard . not
+         pos <- getPosition
+         pAttr <- parseAttributes <$> getState
+         attrs <- pAttr
+         skipWhile (hasType Spaces)
+         lookAhead (void lineEnd <|> eof)
+         addNodeToStack $
+           Node (defBlockData attributeSpec){
+                     blockData = toDyn attrs,
+                     blockStartPos = [pos] } []
+         return BlockStartMatch
+     , blockCanContain     = const False
+     , blockContainsLines  = False
+     , blockParagraph      = False
+     , blockContinue       = \n -> do
+         pos <- getPosition
+         pAttr <- parseAttributes <$> getState
+         attrs <- pAttr
+         skipWhile (hasType Spaces)
+         lookAhead (void lineEnd <|> eof)
+         let oldattrs = fromDyn (blockData (rootLabel n)) mempty :: Attributes
+         let attrs' = attrs <> oldattrs
+         return (pos, n{ rootLabel = (rootLabel n){
+                          blockData = toDyn attrs' }})
+     , blockConstructor    = \node -> do
+         let attrs = fromDyn (blockData (rootLabel node)) mempty :: Attributes
+         updateState $ \st -> st{ nextAttributes = nextAttributes st <> attrs }
+         return mempty
+     , blockFinalize       = defaultFinalizer
+     }
 
 paraSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
@@ -517,8 +567,9 @@ plainSpec = paraSpec{
   }
 
 
-linkReferenceDef :: Parsec [Tok] s Attributes
-                 -> Parsec [Tok] s ((SourceRange, Text), LinkInfo)
+linkReferenceDef :: Monad m
+                 => ParsecT [Tok] s m Attributes
+                 -> ParsecT [Tok] s m ((SourceRange, Text), LinkInfo)
 linkReferenceDef attrParser = try $ do
   startpos <- getPosition
   lab <- pLinkLabel
@@ -577,10 +628,12 @@ atxHeadingSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = const mzero
-     , blockConstructor    = \node ->
-           (addRange node . heading
-     (fromDyn (blockData (rootLabel node)) 1))
-  <$> runInlineParser (getBlockText removeIndent node)
+     , blockConstructor    = \node -> do
+         let level = fromDyn (blockData (rootLabel node)) 1
+         let toks = getBlockText removeIndent node
+         (content, attr) <- parseFinalAttributes True toks <|> return (toks, mempty)
+         ils <- runInlineParser content
+         return $ (addRange node . addAttributes attr . heading level) ils
      , blockFinalize       = defaultFinalizer
      }
 
@@ -624,12 +677,30 @@ setextHeadingSpec = BlockSpec
      , blockContainsLines  = True
      , blockParagraph      = False
      , blockContinue       = const mzero
-     , blockConstructor    = \node ->
-           (addRange node . heading
-                 (fromDyn (blockData (rootLabel node)) 1))
-             <$> runInlineParser (getBlockText removeIndent node)
+     , blockConstructor    = \node -> do
+         let level = fromDyn (blockData (rootLabel node)) 1
+         let toks = getBlockText removeIndent node
+         (content, attr) <- parseFinalAttributes True toks <|> return (toks, mempty)
+         ils <- runInlineParser content
+         return $ (addRange node . addAttributes attr . heading level) ils
      , blockFinalize       = defaultFinalizer
      }
+
+parseFinalAttributes :: Monad m
+                     => Bool -> [Tok] -> BlockParser m il bl ([Tok], Attributes)
+parseFinalAttributes requireWhitespace ts = do
+  pAttr <- parseAttributes <$> getState
+  let pAttr' = try $ (if requireWhitespace
+                         then () <$ whitespace
+                         else optional whitespace)
+                     *> pAttr <* optional whitespace <* eof
+  st <- getState
+  res <- lift $ runParserT
+       ((,) <$> many (notFollowedBy pAttr' >> anyTok)
+            <*> option [] pAttr') st "heading contents" ts
+  case res of
+    Left _         -> mzero
+    Right (xs, ys) -> return (xs, ys)
 
 blockQuoteSpec :: (Monad m, IsBlock il bl) => BlockSpec m il bl
 blockQuoteSpec = BlockSpec
@@ -653,10 +724,7 @@ blockQuoteSpec = BlockSpec
              _ <- gobbleUpToSpaces 1
              return (pos, n)
      , blockConstructor    = \node ->
-          (addRange node . blockQuote . mconcat)
-   <$> mapM (\n ->
-              blockConstructor (blockSpec (rootLabel n)) n)
-         (reverse (subForest node))
+          (addRange node . blockQuote . mconcat) <$> renderChildren node
      , blockFinalize       = defaultFinalizer
      }
 
@@ -709,11 +777,7 @@ listItemSpec = BlockSpec
              pos <- getPosition
              gobbleSpaces (listItemIndent lidata) <|> 0 <$ lookAhead blankLine
              return (pos, node)
-     , blockConstructor    = \node ->
-          mconcat
-   <$> mapM (\n ->
-              blockConstructor (blockSpec (rootLabel n)) n)
-         (reverse (subForest node))
+     , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = \(Node cdata children) parent -> do
           let lidata = fromDyn (blockData cdata)
                                  (ListItemData undefined undefined
@@ -778,9 +842,7 @@ listSpec = BlockSpec
      , blockConstructor    = \node -> do
           let ListData lt ls = fromDyn (blockData (rootLabel node))
                                  (ListData undefined undefined)
-          let constructor n = blockConstructor (blockSpec (rootLabel n)) n
-          (addRange node . list lt ls)
-             <$> mapM constructor (reverse (subForest node))
+          (addRange node . list lt ls) <$> renderChildren node
      , blockFinalize       = \(Node cdata children) parent -> do
           let ListData lt _ = fromDyn (blockData cdata)
                                  (ListData undefined undefined)
@@ -929,12 +991,16 @@ fencedCodeSpec = BlockSpec
                        _ <- gobbleUpToSpaces indentspaces
                        return (pos, node))
      , blockConstructor    = \node -> do
-             let ((_, _, _, info) :: (Char, Int, Int, Text)) =
-                     fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty)
-             return (addRange node
-                        (codeBlock info
-                            -- drop initial lineend token
-                            (untokenize $ drop 1 (getBlockText id node))))
+           let ((_, _, _, info) :: (Char, Int, Int, T.Text)) =
+                   fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty)
+           let codetext = untokenize $ drop 1 (getBlockText id node)
+           let infotoks = tokenize "info string" info
+           -- drop 1 initial lineend token
+           (content, attrs) <- parseFinalAttributes False infotoks <|> return (infotoks, mempty)
+           return $ addRange node $
+              if null attrs
+                 then codeBlock info codetext
+                 else addAttributes attrs $ codeBlock (untokenize content) codetext
      , blockFinalize       = defaultFinalizer
      }
 

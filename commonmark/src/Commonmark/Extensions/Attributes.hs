@@ -5,14 +5,13 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
 module Commonmark.Extensions.Attributes
-  ( linkAttributesSpec
-  , fencedCodeAttributesSpec
-  , inlineCodeAttributesSpec
-  , headingAttributesSpec
+  ( attributesSpec
   , HasSpan(..)
   , bracketedSpanSpec
+  , rawAttributeSpec
   , pAttributes
   )
 where
@@ -29,8 +28,7 @@ import Commonmark.Html
 import Data.Dynamic
 import qualified Data.Text as T
 import Data.Tree
-import Data.Monoid (Alt(..))
-import Control.Monad (mzero)
+import Control.Monad (mzero, guard, void)
 import Text.Parsec
 
 bracketedSpanSpec
@@ -47,7 +45,7 @@ bracketedSpanSpec = mempty
             , bracketedSuffixEnd = Nothing
             , bracketedSuffix = pSpanSuffix
             }
-   pSpanSuffix rm key = do
+   pSpanSuffix _rm _key = do
      attrs <- pAttributes
      return $ spanWith attrs
 
@@ -61,163 +59,113 @@ instance (HasSpan i, Monoid i)
         => HasSpan (WithSourceMap i) where
   spanWith attrs x = (spanWith attrs <$> x) <* addName "span"
 
-inlineCodeAttributesSpec :: (Monad m, IsInline il)
-                         => SyntaxSpec m il bl
-inlineCodeAttributesSpec = mempty
-  { syntaxInlineParsers = [ pCodeSpanWithAttributes ]
-  }
-
-pCodeSpanWithAttributes :: (IsInline a, Monad m) => InlineParser m a
-pCodeSpanWithAttributes = do
+pRawSpan :: (IsInline a, Monad m) => InlineParser m a
+pRawSpan = do
   pBacktickSpan >>=
    \case
     Left ticks     -> return $ str (untokenize ticks)
     Right codetoks -> do
       let raw = untokenize codetoks
-      (do attrs <- pAttributes
-          return $ addAttributes attrs . code . normalizeCodeSpan $ raw)
-       <|>
-        (do f <- pRawAttribute
-            return $ rawInline f raw)
-       <|>
-        (return $ code . normalizeCodeSpan $ raw)
+      (do f <- pRawAttribute
+          return $ rawInline f raw)
+       <|> return (code . normalizeCodeSpan $ raw)
 
-fencedCodeAttributesSpec :: (Monad m, IsBlock il bl)
+rawAttributeSpec :: (Monad m, IsBlock il bl)
                          => SyntaxSpec m il bl
-fencedCodeAttributesSpec = mempty
-  { syntaxBlockSpecs = [ fencedCodeAttributesBlockSpec ]
+rawAttributeSpec = mempty
+  { syntaxBlockSpecs = [ rawAttributeBlockSpec ]
+  , syntaxInlineParsers = [ pRawSpan ]
   }
 
-fencedCodeAttributesBlockSpec :: (Monad m, IsBlock il bl)
+rawAttributeBlockSpec :: (Monad m, IsBlock il bl)
                               => BlockSpec m il bl
-fencedCodeAttributesBlockSpec = fencedCodeSpec
-       { blockType = "FencedCode"
-       , blockStart = do
-           res <- blockStart fencedCodeSpec
-           nodestack <- nodeStack <$> getState
-           case nodestack of
-             [] -> mzero
-             (Node nd cs:ns) -> updateState $ \st -> st{
-                  nodeStack = Node nd{ blockSpec = fencedCodeAttributesBlockSpec
-                                     } cs : ns }
-           return res
-       , blockConstructor =  \node -> do
-           let ((_, _, _, info) :: (Char, Int, Int, T.Text)) =
-                   fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty)
-           let infotoks = tokenize "info string" info
-           -- drop 1 initial lineend token
+rawAttributeBlockSpec = BlockSpec
+     { blockType           = "RawBlock"
+     , blockStart          = try $ do
+             prepos <- getPosition
+             nonindentSpaces
+             pos <- getPosition
+             let indentspaces = sourceColumn pos - sourceColumn prepos
+             (c, ticks) <-  (('`',) <$> many1 (symbol '`'))
+                        <|> (('~',) <$> many1 (symbol '~'))
+             let fencelength = length ticks
+             guard $ fencelength >= 3
+             skipWhile (hasType Spaces)
+             fmt <- pRawAttribute
+             skipWhile (hasType Spaces)
+             lookAhead $ void lineEnd <|> eof
+             addNodeToStack $
+                Node (defBlockData rawAttributeBlockSpec){
+                          blockData = toDyn
+                               (c, fencelength, indentspaces, fmt),
+                          blockStartPos = [pos] } []
+             return BlockStartMatch
+     , blockCanContain     = const False
+     , blockContainsLines  = True
+     , blockParagraph      = False
+     , blockContinue       = \node -> try (do
+             let ((c, fencelength, _, _)
+                    :: (Char, Int, Int, Format)) = fromDyn
+                                   (blockData (rootLabel node))
+                                   ('`', 3, 0, Format mempty)
+             nonindentSpaces
+             pos <- getPosition
+             ts <- many1 (symbol c)
+             guard $ length ts >= fencelength
+             skipWhile (hasType Spaces)
+             lookAhead $ void lineEnd <|> eof
+             endOfBlock
+             return (pos, node))
+               <|> (do let ((_, _, indentspaces, _)
+                              :: (Char, Int, Int, Format)) = fromDyn
+                                   (blockData (rootLabel node))
+                                   ('`', 3, 0, Format mempty)
+                       pos <- getPosition
+                       _ <- gobbleUpToSpaces indentspaces
+                       return (pos, node))
+     , blockConstructor    = \node -> do
+           let ((_, _, _, fmt) :: (Char, Int, Int, Format)) =
+                   fromDyn (blockData (rootLabel node))
+                     ('`', 3, 0, Format mempty)
            let codetext = untokenize $ drop 1 (getBlockText id node)
-           return $ addRange node $
-             case parse (pAttributes <* eof) "info string" infotoks of
-               Left _ ->
-                 case parse (pRawAttribute <* eof) "info string" infotoks of
-                   Left _ -> codeBlock info codetext
-                   Right f -> rawBlock f codetext
-               Right attrs -> addAttributes attrs $ codeBlock mempty codetext
-       }
+           -- drop 1 initial lineend token
+           return $ addRange node $ rawBlock fmt codetext
+     , blockFinalize       = defaultFinalizer
+     }
 
--- | Allow attributes on both links and images.
-linkAttributesSpec
+-- | Allow attributes on everything.
+attributesSpec
              :: (Monad m, IsInline il)
              => SyntaxSpec m il bl
-linkAttributesSpec = mempty
-  { syntaxBracketedSpecs = [ addInlineAttributes imageSpec
-                           , addInlineAttributes linkSpec
-                           ]
-  , syntaxReferenceLinkParser = Alt $ Just $ linkReferenceDef pAttributes
+attributesSpec = mempty
+  { syntaxAttributeParsers = [pAttributes]
   }
-
-addInlineAttributes :: (IsInline il)
-                    => BracketedSpec il -> BracketedSpec il
-addInlineAttributes spec =
-  spec{ bracketedSuffix = \rm key -> do
-          constructor <- (bracketedSuffix spec) rm key
-          do attr <- pAttributes
-             return (addAttributes attr . constructor)
-           <|> return constructor
-      }
-
-headingAttributesSpec
-             :: (Monad m, IsBlock il bl, IsInline il)
-             => SyntaxSpec m il bl
-headingAttributesSpec = mempty
-  { syntaxBlockSpecs = [atxHeadingWithAttributesSpec,
-                        setextHeadingWithAttributesSpec]
-  }
-
-atxHeadingWithAttributesSpec
-    :: (Monad m, IsBlock il bl, IsInline il)
-    => BlockSpec m il bl
-atxHeadingWithAttributesSpec = atxHeadingSpec
-  { blockType = "ATXHeading"
-  , blockStart = do
-       res <- blockStart atxHeadingSpec
-       nodestack <- nodeStack <$> getState
-       case nodestack of
-         [] -> mzero
-         (Node nd cs:ns) -> updateState $ \st -> st{
-              nodeStack = Node nd{ blockSpec = atxHeadingWithAttributesSpec
-                                 } cs : ns }
-       return res
-  , blockConstructor    = \node -> do
-       let level = fromDyn (blockData (rootLabel node)) 1
-       let toks = getBlockText removeIndent node
-       let (content, attr) = parseAttributes toks
-       ils <- runInlineParser content
-       return $ (addRange node . addAttributes attr . heading level) ils
-  }
-
-setextHeadingWithAttributesSpec
-    :: (Monad m, IsBlock il bl, IsInline il)
-    => BlockSpec m il bl
-setextHeadingWithAttributesSpec = atxHeadingSpec
-  { blockType = "SetextHeading"
-  , blockStart = do
-       res <- blockStart setextHeadingSpec
-       nodestack <- nodeStack <$> getState
-       case nodestack of
-         [] -> mzero
-         (Node nd cs:ns) -> updateState $ \st -> st{
-              nodeStack = Node nd{ blockSpec = setextHeadingWithAttributesSpec
-                                 } cs : ns }
-       return res
-  , blockConstructor    = \node -> do
-       let level = fromDyn (blockData (rootLabel node)) 1
-       let toks = getBlockText removeIndent node
-       let (content, attr) = parseAttributes toks
-       ils <- runInlineParser content
-       return $ (addRange node . addAttributes attr . heading level) ils
-  }
-
-parseAttributes :: [Tok] -> ([Tok], Attributes)
-parseAttributes ts =
-  let pAttributes' = pAttributes <* optional whitespace <* eof
-  in case parse
-       ((,) <$> many (notFollowedBy pAttributes' >> anyTok)
-            <*> option [] pAttributes') "heading contents" ts of
-    Left _         -> (ts, [])
-    Right (xs, ys) -> (xs, ys)
 
 pAttributes :: Monad m => ParsecT [Tok] u m Attributes
-pAttributes = try $ do
-  symbol '{'
-  optional whitespace
-  let pAttribute = pIdentifier <|> pClass <|> pKeyValue
-  a <- pAttribute
-  as <- many $ try (whitespace *> (pIdentifier <|> pClass <|> pKeyValue))
-  optional whitespace
-  symbol '}'
-  return $ collapseAttrs (a:as)
- where
-    collapseAttrs xs =
-      let classes = [y | ("class", y) <- xs] in
-     (case lookup "id" xs of
-         Just id' -> (("id",id'):)
-         Nothing  -> id) .
-      (if null classes
-          then id
-          else (("class", T.unwords classes):)) $
-      [(k,v) | (k,v) <- xs, k /= "id" && k /= "class"]
+pAttributes = collapseAttributes . mconcat <$> many1 pattr
+  where
+    pattr = try $ do
+      symbol '{'
+      optional whitespace
+      let pAttribute = pIdentifier <|> pClass <|> pKeyValue
+      a <- pAttribute
+      as <- many $ try (whitespace *> (pIdentifier <|> pClass <|> pKeyValue))
+      optional whitespace
+      symbol '}'
+      return (a:as)
+
+-- | Ensure that attributes contain only one 'class' and one 'id'.
+-- Concatenate the classes with spaces between, if multiple.
+collapseAttributes :: Attributes -> Attributes
+collapseAttributes xs =
+  let classes = [y | ("class", y) <- xs] in
+ (case lookup "id" xs of
+     Just id' -> (("id",id'):)
+     Nothing  -> id) .
+  (if null classes
+      then id
+      else (("class", T.unwords classes):)) $
+  [(k,v) | (k,v) <- xs, k /= "id" && k /= "class"]
 
 pRawAttribute :: Monad m => ParsecT [Tok] u m Format
 pRawAttribute = try $ do

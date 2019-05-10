@@ -131,3 +131,4 @@ type Attributes = [Attribute]
 
 class HasAttributes a where
   addAttributes :: Attributes -> a -> a
+

@@ -1,9 +1,6 @@
-* TODO make attributes first-class?
-support them (conditional on option) in standard parsers?
-otherwise hard to see how we could add on a generic
-inline attribute.
-one possibility would be to make the attribute parser
-configurable, defaulting to mzero.
+* TODO create a markdown-aware spell checker
+emits source locations and misspelled words,
+or applies a special attribute...
 * TODO create a sample markdown linter
 do a specific transformation on semantically identified
 text (e.g. capitalization)
@@ -24,11 +21,7 @@ that.  Then the effect can be state dependenet.
 Would it make sense to do this for footnotes instead of
 including the ad hoc after document thing?
 * TODO extensions
-** TODO bracketed spans
 ** TODO fenced divs
-** TODO generic attributes
-AFTER every inline
-BEFORE every block
 ** TODO fancy_lists
 ** TODO example_lists
 ** TODO emoji

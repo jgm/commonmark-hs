@@ -142,10 +142,8 @@ extensions =
   ,("math", mathSpec)
   ,("footnotes", footnoteSpec)
   ,("definition_lists", definitionListSpec)
-  ,("heading_attributes", headingAttributesSpec)
-  ,("link_attributes", linkAttributesSpec)
-  ,("fenced_code_attributes", fencedCodeAttributesSpec)
-  ,("inline_code_attributes", inlineCodeAttributesSpec)
+  ,("attributes", attributesSpec)
+  ,("raw_attribute", rawAttributeSpec)
   ,("bracketed_spans", bracketedSpanSpec)
   ]
 

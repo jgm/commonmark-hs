@@ -40,6 +40,7 @@ The following optional extensions are provided:
   blocks (including pandoc-style "raw attributes")
 - `inline_code_attributes`: attributes on code spans
   (include pandoc-style "raw attributes")
+- `bracketed_spans`: spans of inlines with attributes
 
 ## Notes on the design
 

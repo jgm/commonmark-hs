@@ -32,6 +32,7 @@ main = do
              , ("test/link_attributes.txt", linkAttributesSpec)
              , ("test/fenced_code_attributes.txt", fencedCodeAttributesSpec)
              , ("test/inline_code_attributes.txt", inlineCodeAttributesSpec)
+             , ("test/bracketed_spans.txt", bracketedSpanSpec)
              ]
   defaultMain $ testGroup "Tests"
      (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip

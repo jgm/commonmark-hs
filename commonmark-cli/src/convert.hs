@@ -129,6 +129,7 @@ extensions :: (Monad m, Typeable m,
                IsBlock il bl, IsInline il,
                HasPipeTable il bl,
                HasMath il,
+               HasSpan il,
                HasStrikethrough il,
                HasDefinitionList il bl,
                HasFootnote il bl)
@@ -145,6 +146,7 @@ extensions =
   ,("link_attributes", linkAttributesSpec)
   ,("fenced_code_attributes", fencedCodeAttributesSpec)
   ,("inline_code_attributes", inlineCodeAttributesSpec)
+  ,("bracketed_spans", bracketedSpanSpec)
   ]
 
 extensionList :: [String]
@@ -160,6 +162,7 @@ specFromExtensionNames ::
  (Monad m, Typeable m, Typeable bl, Typeable il,
   IsBlock il bl, IsInline il,
   HasPipeTable il bl, HasMath il,
+  HasSpan il,
   HasStrikethrough il,
   HasDefinitionList il bl,
   HasFootnote il bl)

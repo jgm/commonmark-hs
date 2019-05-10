@@ -26,6 +26,7 @@ import Commonmark.Extensions.Math
 import Commonmark.Extensions.PipeTable
 import Commonmark.Extensions.Strikethrough
 import Commonmark.Extensions.DefinitionList
+import Commonmark.Extensions.Attributes
 import Commonmark.Extensions.Footnote
 import Data.Char (isSpace)
 import Data.Coerce (coerce)
@@ -55,7 +56,7 @@ instance Rangeable (Cm () B.Inlines) where
   ranged _r x = x
 
 instance Rangeable (Cm SourceRange B.Inlines) where
-  ranged r x = B.spanWith ("",[],[("data-pos",show r)]) <$> x
+  ranged r = addAttributes [("data-pos", T.pack (show r))]
 
 instance (Rangeable (Cm a B.Inlines),
           Rangeable (Cm a B.Blocks))
@@ -115,6 +116,10 @@ instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
 instance HasStrikethrough (Cm a B.Inlines) where
   strikethrough ils = B.strikeout <$> ils
 
+instance Rangeable (Cm a B.Inlines) => HasSpan (Cm a B.Inlines) where
+  spanWith attrs ils =
+    B.spanWith (addToPandocAttr attrs nullAttr) <$> ils
+
 instance HasAttributes (Cm a B.Blocks) where
   addAttributes attrs b = fmap (addBlockAttrs attrs) <$> b
 
@@ -126,7 +131,8 @@ addBlockAttrs attrs (Header n curattrs ils) =
   Header n (addToPandocAttr attrs curattrs) ils
 addBlockAttrs attrs (CodeBlock curattrs s) =
   CodeBlock (addToPandocAttr attrs curattrs) s
-addBlockAttrs _attrs x = x
+addBlockAttrs attrs x =
+  Div (addToPandocAttr attrs nullAttr) [x]
 
 addInlineAttrs :: [(T.Text, T.Text)] -> Inline -> Inline
 addInlineAttrs attrs (Link curattrs ils target) =
@@ -137,7 +143,8 @@ addInlineAttrs attrs (Span curattrs ils) =
   Span (addToPandocAttr attrs curattrs) ils
 addInlineAttrs attrs (Code curattrs s) =
   Code (addToPandocAttr attrs curattrs) s
-addInlineAttrs _attrs x = x
+addInlineAttrs attrs x =
+  Span (addToPandocAttr attrs nullAttr) [x]
 
 addToPandocAttr :: Attributes -> Attr -> Attr
 addToPandocAttr attrs curattrs = (id'', classes'', kvs'')

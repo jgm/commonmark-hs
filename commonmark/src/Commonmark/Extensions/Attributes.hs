@@ -1,5 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -9,6 +11,8 @@ module Commonmark.Extensions.Attributes
   , fencedCodeAttributesSpec
   , inlineCodeAttributesSpec
   , headingAttributesSpec
+  , HasSpan(..)
+  , bracketedSpanSpec
   , pAttributes
   )
 where
@@ -18,14 +22,44 @@ import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.Util
+import Commonmark.SourceMap
 import Commonmark.Blocks
 import Commonmark.Entity (unEntity)
+import Commonmark.Html
 import Data.Dynamic
 import qualified Data.Text as T
 import Data.Tree
 import Data.Monoid (Alt(..))
 import Control.Monad (mzero)
 import Text.Parsec
+
+bracketedSpanSpec
+             :: (Monad m, IsInline il, HasSpan il)
+             => SyntaxSpec m il bl
+bracketedSpanSpec = mempty
+  { syntaxBracketedSpecs = [ bsSpec ]
+  }
+  where
+   bsSpec = BracketedSpec
+            { bracketedName = "Span"
+            , bracketedNests = True
+            , bracketedPrefix = Nothing
+            , bracketedSuffixEnd = Nothing
+            , bracketedSuffix = pSpanSuffix
+            }
+   pSpanSuffix rm key = do
+     attrs <- pAttributes
+     return $ spanWith attrs
+
+class IsInline a => HasSpan a where
+  spanWith :: Attributes -> a -> a
+
+instance Rangeable (Html a) => HasSpan (Html a) where
+  spanWith attrs ils = addAttributes attrs $ htmlInline "span" (Just ils)
+
+instance (HasSpan i, Monoid i)
+        => HasSpan (WithSourceMap i) where
+  spanWith attrs x = (spanWith attrs <$> x) <* addName "span"
 
 inlineCodeAttributesSpec :: (Monad m, IsInline il)
                          => SyntaxSpec m il bl

@@ -47,7 +47,6 @@ import           Data.Char                  (isAscii, isLetter)
 import           Data.Dynamic               (Dynamic)
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map                   as M
-import           Data.List                  (foldl')
 import           Data.Maybe                 (isJust, mapMaybe)
 import qualified Data.Set                   as Set
 #if !MIN_VERSION_base(4,11,0)
@@ -102,11 +101,11 @@ unChunks = mconcat . go
       go (c:cs) =
         let (f, rest) =
              case cs of
-               (Chunk (AddAttributes attrs) pos ts : ds) ->
+               (Chunk (AddAttributes attrs) _pos _ts : ds) ->
                  (addAttributes attrs, ds)
                _ -> (id, cs) in
         case chunkType c of
-          AddAttributes attrs -> go rest
+          AddAttributes _ -> go rest
           Delim{} ->
             f (ranged range (str (untokenize ts))) : go rest
               where ts = chunkToks c
@@ -291,12 +290,11 @@ pChunk :: (IsInline a, Monad m)
        -> [InlineParser m a]
        -> InlineParser m (Chunk a)
 pChunk specmap attrParser ilParsers =
-  pDelimChunk specmap
-  <|>
-    do pos <- getPosition
-       (res, ts) <- withRaw (AddAttributes <$> attrParser)
-                       <|> (\(x,ts) -> (Parsed x,ts)) <$> pInline ilParsers
-       return $ Chunk res pos ts
+ do pos <- getPosition
+    (res, ts) <- withRaw (AddAttributes <$> attrParser)
+                    <|> (\(x,ts) -> (Parsed x,ts)) <$> pInline ilParsers
+    return $ Chunk res pos ts
+  <|> pDelimChunk specmap
 
 pDelimTok :: Monad m => InlineParser m Tok
 pDelimTok = do
@@ -935,4 +933,3 @@ pReferenceLink rm key = do
                 then key
                 else lab
   maybe mzero return $ lookupReference key' rm
-

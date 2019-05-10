@@ -144,6 +144,7 @@ extensions =
   ,("heading_attributes", headingAttributesSpec)
   ,("link_attributes", linkAttributesSpec)
   ,("fenced_code_attributes", fencedCodeAttributesSpec)
+  ,("inline_code_attributes", inlineCodeAttributesSpec)
   ]
 
 extensionList :: [String]

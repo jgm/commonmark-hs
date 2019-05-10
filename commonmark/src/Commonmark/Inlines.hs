@@ -28,6 +28,7 @@ module Commonmark.Inlines
   , pEscapedChar
   , pEntity
   , pBacktickSpan
+  , normalizeCodeSpan
   , pCodeSpan
   , pHtml
   , pAutolink
@@ -417,15 +418,18 @@ pCodeSpan =
     Left ticks     -> return $ str (untokenize ticks)
     Right codetoks -> return $ code . normalizeCodeSpan . untokenize
                              $ codetoks
-    where normalizeCodeSpan = removeSurroundingSpace . T.map nltosp
-          nltosp '\n' = ' '
-          nltosp c    = c
-          removeSurroundingSpace s
-             | not (T.null s)
-             , not (T.all (== ' ') s)
-             , T.head s == ' '
-             , T.last s == ' ' = T.drop 1 $ T.dropEnd 1 s
-             | otherwise = s
+
+normalizeCodeSpan :: Text -> Text
+normalizeCodeSpan = removeSurroundingSpace . T.map nltosp
+  where
+   nltosp '\n' = ' '
+   nltosp c    = c
+   removeSurroundingSpace s
+     | not (T.null s)
+     , not (T.all (== ' ') s)
+     , T.head s == ' '
+     , T.last s == ' ' = T.drop 1 $ T.dropEnd 1 s
+     | otherwise = s
 
 pHtml :: (IsInline a, Monad m) => InlineParser m a
 pHtml = try $ do

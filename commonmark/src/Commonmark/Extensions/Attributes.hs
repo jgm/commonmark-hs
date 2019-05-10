@@ -3,9 +3,11 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE LambdaCase #-}
 module Commonmark.Extensions.Attributes
   ( linkAttributesSpec
   , fencedCodeAttributesSpec
+  , inlineCodeAttributesSpec
   , headingAttributesSpec
   , pAttributes
   )
@@ -24,6 +26,27 @@ import Data.Tree
 import Data.Monoid (Alt(..))
 import Control.Monad (mzero)
 import Text.Parsec
+
+inlineCodeAttributesSpec :: (Monad m, IsInline il)
+                         => SyntaxSpec m il bl
+inlineCodeAttributesSpec = mempty
+  { syntaxInlineParsers = [ pCodeSpanWithAttributes ]
+  }
+
+pCodeSpanWithAttributes :: (IsInline a, Monad m) => InlineParser m a
+pCodeSpanWithAttributes = do
+  pBacktickSpan >>=
+   \case
+    Left ticks     -> return $ str (untokenize ticks)
+    Right codetoks -> do
+      let raw = untokenize codetoks
+      (do attrs <- pAttributes
+          return $ addAttributes attrs . code . normalizeCodeSpan $ raw)
+       <|>
+        (do f <- pRawAttribute
+            return $ rawInline f raw)
+       <|>
+        (return $ code . normalizeCodeSpan $ raw)
 
 fencedCodeAttributesSpec :: (Monad m, IsBlock il bl)
                          => SyntaxSpec m il bl

@@ -43,6 +43,7 @@ extra-source-files:
     test/heading_attributes.txt
     test/link_attributes.txt
     test/fenced_code_attributes.txt
+    test/inline_code_attributes.txt
     test/footnotes.txt
     test/math.txt
     test/smart_punct.txt

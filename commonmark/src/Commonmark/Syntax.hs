@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE RankNTypes #-}
 module Commonmark.Syntax
   ( SyntaxSpec(..)
   , defaultSyntaxSpec
@@ -34,14 +35,17 @@ data SyntaxSpec m il bl = SyntaxSpec
      , syntaxReferenceLinkParser
              :: Alt Maybe (Parsec [Tok] () ((SourceRange, Text), LinkInfo))
        -- ^ Parse link reference definition
+     , syntaxAttributeParsers
+             :: forall u . [Parsec [Tok] u Attributes]
+       -- ^ Parse attributes
      }
 
 instance Semigroup (SyntaxSpec m il bl) where
-  SyntaxSpec bl1 br1 fo1 il1 fp1 ld1 <> SyntaxSpec bl2 br2 fo2 il2 fp2 ld2
+  SyntaxSpec bl1 br1 fo1 il1 fp1 ld1 ap1 <> SyntaxSpec bl2 br2 fo2 il2 fp2 ld2 ap2
     = SyntaxSpec (bl1 <> bl2) (br1 <> br2) (fo1 <> fo2) (il1 <> il2)
-                 (fp1 <> fp2) (ld1 <> ld2)
+                 (fp1 <> fp2) (ld1 <> ld2) (ap1 <> ap2)
 instance Monoid (SyntaxSpec m il bl) where
-  mempty = SyntaxSpec mempty mempty mempty mempty mempty (Alt Nothing)
+  mempty = SyntaxSpec mempty mempty mempty mempty mempty mempty mempty
   mappend = (<>)
 
 -- | Standard commonmark syntax.
@@ -54,4 +58,5 @@ defaultSyntaxSpec = SyntaxSpec
   , syntaxInlineParsers       = defaultInlineParsers
   , syntaxFinalParsers        = []
   , syntaxReferenceLinkParser = Alt (Just (linkReferenceDef mzero))
+  , syntaxAttributeParsers    = []
   }

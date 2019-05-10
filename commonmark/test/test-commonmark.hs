@@ -29,7 +29,7 @@ main = do
              , ("test/autolinks.txt", autolinkSpec)
              , ("test/definition_lists.txt", definitionListSpec)
              , ("test/heading_attributes.txt", headingAttributesSpec)
-             , ("test/link_attributes.txt", linkAttributesSpec)
+             , ("test/link_attributes.txt", attributesSpec)
              , ("test/fenced_code_attributes.txt", fencedCodeAttributesSpec)
              , ("test/inline_code_attributes.txt", inlineCodeAttributesSpec)
              , ("test/bracketed_spans.txt", bracketedSpanSpec)

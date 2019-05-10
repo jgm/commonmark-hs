@@ -7,7 +7,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE LambdaCase #-}
 module Commonmark.Extensions.Attributes
-  ( linkAttributesSpec
+  ( attributesSpec
   , fencedCodeAttributesSpec
   , inlineCodeAttributesSpec
   , headingAttributesSpec
@@ -115,26 +115,13 @@ fencedCodeAttributesBlockSpec = fencedCodeSpec
                Right attrs -> addAttributes attrs $ codeBlock mempty codetext
        }
 
--- | Allow attributes on both links and images.
-linkAttributesSpec
+-- | Allow attributes on everything.
+attributesSpec
              :: (Monad m, IsInline il)
              => SyntaxSpec m il bl
-linkAttributesSpec = mempty
-  { syntaxBracketedSpecs = [ addInlineAttributes imageSpec
-                           , addInlineAttributes linkSpec
-                           ]
-  , syntaxAttributeParsers = [pAttributes]
+attributesSpec = mempty
+  { syntaxAttributeParsers = [pAttributes]
   }
-
-addInlineAttributes :: (IsInline il)
-                    => BracketedSpec il -> BracketedSpec il
-addInlineAttributes spec =
-  spec{ bracketedSuffix = \rm key -> do
-          constructor <- (bracketedSuffix spec) rm key
-          do attr <- pAttributes
-             return (addAttributes attr . constructor)
-           <|> return constructor
-      }
 
 headingAttributesSpec
              :: (Monad m, IsBlock il bl, IsInline il)

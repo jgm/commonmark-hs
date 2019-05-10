@@ -47,7 +47,7 @@ bracketedSpanSpec = mempty
             , bracketedSuffixEnd = Nothing
             , bracketedSuffix = pSpanSuffix
             }
-   pSpanSuffix rm key = do
+   pSpanSuffix _rm _key = do
      attrs <- pAttributes
      return $ spanWith attrs
 

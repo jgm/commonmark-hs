@@ -21,10 +21,10 @@ including the ad hoc after document thing?
 ** TODO generic attributes
 AFTER every inline
 BEFORE every block
-** TODO code block attributes
+** DONE code block attributes
 ** TODO code span attributes
+** TODO raw attribute - span
 ** TODO bracketed spans
-** TODO raw attribute
 ** TODO fenced divs
 ** TODO citations
 ** TODO simple tables

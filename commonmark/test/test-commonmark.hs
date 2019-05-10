@@ -27,7 +27,7 @@ main = do
              , ("test/footnotes.txt", footnoteSpec)
              , ("test/math.txt", mathSpec)
              , ("test/autolinks.txt", autolinkSpec)
-             , ("test/definition_list.txt", definitionListSpec)
+             , ("test/definition_lists.txt", definitionListSpec)
              , ("test/heading_attributes.txt", headingAttributesSpec)
              , ("test/link_attributes.txt", linkAttributesSpec)
              , ("test/fenced_code_attributes.txt", fencedCodeAttributesSpec)

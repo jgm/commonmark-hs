@@ -37,7 +37,7 @@ extra-source-files:
     changelog.md
     README.md
     test/spec.txt
-    test/definition_list.txt
+    test/definition_lists.txt
     test/autolinks.txt
     test/pipe_tables.txt
     test/heading_attributes.txt

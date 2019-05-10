@@ -134,13 +134,13 @@ extensions :: (Monad m, Typeable m,
                HasFootnote il bl)
            => [(String, SyntaxSpec m il bl)]
 extensions =
-  [ ("autolink", autolinkSpec)
-  ,("pipe_table", pipeTableSpec)
+  [ ("autolinks", autolinkSpec)
+  ,("pipe_tables", pipeTableSpec)
   ,("strikethrough", strikethroughSpec)
   ,("smart", smartPunctuationSpec)
   ,("math", mathSpec)
-  ,("footnote", footnoteSpec)
-  ,("definition_list", definitionListSpec)
+  ,("footnotes", footnoteSpec)
+  ,("definition_lists", definitionListSpec)
   ,("heading_attributes", headingAttributesSpec)
   ,("link_attributes", linkAttributesSpec)
   ,("fenced_code_attributes", fencedCodeAttributesSpec)

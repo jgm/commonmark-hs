@@ -65,12 +65,14 @@ mkInlineParser :: (Monad m, IsInline a)
                => [BracketedSpec a]
                -> [FormattingSpec a]
                -> [InlineParser m a]
+               -> [InlineParser m Attributes]
                -> ReferenceMap
                -> [Tok]
                -> m (Either ParseError a)
-mkInlineParser bracketedSpecs formattingSpecs ilParsers rm toks = do
+mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
-  res <- parseChunks bracketedSpecs formattingSpecs ilParsers rm
+  let attrParser = choice attrParsers
+  res <- parseChunks bracketedSpecs formattingSpecs ilParsers attrParser rm
          (dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks)
   return $
     case res of
@@ -114,12 +116,13 @@ parseChunks :: (Monad m, IsInline a)
             => [BracketedSpec a]
             -> [FormattingSpec a]
             -> [InlineParser m a]
+            -> InlineParser m Attributes
             -> ReferenceMap
             -> [Tok]
             -> m (Either ParseError [Chunk a])
-parseChunks _ _ _ _ []             = return (Right [])
-parseChunks bspecs specs ilParsers rm (t:ts) =
-  runParserT (setPosition (tokPos t) >> many (pChunk specmap ilParsers) <* eof)
+parseChunks _ _ _ _ _ []             = return (Right [])
+parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
+  runParserT (setPosition (tokPos t) >> many (pChunk specmap attrParser ilParsers) <* eof)
           IPState{ afterPunct = initialPos "",
                    afterSpace = tokPos t,
                    backtickSpans = getBacktickSpans (t:ts),
@@ -274,11 +277,12 @@ getBacktickSpans = go 0 (initialPos "")
 
 pChunk :: (IsInline a, Monad m)
        => FormattingSpecMap a
+       -> InlineParser m Attributes
        -> [InlineParser m a]
        -> InlineParser m (Chunk a)
-pChunk specmap ilParsers =
+pChunk specmap attrParser ilParsers =
       (do pos <- getPosition
-          (ils, ts) <- unzip <$> many1 (pInline ilParsers)
+          (ils, ts) <- unzip <$> many1 (pInline attrParser ilParsers)
           return $ Chunk (Parsed (mconcat ils)) pos (mconcat ts))
    <|> pDelimChunk specmap
 
@@ -353,10 +357,13 @@ pDelimChunk specmap = do
                       } pos toks'
 
 pInline :: (IsInline a, Monad m)
-        => [InlineParser m a]
+        => InlineParser m Attributes
+        -> [InlineParser m a]
         -> InlineParser m (a, [Tok])
-pInline ilParsers = do
+pInline attrParser ilParsers = do
   (res, toks) <- withRaw $ choice ilParsers <|> pSymbol
+  (addAttrs, toks') <- withRaw $ addAttributes <$> attrParser <|> return id
+  let alltoks = toks ++ toks'
   newpos <- getPosition
   case tokType (last toks) of
        Spaces       -> updateState $ \st -> st{ afterSpace = newpos }
@@ -364,7 +371,7 @@ pInline ilParsers = do
        LineEnd      -> updateState $ \st -> st{ afterSpace = newpos }
        Symbol _     -> updateState $ \st -> st{ afterPunct = newpos }
        _            -> return ()
-  return (ranged (rangeFromToks toks) res, toks)
+  return (ranged (rangeFromToks alltoks) (addAttrs res), alltoks)
 
 rangeFromToks :: [Tok] -> SourceRange
 rangeFromToks = SourceRange . go

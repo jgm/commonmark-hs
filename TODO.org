@@ -1,3 +1,9 @@
+* TODO make attributes first-class?
+support them (conditional on option) in standard parsers?
+otherwise hard to see how we could add on a generic
+inline attribute.
+one possibility would be to make the attribute parser
+configurable, defaulting to mzero.
 * TODO create a sample markdown linter
 do a specific transformation on semantically identified
 text (e.g. capitalization)

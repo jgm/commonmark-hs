@@ -29,7 +29,6 @@ import Commonmark.Html
 import Data.Dynamic
 import qualified Data.Text as T
 import Data.Tree
-import Data.Monoid (Alt(..))
 import Control.Monad (mzero)
 import Text.Parsec
 
@@ -124,7 +123,7 @@ linkAttributesSpec = mempty
   { syntaxBracketedSpecs = [ addInlineAttributes imageSpec
                            , addInlineAttributes linkSpec
                            ]
-  , syntaxReferenceLinkParser = Alt $ Just $ linkReferenceDef pAttributes
+  , syntaxAttributeParsers = [pAttributes]
   }
 
 addInlineAttributes :: (IsInline il)
@@ -162,7 +161,7 @@ atxHeadingWithAttributesSpec = atxHeadingSpec
   , blockConstructor    = \node -> do
        let level = fromDyn (blockData (rootLabel node)) 1
        let toks = getBlockText removeIndent node
-       let (content, attr) = parseAttributes toks
+       let (content, attr) = parseFinalAttributes toks
        ils <- runInlineParser content
        return $ (addRange node . addAttributes attr . heading level) ils
   }
@@ -184,13 +183,13 @@ setextHeadingWithAttributesSpec = atxHeadingSpec
   , blockConstructor    = \node -> do
        let level = fromDyn (blockData (rootLabel node)) 1
        let toks = getBlockText removeIndent node
-       let (content, attr) = parseAttributes toks
+       let (content, attr) = parseFinalAttributes toks
        ils <- runInlineParser content
        return $ (addRange node . addAttributes attr . heading level) ils
   }
 
-parseAttributes :: [Tok] -> ([Tok], Attributes)
-parseAttributes ts =
+parseFinalAttributes :: [Tok] -> ([Tok], Attributes)
+parseFinalAttributes ts =
   let pAttributes' = pAttributes <* optional whitespace <* eof
   in case parse
        ((,) <$> many (notFollowedBy pAttributes' >> anyTok)

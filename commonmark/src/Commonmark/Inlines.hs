@@ -3,6 +3,7 @@
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Commonmark.Inlines
   ( mkInlineParser
@@ -838,7 +839,7 @@ pLink :: ReferenceMap -> Text -> Parsec [Tok] s LinkInfo
 pLink rm key = do
   pInlineLink <|> pReferenceLink rm key
 
-pInlineLink :: Parsec [Tok] s LinkInfo
+pInlineLink :: Monad m => ParsecT [Tok] s m LinkInfo
 pInlineLink = try $ do
   _ <- symbol '('
   optional whitespace
@@ -851,7 +852,7 @@ pInlineLink = try $ do
                     , linkTitle = title
                     , linkAttributes = mempty }
 
-pLinkDestination :: Parsec [Tok] s [Tok]
+pLinkDestination :: Monad m => ParsecT [Tok] s m [Tok]
 pLinkDestination = try $ pAngleDest <|> pNormalDest 0
   where
     pAngleDest = do
@@ -861,14 +862,12 @@ pLinkDestination = try $ pAngleDest <|> pNormalDest 0
       _ <- symbol '>'
       return res
 
-    pNormalDest :: Int -> Parsec [Tok] s [Tok]
-    pNormalDest numparens = do
+    pNormalDest (numparens :: Int) = do
       res <- pNormalDest' numparens
       if null res
          then res <$ lookAhead (symbol ')')
          else return res
 
-    pNormalDest' :: Int -> Parsec [Tok] s [Tok]
     pNormalDest' numparens
      | numparens > 32 = mzero
      | otherwise = (do
@@ -897,10 +896,10 @@ asciiSymbol :: Tok -> Bool
 asciiSymbol (Tok (Symbol c) _ _) = isAscii c
 asciiSymbol _                    = False
 
-pLinkTitle :: Parsec [Tok] s [Tok]
+pLinkTitle :: Monad m => ParsecT [Tok] s m [Tok]
 pLinkTitle = inbetween '"' '"' <|> inbetween '\'' '\'' <|> inbetween '(' ')'
 
-inbetween :: Char -> Char -> Parsec [Tok] s [Tok]
+inbetween :: Monad m => Char -> Char -> ParsecT [Tok] s m [Tok]
 inbetween op cl =
   try $ between (symbol op) (symbol cl)
      (many (pEscaped <|> noneOfToks [Symbol op, Symbol cl]))

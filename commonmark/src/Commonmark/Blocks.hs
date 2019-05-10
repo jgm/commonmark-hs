@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -69,15 +70,14 @@ import           Text.Parsec
 
 mkBlockParser :: (Monad m, IsBlock il bl)
              => [BlockSpec m il bl] -- ^ Defines block syntax
-             -> Parsec [Tok] () ((SourceRange, Text), LinkInfo)
-                 -- ^ parser for link reference def
              -> [BlockParser m il bl bl] -- ^ Parsers to run at end
              -> (ReferenceMap -> [Tok]
                   -> m (Either ParseError il)) -- ^ Inline parser
+             -> [ParsecT [Tok] (BPState m il bl) m Attributes] -- ^ attribute parsers
              -> [Tok] -- ^ Tokenized commonmark input
              -> m (Either ParseError bl)  -- ^ Result or error
 mkBlockParser _ _ _ _ [] = return $ Right mempty
-mkBlockParser specs linkRefDef finalParsers ilParser (t:ts) =
+mkBlockParser specs finalParsers ilParser attributeParsers (t:ts) =
   runParserT (setPosition (tokPos t) >> processLines specs finalParsers)
           BPState{ referenceMap     = emptyReferenceMap
                  , inlineParser     = ilParser
@@ -87,7 +87,7 @@ mkBlockParser specs linkRefDef finalParsers ilParser (t:ts) =
                  , maybeBlank       = True
                  , counters         = M.empty
                  , failurePositions = M.empty
-                 , parseLinkRefDef  = linkRefDef
+                 , parseAttributes  = choice attributeParsers
                  }
           "source" (t:ts)
 
@@ -339,7 +339,7 @@ data BPState m il bl = BPState
      , counters         :: M.Map Text Dynamic
      , failurePositions :: M.Map Text SourcePos  -- record known positions
                            -- where parsers fail to avoid repetition
-     , parseLinkRefDef  :: Parsec [Tok] () ((SourceRange, Text), LinkInfo)
+     , parseAttributes  :: ParsecT [Tok] (BPState m il bl) m Attributes
      }
 
 type BlockParser m il bl = ParsecT [Tok] (BPState m il bl) m
@@ -438,17 +438,18 @@ extractReferenceLinks :: (Monad m, IsBlock il bl)
                       -> BlockParser m il bl (Maybe (BlockNode m il bl),
                                               Maybe (BlockNode m il bl))
 extractReferenceLinks node = do
-  linkReferenceDefParser <- parseLinkRefDef <$> getState
-  case parse ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
-                        many1 linkReferenceDefParser)
-                  <*> getInput) "" (getBlockText removeIndent node) of
+  st <- getState
+  res <- lift $ runParserT ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
+                        many1 (linkReferenceDef (parseAttributes st)))
+                  <*> getInput) st "" (getBlockText removeIndent node)
+  case res of
         Left _ -> return (Just node, Nothing)
         Right (linkdefs, toks') -> do
           mapM_
             (\((_,lab),linkinfo) ->
-             updateState $ \st -> st{
+             updateState $ \s -> s{
               referenceMap = insertReference lab linkinfo
-                (referenceMap st) }) linkdefs
+                (referenceMap s) }) linkdefs
           let isRefPos = case toks' of
                            (t:_) -> (< tokPos t)
                            _     -> const False
@@ -517,8 +518,9 @@ plainSpec = paraSpec{
   }
 
 
-linkReferenceDef :: Parsec [Tok] s Attributes
-                 -> Parsec [Tok] s ((SourceRange, Text), LinkInfo)
+linkReferenceDef :: Monad m
+                 => ParsecT [Tok] s m Attributes
+                 -> ParsecT [Tok] s m ((SourceRange, Text), LinkInfo)
 linkReferenceDef attrParser = try $ do
   startpos <- getPosition
   lab <- pLinkLabel

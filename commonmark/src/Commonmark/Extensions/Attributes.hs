@@ -206,17 +206,7 @@ pAttributes = try $ do
   as <- many $ try (whitespace *> (pIdentifier <|> pClass <|> pKeyValue))
   optional whitespace
   symbol '}'
-  return $ collapseAttrs (a:as)
- where
-    collapseAttrs xs =
-      let classes = [y | ("class", y) <- xs] in
-     (case lookup "id" xs of
-         Just id' -> (("id",id'):)
-         Nothing  -> id) .
-      (if null classes
-          then id
-          else (("class", T.unwords classes):)) $
-      [(k,v) | (k,v) <- xs, k /= "id" && k /= "class"]
+  return $ collapseAttributes (a:as)
 
 pRawAttribute :: Monad m => ParsecT [Tok] u m Format
 pRawAttribute = try $ do

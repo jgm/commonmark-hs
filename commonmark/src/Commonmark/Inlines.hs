@@ -291,7 +291,8 @@ pChunk :: (IsInline a, Monad m)
        -> InlineParser m (Chunk a)
 pChunk specmap attrParser ilParsers =
  do pos <- getPosition
-    (res, ts) <- withRaw (AddAttributes <$> attrParser)
+    (res, ts) <- withRaw (AddAttributes . collapseAttributes . mconcat
+                           <$> many1 attrParser)
                     <|> (\(x,ts) -> (Parsed x,ts)) <$> pInline ilParsers
     return $ Chunk res pos ts
   <|> pDelimChunk specmap

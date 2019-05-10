@@ -96,21 +96,29 @@ defaultInlineParsers =
                 ]
 
 unChunks :: IsInline a => [Chunk a] -> a
-unChunks = foldl' mappend mempty . map unChunk
+unChunks = mconcat . go
+    where
+      go []     = []
+      go (c:cs) =
+        let (f, rest) =
+             case cs of
+               (Chunk (AddAttributes attrs) pos ts : ds) ->
+                 (addAttributes attrs, ds)
+               _ -> (id, cs) in
+        case chunkType c of
+          AddAttributes attrs -> go rest
+          Delim{} ->
+            f (ranged range (str (untokenize ts))) : go rest
+              where ts = chunkToks c
+                    range =
+                      case ts of
+                       []    -> mempty
+                       (_:_) -> SourceRange
+                                  [(chunkPos c,
+                                    incSourceColumn
+                                      (tokPos (last ts)) 1)]
+          Parsed ils          -> f ils : go rest
 
-unChunk :: IsInline a => Chunk a -> a
-unChunk chunk =
-  case chunkType chunk of
-       Delim{} -> ranged range (str (untokenize ts))
-                   where ts = chunkToks chunk
-                         range =
-                           case ts of
-                                []    -> mempty
-                                (_:_) -> SourceRange
-                                           [(chunkPos chunk,
-                                             incSourceColumn
-                                               (tokPos (last ts)) 1)]
-       Parsed ils -> ils
 
 parseChunks :: (Monad m, IsInline a)
             => [BracketedSpec a]
@@ -122,7 +130,8 @@ parseChunks :: (Monad m, IsInline a)
             -> m (Either ParseError [Chunk a])
 parseChunks _ _ _ _ _ []             = return (Right [])
 parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
-  runParserT (setPosition (tokPos t) >> many (pChunk specmap attrParser ilParsers) <* eof)
+  runParserT (setPosition (tokPos t) >>
+    many (pChunk specmap attrParser ilParsers) <* eof)
           IPState{ afterPunct = initialPos "",
                    afterSpace = tokPos t,
                    backtickSpans = getBacktickSpans (t:ts),
@@ -150,6 +159,7 @@ data ChunkType a =
             , delimSpec     :: Maybe (FormattingSpec a)
             }
      | Parsed a
+     | AddAttributes Attributes
      deriving Show
 
 data IPState = IPState
@@ -281,10 +291,12 @@ pChunk :: (IsInline a, Monad m)
        -> [InlineParser m a]
        -> InlineParser m (Chunk a)
 pChunk specmap attrParser ilParsers =
-      (do pos <- getPosition
-          (ils, ts) <- unzip <$> many1 (pInline attrParser ilParsers)
-          return $ Chunk (Parsed (mconcat ils)) pos (mconcat ts))
-   <|> pDelimChunk specmap
+  pDelimChunk specmap
+  <|>
+    do pos <- getPosition
+       (res, ts) <- withRaw (AddAttributes <$> attrParser)
+                       <|> (\(x,ts) -> (Parsed x,ts)) <$> pInline ilParsers
+       return $ Chunk res pos ts
 
 pDelimTok :: Monad m => InlineParser m Tok
 pDelimTok = do
@@ -357,13 +369,10 @@ pDelimChunk specmap = do
                       } pos toks'
 
 pInline :: (IsInline a, Monad m)
-        => InlineParser m Attributes
-        -> [InlineParser m a]
+        => [InlineParser m a]
         -> InlineParser m (a, [Tok])
-pInline attrParser ilParsers = do
+pInline ilParsers = do
   (res, toks) <- withRaw $ choice ilParsers <|> pSymbol
-  (addAttrs, toks') <- withRaw $ addAttributes <$> attrParser <|> return id
-  let alltoks = toks ++ toks'
   newpos <- getPosition
   case tokType (last toks) of
        Spaces       -> updateState $ \st -> st{ afterSpace = newpos }
@@ -371,7 +380,7 @@ pInline attrParser ilParsers = do
        LineEnd      -> updateState $ \st -> st{ afterSpace = newpos }
        Symbol _     -> updateState $ \st -> st{ afterPunct = newpos }
        _            -> return ()
-  return (ranged (rangeFromToks alltoks) (addAttrs res), alltoks)
+  return (ranged (rangeFromToks toks) res, toks)
 
 rangeFromToks :: [Tok] -> SourceRange
 rangeFromToks = SourceRange . go
@@ -625,8 +634,7 @@ processEm st =
                newelt = Chunk
                          (Parsed $
                            ranged (rangeFromToks emphtoks) $
-                             constructor $ mconcat $
-                                map unChunk contents)
+                             constructor $ unChunks contents)
                          (chunkPos chunk)
                          emphtoks
                newcursor = Cursor (Just newelt)

@@ -18,9 +18,6 @@ that.  Then the effect can be state dependenet.
 Would it make sense to do this for footnotes instead of
 including the ad hoc after document thing?
 * TODO extensions
-** DONE code block attributes
-** DONE code span attributes
-** DONE raw attribute - span
 ** TODO bracketed spans
 ** TODO fenced divs
 ** TODO generic attributes

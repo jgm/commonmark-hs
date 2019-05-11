@@ -96,7 +96,7 @@ defaultInlineParsers =
                 ]
 
 unChunks :: IsInline a => [Chunk a] -> a
-unChunks = foldl' (<>) mempty . go
+unChunks = foldl' mappend mempty . go
     where
       go []     = []
       go (c:cs) =

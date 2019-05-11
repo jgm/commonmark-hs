@@ -17,7 +17,6 @@ module Commonmark.Types
   , Attribute
   , Attributes
   , HasAttributes(..)
-  , collapseAttributes
   )
 where
 import           Data.Data            (Data)
@@ -132,17 +131,4 @@ type Attributes = [Attribute]
 
 class HasAttributes a where
   addAttributes :: Attributes -> a -> a
-
--- | Ensure that attributes contain only one 'class' and one 'id'.
--- Concatenate the classes with spaces between, if multiple.
-collapseAttributes :: Attributes -> Attributes
-collapseAttributes xs =
-  let classes = [y | ("class", y) <- xs] in
- (case lookup "id" xs of
-     Just id' -> (("id",id'):)
-     Nothing  -> id) .
-  (if null classes
-      then id
-      else (("class", T.unwords classes):)) $
-  [(k,v) | (k,v) <- xs, k /= "id" && k /= "class"]
 

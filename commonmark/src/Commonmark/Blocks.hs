@@ -88,6 +88,7 @@ mkBlockParser specs finalParsers ilParser attributeParsers (t:ts) =
                  , counters         = M.empty
                  , failurePositions = M.empty
                  , parseAttributes  = choice attributeParsers
+                 , nextAttributes   = mempty
                  }
           "source" (t:ts)
 
@@ -340,6 +341,7 @@ data BPState m il bl = BPState
      , failurePositions :: M.Map Text SourcePos  -- record known positions
                            -- where parsers fail to avoid repetition
      , parseAttributes  :: ParsecT [Tok] (BPState m il bl) m Attributes
+     , nextAttributes   :: Attributes
      }
 
 type BlockParser m il bl = ParsecT [Tok] (BPState m il bl) m
@@ -399,9 +401,14 @@ interruptsParagraph = do
 
 renderChildren :: (Monad m, IsBlock il bl)
                => BlockNode m il bl -> BlockParser m il bl [bl]
-renderChildren node =
-  mapM (\n -> blockConstructor (blockSpec (rootLabel n)) n)
-   (reverse (subForest node))
+renderChildren node = mapM renderC $ reverse $ subForest node
+  where
+    renderC n = do
+      attrs <- nextAttributes <$> getState
+      (if null attrs
+          then id
+          else addAttributes attrs) <$>
+        blockConstructor (blockSpec (rootLabel n)) n
 
 docSpec :: (Monad m, IsBlock il bl, Monoid bl) => BlockSpec m il bl
 docSpec = BlockSpec

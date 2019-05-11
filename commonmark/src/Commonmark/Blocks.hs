@@ -40,6 +40,7 @@ module Commonmark.Blocks
   , thematicBreakSpec
   , listItemSpec
   , rawHtmlSpec
+  , attributeSpec
   , paraSpec
   )
 where
@@ -300,6 +301,7 @@ defaultBlockSpecs =
     , thematicBreakSpec
     , listItemSpec
     , rawHtmlSpec
+    , attributeSpec
     ]
 
 defaultFinalizer :: BlockNode m il bl
@@ -405,6 +407,7 @@ renderChildren node = mapM renderC $ reverse $ subForest node
   where
     renderC n = do
       attrs <- nextAttributes <$> getState
+      updateState $ \st -> st{ nextAttributes = mempty }
       (if null attrs
           then id
           else addAttributes attrs) <$>
@@ -482,6 +485,42 @@ extractReferenceLinks node = do
                    , blockSpec = refLinkDefSpec
                  }}
           return (node', Just refnode)
+
+attributeSpec :: (Monad m, IsBlock il bl)
+              => BlockSpec m il bl
+attributeSpec = BlockSpec
+     { blockType           = "Attribute"
+     , blockStart          = do
+         interruptsParagraph >>= guard . not
+         pos <- getPosition
+         pAttr <- parseAttributes <$> getState
+         attrs <- pAttr
+         skipWhile (hasType Spaces)
+         lookAhead (void lineEnd <|> eof)
+         addNodeToStack $
+           Node (defBlockData attributeSpec){
+                     blockData = toDyn attrs,
+                     blockStartPos = [pos] } []
+         return BlockStartMatch
+     , blockCanContain     = const False
+     , blockContainsLines  = False
+     , blockParagraph      = False
+     , blockContinue       = \n -> do
+         pos <- getPosition
+         pAttr <- parseAttributes <$> getState
+         attrs <- pAttr
+         skipWhile (hasType Spaces)
+         lookAhead (void lineEnd <|> eof)
+         let oldattrs = fromDyn (blockData (rootLabel n)) mempty :: Attributes
+         let attrs' = attrs <> oldattrs
+         return (pos, n{ rootLabel = (rootLabel n){
+                          blockData = toDyn attrs' }})
+     , blockConstructor    = \node -> do
+         let attrs = fromDyn (blockData (rootLabel node)) mempty :: Attributes
+         updateState $ \st -> st{ nextAttributes = nextAttributes st <> attrs }
+         return mempty
+     , blockFinalize       = defaultFinalizer
+     }
 
 paraSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl

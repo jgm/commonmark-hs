@@ -582,7 +582,7 @@ atxHeadingSpec = BlockSpec
      , blockConstructor    = \node -> do
          let level = fromDyn (blockData (rootLabel node)) 1
          let toks = getBlockText removeIndent node
-         (content, attr) <- parseFinalAttributes toks
+         (content, attr) <- parseFinalAttributes True toks <|> return (toks, mempty)
          ils <- runInlineParser content
          return $ (addRange node . addAttributes attr . heading level) ils
      , blockFinalize       = defaultFinalizer
@@ -631,23 +631,26 @@ setextHeadingSpec = BlockSpec
      , blockConstructor    = \node -> do
          let level = fromDyn (blockData (rootLabel node)) 1
          let toks = getBlockText removeIndent node
-         (content, attr) <- parseFinalAttributes toks
+         (content, attr) <- parseFinalAttributes True toks <|> return (toks, mempty)
          ils <- runInlineParser content
          return $ (addRange node . addAttributes attr . heading level) ils
      , blockFinalize       = defaultFinalizer
      }
 
 parseFinalAttributes :: Monad m
-                     => [Tok] -> BlockParser m il bl ([Tok], Attributes)
-parseFinalAttributes ts = do
+                     => Bool -> [Tok] -> BlockParser m il bl ([Tok], Attributes)
+parseFinalAttributes requireWhitespace ts = do
   pAttr <- parseAttributes <$> getState
-  let pAttr' = try $ whitespace *> pAttr <* optional whitespace <* eof
+  let pAttr' = try $ (if requireWhitespace
+                         then () <$ whitespace
+                         else optional whitespace)
+                     *> pAttr <* optional whitespace <* eof
   st <- getState
   res <- lift $ runParserT
        ((,) <$> many (notFollowedBy pAttr' >> anyTok)
             <*> option [] pAttr') st "heading contents" ts
   case res of
-    Left _         -> return (ts, [])
+    Left _         -> mzero
     Right (xs, ys) -> return (xs, ys)
 
 blockQuoteSpec :: (Monad m, IsBlock il bl) => BlockSpec m il bl
@@ -948,12 +951,16 @@ fencedCodeSpec = BlockSpec
                        _ <- gobbleUpToSpaces indentspaces
                        return (pos, node))
      , blockConstructor    = \node -> do
-             let ((_, _, _, info) :: (Char, Int, Int, Text)) =
-                     fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty)
-             return (addRange node
-                        (codeBlock info
-                            -- drop initial lineend token
-                            (untokenize $ drop 1 (getBlockText id node))))
+           let ((_, _, _, info) :: (Char, Int, Int, T.Text)) =
+                   fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty)
+           let codetext = untokenize $ drop 1 (getBlockText id node)
+           let infotoks = tokenize "info string" info
+           -- drop 1 initial lineend token
+           (content, attrs) <- parseFinalAttributes False infotoks <|> return (infotoks, mempty)
+           return $ addRange node $
+              if null attrs
+                 then codeBlock info codetext
+                 else addAttributes attrs $ codeBlock (untokenize content) codetext
      , blockFinalize       = defaultFinalizer
      }
 

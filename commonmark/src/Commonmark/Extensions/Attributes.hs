@@ -8,10 +8,9 @@
 {-# LANGUAGE LambdaCase #-}
 module Commonmark.Extensions.Attributes
   ( attributesSpec
-  , fencedCodeAttributesSpec
-  , inlineCodeAttributesSpec
   , HasSpan(..)
   , bracketedSpanSpec
+  , rawAttributeSpec
   , pAttributes
   )
 where
@@ -59,60 +58,27 @@ instance (HasSpan i, Monoid i)
         => HasSpan (WithSourceMap i) where
   spanWith attrs x = (spanWith attrs <$> x) <* addName "span"
 
-inlineCodeAttributesSpec :: (Monad m, IsInline il)
-                         => SyntaxSpec m il bl
-inlineCodeAttributesSpec = mempty
-  { syntaxInlineParsers = [ pCodeSpanWithAttributes ]
-  }
-
-pCodeSpanWithAttributes :: (IsInline a, Monad m) => InlineParser m a
-pCodeSpanWithAttributes = do
+pRawSpan :: (IsInline a, Monad m) => InlineParser m a
+pRawSpan = do
   pBacktickSpan >>=
    \case
     Left ticks     -> return $ str (untokenize ticks)
     Right codetoks -> do
       let raw = untokenize codetoks
-      (do attrs <- pAttributes
-          return $ addAttributes attrs . code . normalizeCodeSpan $ raw)
-       <|>
-        (do f <- pRawAttribute
-            return $ rawInline f raw)
-       <|>
-        (return $ code . normalizeCodeSpan $ raw)
+      (do f <- pRawAttribute
+          return $ rawInline f raw)
+       <|> return (code . normalizeCodeSpan $ raw)
 
-fencedCodeAttributesSpec :: (Monad m, IsBlock il bl)
+rawAttributeSpec :: (Monad m, IsBlock il bl)
                          => SyntaxSpec m il bl
-fencedCodeAttributesSpec = mempty
-  { syntaxBlockSpecs = [ fencedCodeAttributesBlockSpec ]
+rawAttributeSpec = mempty
+  { syntaxBlockSpecs = [ ] -- TODO rawAttributeBlockSpec
+  , syntaxInlineParsers = [ pRawSpan ]
   }
 
-fencedCodeAttributesBlockSpec :: (Monad m, IsBlock il bl)
+rawAttributeBlockSpec :: (Monad m, IsBlock il bl)
                               => BlockSpec m il bl
-fencedCodeAttributesBlockSpec = fencedCodeSpec
-       { blockType = "FencedCode"
-       , blockStart = do
-           res <- blockStart fencedCodeSpec
-           nodestack <- nodeStack <$> getState
-           case nodestack of
-             [] -> mzero
-             (Node nd cs:ns) -> updateState $ \st -> st{
-                  nodeStack = Node nd{ blockSpec = fencedCodeAttributesBlockSpec
-                                     } cs : ns }
-           return res
-       , blockConstructor =  \node -> do
-           let ((_, _, _, info) :: (Char, Int, Int, T.Text)) =
-                   fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty)
-           let infotoks = tokenize "info string" info
-           -- drop 1 initial lineend token
-           let codetext = untokenize $ drop 1 (getBlockText id node)
-           return $ addRange node $
-             case parse (pAttributes <* eof) "info string" infotoks of
-               Left _ ->
-                 case parse (pRawAttribute <* eof) "info string" infotoks of
-                   Left _ -> codeBlock info codetext
-                   Right f -> rawBlock f codetext
-               Right attrs -> addAttributes attrs $ codeBlock mempty codetext
-       }
+rawAttributeBlockSpec = undefined
 
 -- | Allow attributes on everything.
 attributesSpec

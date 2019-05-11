@@ -1,6 +1,9 @@
 * TODO make attributes first-class?
 almost done
 just need to make block attributes work everywhere
+* TODO create a markdown-aware spell checker
+emits source locations and misspelled words,
+or applies a special attribute...
 * TODO create a sample markdown linter
 do a specific transformation on semantically identified
 text (e.g. capitalization)

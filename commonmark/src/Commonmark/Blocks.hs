@@ -397,7 +397,13 @@ interruptsParagraph = do
   (cur:_) <- nodeStack <$> getState
   return $ blockParagraph (bspec cur)
 
-docSpec :: (Monad m, Monoid bl) => BlockSpec m il bl
+renderChildren :: (Monad m, IsBlock il bl)
+               => BlockNode m il bl -> BlockParser m il bl [bl]
+renderChildren node =
+  mapM (\n -> blockConstructor (blockSpec (rootLabel n)) n)
+   (reverse (subForest node))
+
+docSpec :: (Monad m, IsBlock il bl, Monoid bl) => BlockSpec m il bl
 docSpec = BlockSpec
      { blockType           = "Doc"
      , blockStart          = mzero
@@ -405,10 +411,7 @@ docSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = \n -> (,n) <$> getPosition
-     , blockConstructor    = \node ->
-            mconcat <$> mapM (\n ->
-                        blockConstructor (blockSpec (rootLabel n)) n)
-                   (reverse (subForest node))
+     , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = defaultFinalizer
      }
 
@@ -675,10 +678,7 @@ blockQuoteSpec = BlockSpec
              _ <- gobbleUpToSpaces 1
              return (pos, n)
      , blockConstructor    = \node ->
-          (addRange node . blockQuote . mconcat)
-   <$> mapM (\n ->
-              blockConstructor (blockSpec (rootLabel n)) n)
-         (reverse (subForest node))
+          (addRange node . blockQuote . mconcat) <$> renderChildren node
      , blockFinalize       = defaultFinalizer
      }
 
@@ -731,11 +731,7 @@ listItemSpec = BlockSpec
              pos <- getPosition
              gobbleSpaces (listItemIndent lidata) <|> 0 <$ lookAhead blankLine
              return (pos, node)
-     , blockConstructor    = \node ->
-          mconcat
-   <$> mapM (\n ->
-              blockConstructor (blockSpec (rootLabel n)) n)
-         (reverse (subForest node))
+     , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = \(Node cdata children) parent -> do
           let lidata = fromDyn (blockData cdata)
                                  (ListItemData undefined undefined
@@ -800,9 +796,7 @@ listSpec = BlockSpec
      , blockConstructor    = \node -> do
           let ListData lt ls = fromDyn (blockData (rootLabel node))
                                  (ListData undefined undefined)
-          let constructor n = blockConstructor (blockSpec (rootLabel n)) n
-          (addRange node . list lt ls)
-             <$> mapM constructor (reverse (subForest node))
+          (addRange node . list lt ls) <$> renderChildren node
      , blockFinalize       = \(Node cdata children) parent -> do
           let ListData lt _ = fromDyn (blockData cdata)
                                  (ListData undefined undefined)

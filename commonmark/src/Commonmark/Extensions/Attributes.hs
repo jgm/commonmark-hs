@@ -5,6 +5,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
 module Commonmark.Extensions.Attributes
   ( attributesSpec
@@ -27,7 +28,7 @@ import Commonmark.Html
 import Data.Dynamic
 import qualified Data.Text as T
 import Data.Tree
-import Control.Monad (mzero)
+import Control.Monad (mzero, guard, void)
 import Text.Parsec
 
 bracketedSpanSpec
@@ -72,13 +73,65 @@ pRawSpan = do
 rawAttributeSpec :: (Monad m, IsBlock il bl)
                          => SyntaxSpec m il bl
 rawAttributeSpec = mempty
-  { syntaxBlockSpecs = [ ] -- TODO rawAttributeBlockSpec
+  { syntaxBlockSpecs = [ rawAttributeBlockSpec ]
   , syntaxInlineParsers = [ pRawSpan ]
   }
 
 rawAttributeBlockSpec :: (Monad m, IsBlock il bl)
                               => BlockSpec m il bl
-rawAttributeBlockSpec = undefined
+rawAttributeBlockSpec = BlockSpec
+     { blockType           = "RawBlock"
+     , blockStart          = try $ do
+             prepos <- getPosition
+             nonindentSpaces
+             pos <- getPosition
+             let indentspaces = sourceColumn pos - sourceColumn prepos
+             (c, ticks) <-  (('`',) <$> many1 (symbol '`'))
+                        <|> (('~',) <$> many1 (symbol '~'))
+             let fencelength = length ticks
+             guard $ fencelength >= 3
+             skipWhile (hasType Spaces)
+             fmt <- pRawAttribute
+             skipWhile (hasType Spaces)
+             lookAhead $ void lineEnd <|> eof
+             addNodeToStack $
+                Node (defBlockData rawAttributeBlockSpec){
+                          blockData = toDyn
+                               (c, fencelength, indentspaces, fmt),
+                          blockStartPos = [pos] } []
+             return BlockStartMatch
+     , blockCanContain     = const False
+     , blockContainsLines  = True
+     , blockParagraph      = False
+     , blockContinue       = \node -> try (do
+             let ((c, fencelength, _, _)
+                    :: (Char, Int, Int, Format)) = fromDyn
+                                   (blockData (rootLabel node))
+                                   ('`', 3, 0, Format mempty)
+             nonindentSpaces
+             pos <- getPosition
+             ts <- many1 (symbol c)
+             guard $ length ts >= fencelength
+             skipWhile (hasType Spaces)
+             lookAhead $ void lineEnd <|> eof
+             endOfBlock
+             return (pos, node))
+               <|> (do let ((_, _, indentspaces, _)
+                              :: (Char, Int, Int, Format)) = fromDyn
+                                   (blockData (rootLabel node))
+                                   ('`', 3, 0, Format mempty)
+                       pos <- getPosition
+                       _ <- gobbleUpToSpaces indentspaces
+                       return (pos, node))
+     , blockConstructor    = \node -> do
+           let ((_, _, _, fmt) :: (Char, Int, Int, Format)) =
+                   fromDyn (blockData (rootLabel node))
+                     ('`', 3, 0, Format mempty)
+           let codetext = untokenize $ drop 1 (getBlockText id node)
+           -- drop 1 initial lineend token
+           return $ addRange node $ rawBlock fmt codetext
+     , blockFinalize       = defaultFinalizer
+     }
 
 -- | Allow attributes on everything.
 attributesSpec

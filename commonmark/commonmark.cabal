@@ -44,6 +44,7 @@ extra-source-files:
     test/link_attributes.txt
     test/fenced_code_attributes.txt
     test/inline_code_attributes.txt
+    test/raw_attribute.txt
     test/bracketed_spans.txt
     test/footnotes.txt
     test/math.txt

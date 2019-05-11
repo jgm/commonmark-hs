@@ -1,13 +1,4 @@
-Attributes have the syntax described in heading_attributes.txt,
-with one addition.  A "raw attribute" is an `=` plus an
-alphanumeric string, like
-
-    {=html5}
-
-A raw attribute may not occur together with other attributes.
-It causes the code block to be interpreted as raw content in
-the selected output format.
-
+Attributes have the syntax described in heading_attributes.txt.
 They can occur after either backtick or tilde style code fences.
 
 ```````````````````````````````` example
@@ -28,7 +19,7 @@ xyz
 </code></pre>
 ````````````````````````````````
 
-If anything but the attribute spec is present, the
+If any non-space content comes after the attribute spec, the
 whole thing is treated as a raw info string.
 
 ```````````````````````````````` example
@@ -40,28 +31,15 @@ xyz
 </code></pre>
 ````````````````````````````````
 
+Here the attribute spec is at the end, so the
+first word provides the info string and the rest is
+treated as an attribute.
+
 ```````````````````````````````` example
 ``` bar {#foo}
 xyz
 ```
 .
-<pre><code class="language-bar">xyz
-</code></pre>
-````````````````````````````````
-
-```````````````````````````````` example
-``` {=html}
-<b>foo</b>
-```
-.
-<b>foo</b>
-````````````````````````````````
-
-```````````````````````````````` example
-``` {=html #id}
-<b>foo</b>
-```
-.
-<pre><code class="language-{=html">&lt;b&gt;foo&lt;/b&gt;
+<pre id="foo"><code class="language-bar">xyz
 </code></pre>
 ````````````````````````````````

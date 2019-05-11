@@ -1,4 +1,4 @@
-Attributes have the syntax described in fenced_code_attributes.txt.
+Attributes have the syntax described in heading_attributes.txt.
 They must immediately follow a code span (with no space).
 
 ```````````````````````````````` example
@@ -21,4 +21,3 @@ key=value}
 .
 <p><code id="ident" class="class" key="value">hi</code></p>
 ````````````````````````````````
-

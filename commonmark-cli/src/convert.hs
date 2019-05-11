@@ -142,7 +142,6 @@ extensions =
   ,("math", mathSpec)
   ,("footnotes", footnoteSpec)
   ,("definition_lists", definitionListSpec)
-  ,("heading_attributes", headingAttributesSpec)
   ,("attributes", attributesSpec)
   ,("fenced_code_attributes", fencedCodeAttributesSpec)
   ,("inline_code_attributes", inlineCodeAttributesSpec)

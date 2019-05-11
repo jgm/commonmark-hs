@@ -10,7 +10,6 @@ module Commonmark.Extensions.Attributes
   ( attributesSpec
   , fencedCodeAttributesSpec
   , inlineCodeAttributesSpec
-  , headingAttributesSpec
   , HasSpan(..)
   , bracketedSpanSpec
   , pAttributes
@@ -122,67 +121,6 @@ attributesSpec
 attributesSpec = mempty
   { syntaxAttributeParsers = [pAttributes]
   }
-
-headingAttributesSpec
-             :: (Monad m, IsBlock il bl, IsInline il)
-             => SyntaxSpec m il bl
-headingAttributesSpec = mempty
-  { syntaxBlockSpecs = [atxHeadingWithAttributesSpec,
-                        setextHeadingWithAttributesSpec]
-  }
-
-atxHeadingWithAttributesSpec
-    :: (Monad m, IsBlock il bl, IsInline il)
-    => BlockSpec m il bl
-atxHeadingWithAttributesSpec = atxHeadingSpec
-  { blockType = "ATXHeading"
-  , blockStart = do
-       res <- blockStart atxHeadingSpec
-       nodestack <- nodeStack <$> getState
-       case nodestack of
-         [] -> mzero
-         (Node nd cs:ns) -> updateState $ \st -> st{
-              nodeStack = Node nd{ blockSpec = atxHeadingWithAttributesSpec
-                                 } cs : ns }
-       return res
-  , blockConstructor    = \node -> do
-       let level = fromDyn (blockData (rootLabel node)) 1
-       let toks = getBlockText removeIndent node
-       let (content, attr) = parseFinalAttributes toks
-       ils <- runInlineParser content
-       return $ (addRange node . addAttributes attr . heading level) ils
-  }
-
-setextHeadingWithAttributesSpec
-    :: (Monad m, IsBlock il bl, IsInline il)
-    => BlockSpec m il bl
-setextHeadingWithAttributesSpec = atxHeadingSpec
-  { blockType = "SetextHeading"
-  , blockStart = do
-       res <- blockStart setextHeadingSpec
-       nodestack <- nodeStack <$> getState
-       case nodestack of
-         [] -> mzero
-         (Node nd cs:ns) -> updateState $ \st -> st{
-              nodeStack = Node nd{ blockSpec = setextHeadingWithAttributesSpec
-                                 } cs : ns }
-       return res
-  , blockConstructor    = \node -> do
-       let level = fromDyn (blockData (rootLabel node)) 1
-       let toks = getBlockText removeIndent node
-       let (content, attr) = parseFinalAttributes toks
-       ils <- runInlineParser content
-       return $ (addRange node . addAttributes attr . heading level) ils
-  }
-
-parseFinalAttributes :: [Tok] -> ([Tok], Attributes)
-parseFinalAttributes ts =
-  let pAttributes' = pAttributes <* optional whitespace <* eof
-  in case parse
-       ((,) <$> many (notFollowedBy pAttributes' >> anyTok)
-            <*> option [] pAttributes') "heading contents" ts of
-    Left _         -> (ts, [])
-    Right (xs, ys) -> (xs, ys)
 
 pAttributes :: Monad m => ParsecT [Tok] u m Attributes
 pAttributes = try $ do

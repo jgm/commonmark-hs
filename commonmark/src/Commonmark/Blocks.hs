@@ -73,7 +73,7 @@ mkBlockParser :: (Monad m, IsBlock il bl)
              -> [BlockParser m il bl bl] -- ^ Parsers to run at end
              -> (ReferenceMap -> [Tok]
                   -> m (Either ParseError il)) -- ^ Inline parser
-             -> [ParsecT [Tok] (BPState m il bl) m Attributes] -- ^ attribute parsers
+             -> [BlockParser m il bl Attributes] -- ^ attribute parsers
              -> [Tok] -- ^ Tokenized commonmark input
              -> m (Either ParseError bl)  -- ^ Result or error
 mkBlockParser _ _ _ _ [] = return $ Right mempty
@@ -579,10 +579,12 @@ atxHeadingSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = const mzero
-     , blockConstructor    = \node ->
-           (addRange node . heading
-     (fromDyn (blockData (rootLabel node)) 1))
-  <$> runInlineParser (getBlockText removeIndent node)
+     , blockConstructor    = \node -> do
+         let level = fromDyn (blockData (rootLabel node)) 1
+         let toks = getBlockText removeIndent node
+         (content, attr) <- parseFinalAttributes toks
+         ils <- runInlineParser content
+         return $ (addRange node . addAttributes attr . heading level) ils
      , blockFinalize       = defaultFinalizer
      }
 
@@ -626,12 +628,27 @@ setextHeadingSpec = BlockSpec
      , blockContainsLines  = True
      , blockParagraph      = False
      , blockContinue       = const mzero
-     , blockConstructor    = \node ->
-           (addRange node . heading
-                 (fromDyn (blockData (rootLabel node)) 1))
-             <$> runInlineParser (getBlockText removeIndent node)
+     , blockConstructor    = \node -> do
+         let level = fromDyn (blockData (rootLabel node)) 1
+         let toks = getBlockText removeIndent node
+         (content, attr) <- parseFinalAttributes toks
+         ils <- runInlineParser content
+         return $ (addRange node . addAttributes attr . heading level) ils
      , blockFinalize       = defaultFinalizer
      }
+
+parseFinalAttributes :: Monad m
+                     => [Tok] -> BlockParser m il bl ([Tok], Attributes)
+parseFinalAttributes ts = do
+  pAttr <- parseAttributes <$> getState
+  let pAttr' = try $ whitespace *> pAttr <* optional whitespace <* eof
+  st <- getState
+  res <- lift $ runParserT
+       ((,) <$> many (notFollowedBy pAttr' >> anyTok)
+            <*> option [] pAttr') st "heading contents" ts
+  case res of
+    Left _         -> return (ts, [])
+    Right (xs, ys) -> return (xs, ys)
 
 blockQuoteSpec :: (Monad m, IsBlock il bl) => BlockSpec m il bl
 blockQuoteSpec = BlockSpec

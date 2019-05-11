@@ -1,6 +1,5 @@
-* TODO make attributes first-class?
-almost done
-just need to make block attributes work everywhere
+* TODO Add test file for generic block/inline attributes
+esp test cases for blocks
 * TODO create a markdown-aware spell checker
 emits source locations and misspelled words,
 or applies a special attribute...

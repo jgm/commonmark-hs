@@ -1,5 +1,3 @@
-* TODO Add test file for generic block/inline attributes
-esp test cases for blocks
 * TODO create a markdown-aware spell checker
 emits source locations and misspelled words,
 or applies a special attribute...
@@ -24,9 +22,6 @@ Would it make sense to do this for footnotes instead of
 including the ad hoc after document thing?
 * TODO extensions
 ** TODO fenced divs
-** TODO generic attributes
-AFTER every inline
-BEFORE every block
 ** TODO fancy_lists
 ** TODO example_lists
 ** TODO emoji

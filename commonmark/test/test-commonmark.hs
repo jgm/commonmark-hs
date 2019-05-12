@@ -28,10 +28,7 @@ main = do
              , ("test/math.txt", mathSpec)
              , ("test/autolinks.txt", autolinkSpec)
              , ("test/definition_lists.txt", definitionListSpec)
-             , ("test/heading_attributes.txt", attributesSpec)
-             , ("test/link_attributes.txt", attributesSpec)
-             , ("test/fenced_code_attributes.txt", attributesSpec)
-             , ("test/inline_code_attributes.txt", attributesSpec)
+             , ("test/attributes.txt", attributesSpec)
              , ("test/raw_attribute.txt", rawAttributeSpec)
              , ("test/bracketed_spans.txt", bracketedSpanSpec)
              ]

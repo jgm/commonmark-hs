@@ -34,12 +34,8 @@ The following optional extensions are provided:
 - `autolinks`: autolink bare URLs and email addresses
 - `footnotes`: footnotes
 - `definition_lists`: definition lists
-- `heading_attributes`: attributes on headings
-- `link_attributes`: attributes on links and images
-- `fenced_code_attributes`: attributes on fenced code
-  blocks (including pandoc-style "raw attributes")
-- `inline_code_attributes`: attributes on code spans
-  (include pandoc-style "raw attributes")
+- `attributes`: attributes for all inline and block elements
+- `raw_attribute`: special raw block and inline elements in any format
 - `bracketed_spans`: spans of inlines with attributes
 
 ## Notes on the design

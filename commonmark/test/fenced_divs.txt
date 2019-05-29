@@ -10,6 +10,9 @@ It ends with a closing fence: a line beginning with at
 least as many consecutive `:` characters as in the opening
 fence, followed by optional whitespace and the end of the line.
 
+If the end of the input (or enclosing block) is encountered
+before a closing fence, the fenced div is implicitly closed.
+
 ```````````````````````````````` example
 ::: {#bar .foo}
 Hi
@@ -86,3 +89,33 @@ Hi
 Hi
 :::</p>
 ````````````````````````````````
+
+The closing fence must be at leats as long as the opening
+fence.
+
+```````````````````````````````` example
+::::: {.foo}
+Hi
+:::
+::::::
+.
+<div class="foo">
+<p>Hi
+:::</p>
+</div>
+````````````````````````````````
+
+If the end of the input (or enclosing block) is encountered
+before a closing fence, the fenced div is implicitly closed.
+
+```````````````````````````````` example
+> ::: {.foo}
+> Hi
+.
+<blockquote>
+<div class="foo">
+<p>Hi</p>
+</div>
+</blockquote>
+````````````````````````````````
+

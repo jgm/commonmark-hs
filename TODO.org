@@ -21,7 +21,7 @@ that.  Then the effect can be state dependenet.
 Would it make sense to do this for footnotes instead of
 including the ad hoc after document thing?
 * TODO extensions
-** TODO fenced divs
+** DONE fenced divs
 ** TODO fancy_lists
 ** TODO example_lists
 ** TODO emoji

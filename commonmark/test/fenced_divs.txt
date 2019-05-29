@@ -52,7 +52,7 @@ Hi
 .
 <div id="bar" class="foo">
 <p>Hi</p>
-<div class="baz"
+<div class="baz">
 <blockquote>
 <p>A block quote.</p>
 </blockquote>
@@ -60,9 +60,8 @@ Hi
 </div>
 ````````````````````````````````
 
-A fenced div cannot interrupt a paragraph. A blank line
-must separate the end of paragraph content from a subsequent
-fenced div.
+A fenced div can interrupt a paragraph, without
+an intervening blank line.
 
 ```````````````````````````````` example
 Paragraph text
@@ -70,10 +69,10 @@ Paragraph text
 Hi
 :::
 .
-<p>Paragraph text
-::: {#bar .foo}
-Hi
-:::</p>
+<p>Paragraph text</p>
+<div id="bar" class="foo">
+<p>Hi</p>
+</div>
 ````````````````````````````````
 
 A fenced div *must* have attributes.

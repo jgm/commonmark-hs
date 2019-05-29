@@ -31,6 +31,7 @@ main = do
              , ("test/attributes.txt", attributesSpec)
              , ("test/raw_attribute.txt", rawAttributeSpec)
              , ("test/bracketed_spans.txt", bracketedSpanSpec)
+             , ("test/fenced_divs.txt", fencedDivSpec)
              ]
   defaultMain $ testGroup "Tests"
      (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip

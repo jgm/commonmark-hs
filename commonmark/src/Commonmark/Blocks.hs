@@ -30,6 +30,7 @@ module Commonmark.Blocks
   , endOfBlock
   , interruptsParagraph
   , linkReferenceDef
+  , renderChildren
   -- * BlockSpecs
   , docSpec
   , indentedCodeSpec

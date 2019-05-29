@@ -113,6 +113,10 @@ instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
   definitionList _ items =
     Cm $ B.definitionList $ map coerce items
 
+instance Rangeable (Cm a B.Blocks)
+  => HasDiv (Cm a B.Blocks) where
+  div_ bs = B.divWith nullAttr <$> bs
+
 instance HasStrikethrough (Cm a B.Inlines) where
   strikethrough ils = B.strikeout <$> ils
 

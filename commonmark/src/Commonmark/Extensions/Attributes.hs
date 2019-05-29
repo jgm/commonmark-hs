@@ -9,6 +9,8 @@
 {-# LANGUAGE LambdaCase #-}
 module Commonmark.Extensions.Attributes
   ( attributesSpec
+  , HasDiv(..)
+  , fencedDivSpec
   , HasSpan(..)
   , bracketedSpanSpec
   , rawAttributeSpec
@@ -30,6 +32,76 @@ import qualified Data.Text as T
 import Data.Tree
 import Control.Monad (mzero, guard, void)
 import Text.Parsec
+
+class HasDiv bl where
+  div_ :: bl -> bl
+
+instance HasDiv (Html a) where
+  div_ bs = htmlBlock "div" $ Just (htmlRaw "\n" <> bs)
+
+instance (HasDiv bl, Semigroup bl)
+        => HasDiv (WithSourceMap bl) where
+  div_ bs = div_ bs <* addName "div"
+
+fencedDivSpec
+             :: (Monad m, IsInline il, IsBlock il bl, HasDiv bl)
+             => SyntaxSpec m il bl
+fencedDivSpec = mempty
+  { syntaxBlockSpecs = [fencedDivBlockSpec] }
+
+fencedDivBlockSpec :: (Monad m, IsBlock il bl, HasDiv bl)
+                   => BlockSpec m il bl
+fencedDivBlockSpec = BlockSpec
+     { blockType           = "FencedDiv"
+     , blockStart          = try $ do
+             prepos <- getPosition
+             nonindentSpaces
+             pos <- getPosition
+             let indentspaces = sourceColumn pos - sourceColumn prepos
+             colons <- many1 (symbol ':')
+             let fencelength = length colons
+             guard $ fencelength >= 3
+             skipWhile (hasType Spaces)
+             attrs <- pAttributes
+             skipWhile (hasType Spaces)
+             lookAhead $ void lineEnd <|> eof
+             addNodeToStack $
+                Node (defBlockData fencedDivBlockSpec){
+                          blockData = toDyn
+                               (fencelength, indentspaces, attrs),
+                          blockStartPos = [pos] } []
+             return BlockStartMatch
+     , blockCanContain     = const True
+     , blockContainsLines  = False
+     , blockParagraph      = False
+     , blockContinue       = \node -> try (do
+             let ((fencelength, _, _)
+                    :: (Int, Int, Attributes)) = fromDyn
+                                   (blockData (rootLabel node))
+                                   (3, 0, mempty)
+             nonindentSpaces
+             pos <- getPosition
+             ts <- many1 (symbol ':')
+             guard $ length ts >= fencelength
+             skipWhile (hasType Spaces)
+             lookAhead $ void lineEnd <|> eof
+             endOfBlock
+             return (pos, node))
+               <|> (do let ((_, indentspaces, _)
+                              :: (Int, Int, Attributes)) = fromDyn
+                                   (blockData (rootLabel node))
+                                   (3, 0, mempty)
+                       pos <- getPosition
+                       _ <- gobbleUpToSpaces indentspaces
+                       return (pos, node))
+     , blockConstructor    = \node -> do
+           let ((_, _, attrs) :: (Int, Int, Attributes)) =
+                   fromDyn (blockData (rootLabel node)) (3, 0, mempty)
+           (addRange node . addAttributes attrs . div_ . mconcat)
+             <$> renderChildren node
+     , blockFinalize       = defaultFinalizer
+     }
+
 
 bracketedSpanSpec
              :: (Monad m, IsInline il, HasSpan il)

@@ -195,3 +195,4 @@ definitionListItem spacing (term, defns) =
 instance (HasDefinitionList il bl, Semigroup bl, Semigroup il)
         => HasDefinitionList (WithSourceMap il) (WithSourceMap bl) where
   definitionList spacing items = definitionList spacing items
+                                   <* addName "definitionList"

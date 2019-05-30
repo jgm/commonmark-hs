@@ -59,6 +59,12 @@ instance HasAttributes (Html a) where
 
 -- This instance mirrors what is expected in the spec tests.
 instance Rangeable (Html a) => IsInline (Html a) where
+  toPlainText h =
+    case h of
+      HtmlElement _ _ _ (Just x) -> toPlainText x
+      HtmlText t                 -> t
+      HtmlConcat x y             -> toPlainText x <> toPlainText y
+      _                          -> mempty
   lineBreak = htmlInline "br" Nothing <> nl
   softBreak = nl
   str t = htmlText t

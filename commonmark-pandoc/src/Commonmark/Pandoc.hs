@@ -20,6 +20,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Read as TR
 import Data.Semigroup       (Semigroup)
 import Text.Pandoc.Definition
+import Text.Pandoc.Walk
 import qualified Text.Pandoc.Builder as B
 import Commonmark.Types as C
 import Commonmark.Extensions.Math
@@ -38,6 +39,7 @@ instance Functor (Cm b) where
   fmap f (Cm x) = Cm (f x)
 
 instance Rangeable (Cm b B.Inlines) => IsInline (Cm b B.Inlines) where
+  toPlainText (Cm ils) = stringify ils
   lineBreak = Cm B.linebreak
   softBreak = Cm B.softbreak
   str t = Cm $ B.text (T.unpack t)
@@ -180,3 +182,26 @@ illegalCodePoint t =
            -> either (const True) badvalue (TR.hexadecimal rest)
          | otherwise
            -> either (const True) badvalue (TR.decimal t')
+
+stringify :: Walkable Inline a => a -> T.Text
+stringify = query go . walk (deNote . deQuote)
+  where go :: Inline -> T.Text
+        go Space                                         = " "
+        go SoftBreak                                     = " "
+        go (Str x)                                       = T.pack x
+        go (Code _ x)                                    = T.pack x
+        go (Math _ x)                                    = T.pack x
+        go (RawInline (B.Format "html") ('<':'b':'r':_)) = " "
+        go LineBreak                                     = " "
+        go _                                             = mempty
+
+deNote :: Inline -> Inline
+deNote (Note _) = Str ""
+deNote x        = x
+
+deQuote :: Inline -> Inline
+deQuote (Quoted SingleQuote xs) =
+  Span ("",[],[]) (Str "\8216" : xs ++ [Str "\8217"])
+deQuote (Quoted DoubleQuote xs) =
+  Span ("",[],[]) (Str "\8220" : xs ++ [Str "\8221"])
+deQuote x = x

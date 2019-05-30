@@ -22,15 +22,17 @@ Would it make sense to do this for footnotes instead of
 including the ad hoc after document thing?
 * TODO extensions
 ** DONE fenced divs
+** TODO auto_identifiers (final-pass transformation)
+** TODO implicit_header_references
+handle with a pass at end of document?
+or modify finalize in header?
+** TODO subscript
+** TODO superscript
 ** TODO fancy_lists
 ** TODO example_lists
 ** TODO emoji
-** TODO auto_identifiers (final-pass transformation)
-** TODO implicit_header_references
 ** TODO implicit_figures
 ** TODO line_blocks
-** TODO subscript
-** TODO superscript
 ** TODO task_lists
 ** TODO yaml_metadata_block
 maybe in a separate package?

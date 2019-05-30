@@ -27,4 +27,4 @@ import           Commonmark.Extensions.Autolink
 import           Commonmark.Extensions.Footnote
 import           Commonmark.Extensions.DefinitionList
 import           Commonmark.Extensions.Attributes
-
+import           Commonmark.Extensions.AutoIdentifiers

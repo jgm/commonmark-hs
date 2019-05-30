@@ -86,6 +86,7 @@ library
       Commonmark.Extensions.Footnote
       Commonmark.Extensions.DefinitionList
       Commonmark.Extensions.Attributes
+      Commonmark.Extensions.AutoIdentifiers
   other-modules:
       Commonmark.Tag
       Commonmark.Entity

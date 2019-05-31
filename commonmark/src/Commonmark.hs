@@ -12,6 +12,7 @@ module Commonmark
     , module Commonmark.Extensions.Footnote
     , module Commonmark.Extensions.DefinitionList
     , module Commonmark.Extensions.Attributes
+    , module Commonmark.Extensions.AutoIdentifiers
     ) where
 
 import           Commonmark.Tokens

@@ -14,7 +14,6 @@ module Commonmark.Html
   , escapeURI
   , escapeHtml
   , escapeHtmlChar
-  , innerText
   )
 where
 
@@ -62,6 +61,8 @@ instance Rangeable (Html a) => IsInline (Html a) where
   toPlainText h =
     case h of
       HtmlElement _ _ _ (Just x) -> toPlainText x
+      HtmlElement _ _ attrs Nothing
+                                 -> fromMaybe mempty $ lookup "alt" attrs
       HtmlText t                 -> t
       HtmlConcat x y             -> toPlainText x <> toPlainText y
       _                          -> mempty
@@ -82,7 +83,7 @@ instance Rangeable (Html a) => IsInline (Html a) where
     htmlInline "a" (Just ils)
   image target title ils =
     addAttribute ("src", escapeURI target) .
-    addAttribute ("alt", innerText ils) .
+    addAttribute ("alt", toPlainText ils) .
     (if T.null title
         then id
         else addAttribute ("title", title)) $
@@ -204,10 +205,3 @@ escapeURIChar c
                                      '#','!','$','\'','(',')','*','+',',',
                                      ';','=']
 
-innerText :: Html a -> Text
-innerText (HtmlElement InlineElement "img" attrs Nothing) =
-  fromMaybe mempty $ lookup "alt" attrs
-innerText (HtmlElement _ _ _ (Just x)) = innerText x
-innerText (HtmlText t)     = t
-innerText (HtmlConcat x y) = innerText x <> innerText y
-innerText _                = mempty

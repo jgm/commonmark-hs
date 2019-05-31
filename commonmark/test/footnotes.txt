@@ -76,14 +76,6 @@ Hi!
 </code></pre>
 </div>
 </div>
-<div class="footnote" id="fn-unused">
-<div class="footnote-number">
-<a href="#fnref-unused">5</a>
-</div>
-<div class="footnote-contents">
-<p>This is unused.</p>
-</div>
-</div>
 </section>
 ````````````````````````````````
 

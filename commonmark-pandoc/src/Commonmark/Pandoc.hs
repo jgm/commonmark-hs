@@ -59,6 +59,9 @@ instance Rangeable (Cm () B.Inlines) where
 instance Rangeable (Cm SourceRange B.Inlines) where
   ranged r = addAttributes [("data-pos", T.pack (show r))]
 
+instance Walkable Inline b => ToPlainText (Cm a b) where
+  toPlainText = stringify . unCm
+
 instance (Rangeable (Cm a B.Inlines),
           Rangeable (Cm a B.Blocks))
       => IsBlock (Cm a B.Inlines) (Cm a B.Blocks) where

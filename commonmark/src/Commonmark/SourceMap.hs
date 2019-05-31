@@ -122,3 +122,8 @@ instance (Rangeable a, Monoid a, Show a)
          let sm'' = foldr addEnd sm' ends
          put (mempty, SourceMap sm'')
          return res
+
+instance ToPlainText a => ToPlainText (WithSourceMap a) where
+  toPlainText (WithSourceMap x) =
+    let v = evalState x (mempty, mempty)
+    in  toPlainText v

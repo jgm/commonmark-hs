@@ -169,9 +169,7 @@ definitionListDefinitionBlockSpec = BlockSpec
          pos <- getPosition
          gobbleSpaces 4 <|> 0 <$ lookAhead blankLine
          return (pos, node)
-     , blockConstructor    = \(Node _bdata children) ->
-         mconcat <$> mapM (\c -> blockConstructor (bspec c) c)
-                       (reverse children)
+     , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = defaultFinalizer
      }
 
@@ -182,7 +180,7 @@ instance Rangeable (Html a) =>
          HasDefinitionList (Html a) (Html a) where
   definitionList spacing items =
     htmlBlock "dl" $ Just $ htmlRaw "\n" <>
-       mconcat (map (definitionListItem spacing) (reverse items))
+       mconcat (map (definitionListItem spacing) items)
 
 definitionListItem :: ListSpacing -> (Html a, [Html a]) -> Html a
 definitionListItem spacing (term, defns) =
@@ -190,7 +188,7 @@ definitionListItem spacing (term, defns) =
    mconcat (map (\defn ->
             case spacing of
               LooseList -> htmlBlock "dd" (Just (htmlRaw "\n" <> defn))
-              TightList -> htmlBlock "dd" (Just defn)) (reverse defns))
+              TightList -> htmlBlock "dd" (Just defn)) defns)
 
 instance (HasDefinitionList il bl, Semigroup bl, Semigroup il)
         => HasDefinitionList (WithSourceMap il) (WithSourceMap bl) where

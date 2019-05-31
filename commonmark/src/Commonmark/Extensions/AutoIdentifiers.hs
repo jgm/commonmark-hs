@@ -19,6 +19,7 @@ import Data.Char (isAlpha, isLower, isSpace, isUpper, toLower, isAlphaNum,
                   generalCategory, GeneralCategory(NonSpacingMark,
                   SpacingCombiningMark, EnclosingMark, ConnectorPunctuation))
 import Data.Dynamic
+import qualified Data.Map as M
 import qualified Data.Text as T
 import Data.Tree
 import Data.Traversable
@@ -50,7 +51,17 @@ addId bd
         heading <- runInlineParser
                     (removeIndent . mconcat . reverse . blockLines $ bd)
         let ident = makeIdentifier (toPlainText heading)
-        return $ bd{ blockAttributes = ("id",ident) : blockAttributes bd }
+        counterMap <- counters <$> getState
+        let key = "identifier:" <> ident
+        count <- case M.lookup key counterMap of
+                    Nothing -> return 0
+                    Just x  -> return (fromDyn x (0 :: Int) + 1)
+        let ident' = if count == 0
+                        then ident
+                        else ident <> "-" <> T.pack (show count)
+        updateState $ \st ->
+          st{ counters = M.insert key (toDyn count) counterMap }
+        return $ bd{ blockAttributes = ("id",ident') : blockAttributes bd }
       Just _   -> return bd
   | otherwise = return bd
 

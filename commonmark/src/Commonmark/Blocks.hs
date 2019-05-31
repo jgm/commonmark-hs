@@ -100,10 +100,15 @@ processLines :: (Monad m, IsBlock il bl)
              -> BlockParser m il bl bl
 processLines specs finalParsers = do
   skipManyTill (processLine specs) eof
-  endContent <- mconcat <$> sequence finalParsers
   tree <- (nodeStack <$> getState) >>= collapseNodeStack
-  body <- blockConstructor (blockSpec (rootLabel tree)) tree
+  updateState $ \st -> st{ nodeStack = [reverseSubforests tree] }
+  endContent <- mconcat <$> sequence finalParsers
+  tree':_ <- nodeStack <$> getState
+  body <- blockConstructor (blockSpec (rootLabel tree')) tree'
   return $ body <> endContent
+
+reverseSubforests :: Tree a -> Tree a
+reverseSubforests (Node x cs) = Node x $ map reverseSubforests $ reverse cs
 
 processLine :: (Monad m, IsBlock il bl)
             => [BlockSpec m il bl] -> BlockParser m il bl ()
@@ -416,7 +421,7 @@ interruptsParagraph = do
 
 renderChildren :: (Monad m, IsBlock il bl)
                => BlockNode m il bl -> BlockParser m il bl [bl]
-renderChildren node = mapM renderC $ reverse $ subForest node
+renderChildren node = mapM renderC $ subForest node
   where
     renderC n = do
       let attrs = blockAttributes (rootLabel n)

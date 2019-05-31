@@ -36,11 +36,17 @@ data SyntaxSpec m il bl = SyntaxSpec
 
 instance Semigroup (SyntaxSpec m il bl) where
   SyntaxSpec bl1 br1 fo1 il1 fp1 ap1 <> SyntaxSpec bl2 br2 fo2 il2 fp2 ap2
-    = SyntaxSpec (bl1 <> bl2) (br1 <> br2) (fo1 <> fo2) (il1 <> il2)
+    = SyntaxSpec (removeDuplicateBlockSpecs $ bl1 <> bl2)
+                 (br1 <> br2) (fo1 <> fo2) (il1 <> il2)
                  (fp1 <> fp2) (ap1 <> ap2)
 instance Monoid (SyntaxSpec m il bl) where
   mempty = SyntaxSpec mempty mempty mempty mempty mempty mempty
   mappend = (<>)
+
+removeDuplicateBlockSpecs :: [BlockSpec m il bl] -> [BlockSpec m il bl]
+removeDuplicateBlockSpecs []     = []
+removeDuplicateBlockSpecs (b:bs) =
+  b : removeDuplicateBlockSpecs (filter ((/= (blockType b)) . blockType) bs)
 
 -- | Standard commonmark syntax.
 defaultSyntaxSpec :: (Monad m, IsBlock il bl, IsInline il)

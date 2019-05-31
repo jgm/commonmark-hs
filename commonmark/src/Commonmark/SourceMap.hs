@@ -72,7 +72,6 @@ addName name =
   WithSourceMap $ modify (\(_,sm) -> (name,sm))
 
 instance (IsInline a, Semigroup a) => IsInline (WithSourceMap a) where
-  toPlainText = toPlainText
   lineBreak = lineBreak <$ addName "lineBreak"
   softBreak = softBreak <$ addName "softBreak"
   str t = str t <$ addName "str"

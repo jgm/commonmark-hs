@@ -58,14 +58,6 @@ instance HasAttributes (Html a) where
 
 -- This instance mirrors what is expected in the spec tests.
 instance Rangeable (Html a) => IsInline (Html a) where
-  toPlainText h =
-    case h of
-      HtmlElement _ _ _ (Just x) -> toPlainText x
-      HtmlElement _ _ attrs Nothing
-                                 -> fromMaybe mempty $ lookup "alt" attrs
-      HtmlText t                 -> t
-      HtmlConcat x y             -> toPlainText x <> toPlainText y
-      _                          -> mempty
   lineBreak = htmlInline "br" Nothing <> nl
   softBreak = nl
   str t = htmlText t
@@ -83,7 +75,7 @@ instance Rangeable (Html a) => IsInline (Html a) where
     htmlInline "a" (Just ils)
   image target title ils =
     addAttribute ("src", escapeURI target) .
-    addAttribute ("alt", toPlainText ils) .
+    addAttribute ("alt", innerText ils) .
     (if T.null title
         then id
         else addAttribute ("title", title)) $
@@ -171,6 +163,16 @@ incorporateAttribute (k, v) as =
                               then ("class", v <> " " <> v')
                               else (k, v')) :
                           filter (\(x, _) -> x /= k) as
+
+innerText :: Html a -> Text
+innerText h =
+    case h of
+      HtmlElement _ _ _ (Just x) -> innerText x
+      HtmlElement _ _ attrs Nothing
+                                 -> fromMaybe mempty $ lookup "alt" attrs
+      HtmlText t                 -> t
+      HtmlConcat x y             -> innerText x <> innerText y
+      _                          -> mempty
 
 renderHtml :: Html a -> TL.Text
 renderHtml = toLazyText . toBuilder

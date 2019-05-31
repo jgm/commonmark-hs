@@ -44,7 +44,6 @@ data ListType =
      deriving (Show, Ord, Eq, Data, Typeable)
 
 class (Monoid a, Show a, Rangeable a, HasAttributes a) => IsInline a where
-  toPlainText :: a -> Text
   lineBreak :: a
   softBreak :: a
   str :: Text -> a

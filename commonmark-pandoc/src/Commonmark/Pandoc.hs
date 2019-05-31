@@ -39,7 +39,6 @@ instance Functor (Cm b) where
   fmap f (Cm x) = Cm (f x)
 
 instance Rangeable (Cm b B.Inlines) => IsInline (Cm b B.Inlines) where
-  toPlainText (Cm ils) = stringify ils
   lineBreak = Cm B.linebreak
   softBreak = Cm B.softbreak
   str t = Cm $ B.text (T.unpack t)

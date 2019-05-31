@@ -17,6 +17,7 @@ module Commonmark.Types
   , Attribute
   , Attributes
   , HasAttributes(..)
+  , ToPlainText(..)
   )
 where
 import           Data.Data            (Data)
@@ -132,3 +133,5 @@ type Attributes = [Attribute]
 class HasAttributes a where
   addAttributes :: Attributes -> a -> a
 
+class ToPlainText a where
+  toPlainText :: a -> Text

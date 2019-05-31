@@ -45,13 +45,14 @@ Multiple class attributes are combined:
 <h1 class="class1 class2 class3">Heading</h1>
 ````````````````````````````````
 
-Only the first id attribute is used:
+Only the last id attribute is used:
 
 ```````````````````````````````` example
 # Heading {#id1 #id2 id="id3"}
 .
-<h1 id="id1">Heading</h1>
+<h1 id="id3">Heading</h1>
 ````````````````````````````````
+
 Heading attributes can be followed by whitespace, but
 otherwise must come at the end of the line.
 
@@ -214,7 +215,7 @@ either for blocks or for inlines.**
 ```````````````````````````````` example
 *hi*{.underline}{#foo}
 .
-<p><em id="foo" class="underline">hi</em></p>
+<p><em class="underline" id="foo">hi</em></p>
 ````````````````````````````````
 
 ```````````````````````````````` example

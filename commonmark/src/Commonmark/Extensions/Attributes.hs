@@ -214,7 +214,7 @@ attributesSpec = mempty
   }
 
 pAttributes :: Monad m => ParsecT [Tok] u m Attributes
-pAttributes = collapseAttributes . mconcat <$> many1 pattr
+pAttributes = mconcat <$> many1 pattr
   where
     pattr = try $ do
       symbol '{'
@@ -225,19 +225,6 @@ pAttributes = collapseAttributes . mconcat <$> many1 pattr
       optional whitespace
       symbol '}'
       return (a:as)
-
--- | Ensure that attributes contain only one 'class' and one 'id'.
--- Concatenate the classes with spaces between, if multiple.
-collapseAttributes :: Attributes -> Attributes
-collapseAttributes xs =
-  let classes = [y | ("class", y) <- xs] in
- (case lookup "id" xs of
-     Just id' -> (("id",id'):)
-     Nothing  -> id) .
-  (if null classes
-      then id
-      else (("class", T.unwords classes):)) $
-  [(k,v) | (k,v) <- xs, k /= "id" && k /= "class"]
 
 pRawAttribute :: Monad m => ParsecT [Tok] u m Format
 pRawAttribute = try $ do

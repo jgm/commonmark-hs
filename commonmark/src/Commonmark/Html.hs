@@ -160,8 +160,17 @@ htmlRaw = HtmlRaw
 
 addAttribute :: Attribute -> Html a -> Html a
 addAttribute attr (HtmlElement eltType tagname attrs mbcontents) =
-  HtmlElement eltType tagname (attr:attrs) mbcontents
+  HtmlElement eltType tagname (incorporateAttribute attr attrs) mbcontents
 addAttribute _ elt = elt
+
+incorporateAttribute :: Attribute -> [Attribute] -> [Attribute]
+incorporateAttribute (k, v) as =
+  case lookup k as of
+    Nothing            -> (k, v) : as
+    Just v'            -> (if k == "class"
+                              then ("class", v <> " " <> v')
+                              else (k, v')) :
+                          filter (\(x, _) -> x /= k) as
 
 renderHtml :: Html a -> TL.Text
 renderHtml = toLazyText . toBuilder

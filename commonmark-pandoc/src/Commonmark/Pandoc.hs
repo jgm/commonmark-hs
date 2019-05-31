@@ -157,9 +157,13 @@ addToPandocAttr attrs curattrs = (id'', classes'', kvs'')
  where
    (id', classes', kvs') = curattrs
    id'' = maybe id' T.unpack $ lookup "id" attrs
-   classes'' = maybe classes' (words . T.unpack) $ lookup "class" attrs
-   kvs'' = kvs' ++ [(T.unpack k, T.unpack v) | (k,v) <- attrs,
-                         k /= "id", k /= "class"]
+   classes'' = case lookup "class" attrs of
+                      Nothing  -> classes'
+                      Just cs  -> classes' ++ words (T.unpack cs)
+   kvs'' = [(k, v) | (k, v) <- kvs' ++
+                              map (\(x,y) -> (T.unpack x, T.unpack y)) attrs
+                   , k /= "id"
+                   , k /= "class"]
 
 instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
      => HasFootnote (Cm a B.Inlines) (Cm a B.Blocks) where

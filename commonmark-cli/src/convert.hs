@@ -149,6 +149,7 @@ extensions =
   ,("bracketed_spans", bracketedSpanSpec)
   ,("fenced_divs", fencedDivSpec)
   ,("auto_identifiers", autoIdentifiersSpec)
+  ,("implicit_header_references", implicitHeaderReferencesSpec)
   ]
 
 extensionList :: [String]

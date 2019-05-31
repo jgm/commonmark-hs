@@ -87,6 +87,7 @@ library
       Commonmark.Extensions.DefinitionList
       Commonmark.Extensions.Attributes
       Commonmark.Extensions.AutoIdentifiers
+      Commonmark.Extensions.ImplicitHeaderReferences
   other-modules:
       Commonmark.Tag
       Commonmark.Entity

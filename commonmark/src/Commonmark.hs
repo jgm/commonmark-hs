@@ -13,6 +13,7 @@ module Commonmark
     , module Commonmark.Extensions.DefinitionList
     , module Commonmark.Extensions.Attributes
     , module Commonmark.Extensions.AutoIdentifiers
+    , module Commonmark.Extensions.ImplicitHeaderReferences
     ) where
 
 import           Commonmark.Tokens
@@ -29,3 +30,5 @@ import           Commonmark.Extensions.Footnote
 import           Commonmark.Extensions.DefinitionList
 import           Commonmark.Extensions.Attributes
 import           Commonmark.Extensions.AutoIdentifiers
+import           Commonmark.Extensions.ImplicitHeaderReferences
+

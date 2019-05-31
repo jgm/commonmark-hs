@@ -318,17 +318,19 @@ data BlockData m il bl = BlockData
      , blockEndPos   :: [SourcePos]  -- reverse order
      , blockData     :: Dynamic
      , blockBlanks   :: [Int]  -- non-content blank lines in block
+     , blockAttributes :: Attributes
      }
   deriving Show
 
 defBlockData :: BlockSpec m il bl -> BlockData m il bl
 defBlockData spec = BlockData
-    { blockSpec      = spec
-    , blockLines     = []
-    , blockStartPos  = []
-    , blockEndPos    = []
-    , blockData      = toDyn ()
-    , blockBlanks    = []
+    { blockSpec     = spec
+    , blockLines    = []
+    , blockStartPos = []
+    , blockEndPos   = []
+    , blockData     = toDyn ()
+    , blockBlanks   = []
+    , blockAttributes = mempty
     }
 
 type BlockNode m il bl = Tree (BlockData m il bl)
@@ -387,8 +389,18 @@ addNodeToStack node = do
   (cur:rest) <- nodeStack <$> getState
   guard $ blockParagraph (bspec cur) || not (blockContainsLines (bspec cur))
   if blockCanContain (bspec cur) (bspec node)
-     then updateState $ \st ->
-            st{ nodeStack = node : cur : rest
+     then do
+       nextAttr <- nextAttributes <$> getState
+       let node' = if null nextAttr
+                      then node
+                      else
+                        let rl = rootLabel node
+                        in  node{ rootLabel = rl{
+                                  blockAttributes = nextAttr
+                                }}
+       updateState $ \st ->
+            st{ nextAttributes = mempty
+              , nodeStack = node' : cur : rest
               , maybeLazy = False }
      else case rest of
               (x:xs) -> do
@@ -407,8 +419,7 @@ renderChildren :: (Monad m, IsBlock il bl)
 renderChildren node = mapM renderC $ reverse $ subForest node
   where
     renderC n = do
-      attrs <- nextAttributes <$> getState
-      updateState $ \st -> st{ nextAttributes = mempty }
+      let attrs = blockAttributes (rootLabel n)
       (if null attrs
           then id
           else addAttributes attrs) <$>
@@ -516,11 +527,11 @@ attributeSpec = BlockSpec
          let attrs' = attrs <> oldattrs
          return (pos, n{ rootLabel = (rootLabel n){
                           blockData = toDyn attrs' }})
-     , blockConstructor    = \node -> do
+     , blockConstructor    = \_ -> return mempty
+     , blockFinalize       = \node parent -> do
          let attrs = fromDyn (blockData (rootLabel node)) mempty :: Attributes
          updateState $ \st -> st{ nextAttributes = nextAttributes st <> attrs }
-         return mempty
-     , blockFinalize       = defaultFinalizer
+         defaultFinalizer node parent
      }
 
 paraSpec :: (Monad m, IsBlock il bl)

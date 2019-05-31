@@ -524,13 +524,13 @@ attributeSpec = BlockSpec
          skipWhile (hasType Spaces)
          lookAhead (void lineEnd <|> eof)
          let oldattrs = fromDyn (blockData (rootLabel n)) mempty :: Attributes
-         let attrs' = attrs <> oldattrs
+         let attrs' = oldattrs <> attrs
          return (pos, n{ rootLabel = (rootLabel n){
                           blockData = toDyn attrs' }})
      , blockConstructor    = \_ -> return mempty
      , blockFinalize       = \node parent -> do
          let attrs = fromDyn (blockData (rootLabel node)) mempty :: Attributes
-         updateState $ \st -> st{ nextAttributes = nextAttributes st <> attrs }
+         updateState $ \st -> st{ nextAttributes = attrs }
          defaultFinalizer node parent
      }
 

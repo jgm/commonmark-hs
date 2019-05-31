@@ -168,6 +168,35 @@ bar
 <h1 id="foo" class="special">Hi</h1>
 ````````````````````````````````
 
+When conflicting specifications of the same attribute are given,
+the last one takes precedence, except for classes, which are
+cumulative.
+
+```````````````````````````````` example
+{#id1}
+{#id2}
+# Heading {#id3}
+.
+<h1 id="id3">Heading</h1>
+````````````````````````````````
+
+```````````````````````````````` example
+{#id1}
+{#id3}
+# Heading
+.
+<h1 id="id3">Heading</h1>
+````````````````````````````````
+
+```````````````````````````````` example
+{.class1 k=1}
+{.class2 .class3 k=2}
+# Heading {.class4}
+.
+<h1 class="class1 class2 class3 class4" k="2">Heading</h1>
+````````````````````````````````
+
+
 **Attributes that occur at the end of a reference
 link definition affect links that refer to that
 definition.**
@@ -223,7 +252,7 @@ either for blocks or for inlines.**
 {#foo}
 * * * *
 .
-<hr id="foo" class="special" />
+<hr class="special" id="foo" />
 ````````````````````````````````
 
 **Entities can be used in attribute values.**

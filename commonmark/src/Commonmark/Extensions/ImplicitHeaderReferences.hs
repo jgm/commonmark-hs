@@ -15,6 +15,8 @@ import Commonmark.Types
 import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.Blocks
+import Commonmark.ReferenceMap
+import Data.Maybe (fromMaybe)
 import Data.Dynamic
 import qualified Data.Map as M
 import qualified Data.Text as T
@@ -44,5 +46,12 @@ addHeaderRef :: (Monad m, IsBlock il bl, IsInline il)
 addHeaderRef bd
   | blockType (blockSpec bd) `elem` ["ATXHeading", "SetextHeading"] = do
       -- update ref map
-      return ()
+      let lab = untokenize . removeIndent . mconcat . reverse . blockLines $ bd
+      let ident = fromMaybe "" $ lookup "id" $ blockAttributes bd
+      updateState $ \s -> s{
+        referenceMap = insertReference lab 
+          LinkInfo{ linkDestination = "#" <> ident
+                  , linkTitle = mempty
+                  , linkAttributes = mempty }
+          (referenceMap s) }
   | otherwise = return ()

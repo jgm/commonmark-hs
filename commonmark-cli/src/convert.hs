@@ -147,6 +147,7 @@ extensions =
   ,("raw_attribute", rawAttributeSpec)
   ,("bracketed_spans", bracketedSpanSpec)
   ,("fenced_divs", fencedDivSpec)
+  ,("auto_identifiers", autoIdentifiersSpec)
   ]
 
 extensionList :: [String]

@@ -33,16 +33,18 @@ autoIdentifiersSpec = mempty
 addAutoIdentifiers :: (Monad m, IsBlock il bl, IsInline il)
                    => BlockParser m il bl bl
 addAutoIdentifiers = do
-  updateState $ \st ->
-    st{ nodeStack = map (fmap addIds) (nodeStack st) }
+  nodes <- nodeStack <$> getState
+  nodes' <- mapM (traverse addId) nodes
+  updateState $ \st -> st{ nodeStack = nodes' }
   return mempty
 
-addIds :: (Monad m, IsBlock il bl, IsInline il)
-       => BlockData m il bl -> BlockData m il bl
-addIds bd
+addId :: (Monad m, IsBlock il bl, IsInline il)
+       => BlockData m il bl -> BlockParser m il bl (BlockData m il bl)
+addId bd
   | blockType (blockSpec bd) `elem` ["ATXHeading", "SetextHeading"] =
     case lookup "id" (blockAttributes bd) of
-      Nothing  -> bd{ blockAttributes =
+      Nothing  -> return $
+                   bd{ blockAttributes =
                         ("id","dummy") : blockAttributes bd }
-      Just _   -> bd
-  | otherwise = bd
+      Just _   -> return bd
+  | otherwise = return bd

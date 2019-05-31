@@ -39,8 +39,10 @@ addAutoIdentifiers = do
 
 addIds :: (Monad m, IsBlock il bl, IsInline il)
        => BlockData m il bl -> BlockData m il bl
-addIds bd =
-  case lookup "id" (blockAttributes bd) of
-    Nothing  -> bd{ blockAttributes =
-                      ("id","dummy") : blockAttributes bd }
-    Just _   -> bd
+addIds bd
+  | blockType (blockSpec bd) `elem` ["ATXHeading", "SetextHeading"] =
+    case lookup "id" (blockAttributes bd) of
+      Nothing  -> bd{ blockAttributes =
+                        ("id","dummy") : blockAttributes bd }
+      Just _   -> bd
+  | otherwise = bd

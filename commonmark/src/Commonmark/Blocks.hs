@@ -101,8 +101,8 @@ processLines :: (Monad m, IsBlock il bl)
 processLines specs finalParsers = do
   skipManyTill (processLine specs) eof
   tree <- (nodeStack <$> getState) >>= collapseNodeStack
-  body <- blockConstructor (blockSpec (rootLabel tree)) tree
   endContent <- mconcat <$> sequence finalParsers
+  body <- blockConstructor (blockSpec (rootLabel tree)) tree
   return $ body <> endContent
 
 processLine :: (Monad m, IsBlock il bl)

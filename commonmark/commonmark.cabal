@@ -39,6 +39,7 @@ extra-source-files:
     test/spec.txt
     test/definition_lists.txt
     test/autolinks.txt
+    test/auto_identifiers.txt
     test/pipe_tables.txt
     test/attributes.txt
     test/raw_attribute.txt

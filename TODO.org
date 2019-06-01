@@ -22,11 +22,11 @@ Would it make sense to do this for footnotes instead of
 including the ad hoc after document thing?
 * TODO extensions
 ** DONE fenced divs
-** TODO TESTS FOR auto_identifiers
 ** TODO TESTS FOR implicit_header_references
 handle with a pass at end of document?
 or modify finalize in header?
-** TODO subscript
+** DONE TESTS FOR auto_identifiers
+** TODO subscriptutoOA
 ** TODO superscript
 ** TODO fancy_lists
 ** TODO example_lists

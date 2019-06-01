@@ -25,6 +25,7 @@ import Data.Tree
 import Data.Traversable
 import Control.Monad (mzero, guard, void)
 import Text.Parsec
+import Debug.Trace
 
 autoIdentifiersSpec :: (Monad m, IsBlock il bl, IsInline il, ToPlainText il)
                     => SyntaxSpec m il bl
@@ -62,7 +63,15 @@ addId bd
         updateState $ \st ->
           st{ counters = M.insert key (toDyn count) counterMap }
         return $ bd{ blockAttributes = ("id",ident') : blockAttributes bd }
-      Just _   -> return bd
+      Just ident -> do
+        let key = "identifier:" <> ident
+        counterMap <- counters <$> getState
+        case M.lookup key counterMap of
+          Nothing -> updateState $ \st ->
+                       st{ counters = M.insert key (toDyn (1 :: Int))
+                                          (counters st) }
+          Just _  -> return ()
+        return bd
   | otherwise = return bd
 
 makeIdentifier :: T.Text -> T.Text

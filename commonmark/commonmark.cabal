@@ -40,6 +40,7 @@ extra-source-files:
     test/definition_lists.txt
     test/autolinks.txt
     test/auto_identifiers.txt
+    test/implicit_heading_references.txt
     test/pipe_tables.txt
     test/attributes.txt
     test/raw_attribute.txt
@@ -88,7 +89,7 @@ library
       Commonmark.Extensions.DefinitionList
       Commonmark.Extensions.Attributes
       Commonmark.Extensions.AutoIdentifiers
-      Commonmark.Extensions.ImplicitHeaderReferences
+      Commonmark.Extensions.ImplicitHeadingReferences
   other-modules:
       Commonmark.Tag
       Commonmark.Entity

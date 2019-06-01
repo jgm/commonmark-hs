@@ -7,8 +7,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
-module Commonmark.Extensions.ImplicitHeaderReferences
-  ( implicitHeaderReferencesSpec
+module Commonmark.Extensions.ImplicitHeadingReferences
+  ( implicitHeadingReferencesSpec
   )
 where
 import Commonmark.Types
@@ -25,25 +25,25 @@ import Data.Traversable
 import Control.Monad (mzero, guard, void)
 import Text.Parsec
 
-implicitHeaderReferencesSpec
+implicitHeadingReferencesSpec
          :: (Monad m, IsBlock il bl, IsInline il)
          => SyntaxSpec m il bl
-implicitHeaderReferencesSpec = mempty
-  { syntaxFinalParsers = [addHeaderReferences]
+implicitHeadingReferencesSpec = mempty
+  { syntaxFinalParsers = [addHeadingReferences]
   }
 
 -- Go through the node stack and add implicit references
 -- for each header.
-addHeaderReferences :: (Monad m, IsBlock il bl, IsInline il)
+addHeadingReferences :: (Monad m, IsBlock il bl, IsInline il)
                     => BlockParser m il bl bl
-addHeaderReferences = do
+addHeadingReferences = do
   nodes <- nodeStack <$> getState
-  mapM_ (traverse addHeaderRef) nodes
+  mapM_ (traverse addHeadingRef) nodes
   return mempty
 
-addHeaderRef :: (Monad m, IsBlock il bl, IsInline il)
+addHeadingRef :: (Monad m, IsBlock il bl, IsInline il)
              => BlockData m il bl -> BlockParser m il bl ()
-addHeaderRef bd
+addHeadingRef bd
   | blockType (blockSpec bd) `elem` ["ATXHeading", "SetextHeading"] = do
       -- update ref map
       let lab = untokenize . removeIndent . mconcat . reverse . blockLines $ bd

@@ -1,3 +1,10 @@
+* TODO end-of-heading attributes...
+don't work properly w implicit_heading_references
+because they are not resolved til the blockConstructor
+phase. Same might be true for thingsi like fenced code
+block attributes.
+Create a better system for putting these into blockAttributes,
+and stripping out the relevant tokens, in the finalize stage.
 * TODO create a markdown-aware spell checker
 emits source locations and misspelled words,
 or applies a special attribute...
@@ -21,7 +28,6 @@ that.  Then the effect can be state dependenet.
 Would it make sense to do this for footnotes instead of
 including the ad hoc after document thing?
 * TODO extensions
-** DONE fenced divs
 ** TODO subscript
 ** TODO superscript
 ** TODO fancy_lists

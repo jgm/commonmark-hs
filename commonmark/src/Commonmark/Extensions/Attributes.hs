@@ -28,7 +28,6 @@ import Commonmark.Blocks
 import Commonmark.Entity (unEntity)
 import Commonmark.Html
 import Data.Dynamic
-import qualified Data.Text as T
 import Data.Tree
 import Control.Monad (mzero, guard, void)
 import Text.Parsec

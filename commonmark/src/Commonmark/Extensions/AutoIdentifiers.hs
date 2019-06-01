@@ -12,20 +12,15 @@ module Commonmark.Extensions.AutoIdentifiers
   )
 where
 import Commonmark.Types
-import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.Blocks
-import Data.Char (isAlpha, isLower, isSpace, isUpper, toLower, isAlphaNum,
+import Data.Char (isSpace, toLower, isAlphaNum,
                   generalCategory, GeneralCategory(NonSpacingMark,
                   SpacingCombiningMark, EnclosingMark, ConnectorPunctuation))
 import Data.Dynamic
 import qualified Data.Map as M
 import qualified Data.Text as T
-import Data.Tree
-import Data.Traversable
-import Control.Monad (mzero, guard, void)
 import Text.Parsec
-import Debug.Trace
 
 autoIdentifiersSpec :: (Monad m, IsBlock il bl, IsInline il, ToPlainText il)
                     => SyntaxSpec m il bl
@@ -49,19 +44,19 @@ addId bd
   | blockType (blockSpec bd) `elem` ["ATXHeading", "SetextHeading"] = do
     case lookup "id" (blockAttributes bd) of
       Nothing  -> do
-        heading <- runInlineParser
+        contents <- runInlineParser
                     (removeIndent . mconcat . reverse . blockLines $ bd)
-        let ident = makeIdentifier (toPlainText heading)
+        let ident = makeIdentifier (toPlainText contents)
         counterMap <- counters <$> getState
         let key = "identifier:" <> ident
-        count <- case M.lookup key counterMap of
+        cnt <- case M.lookup key counterMap of
                     Nothing -> return 0
                     Just x  -> return (fromDyn x (0 :: Int) + 1)
-        let ident' = if count == 0
+        let ident' = if cnt == 0
                         then ident
-                        else ident <> "-" <> T.pack (show count)
+                        else ident <> "-" <> T.pack (show cnt)
         updateState $ \st ->
-          st{ counters = M.insert key (toDyn count) counterMap }
+          st{ counters = M.insert key (toDyn cnt) counterMap }
         return $ bd{ blockAttributes = ("id",ident') : blockAttributes bd }
       Just ident -> do
         let key = "identifier:" <> ident

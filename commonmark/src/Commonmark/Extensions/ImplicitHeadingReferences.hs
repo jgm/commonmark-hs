@@ -17,12 +17,6 @@ import Commonmark.Syntax
 import Commonmark.Blocks
 import Commonmark.ReferenceMap
 import Data.Maybe (fromMaybe)
-import Data.Dynamic
-import qualified Data.Map as M
-import qualified Data.Text as T
-import Data.Tree
-import Data.Traversable
-import Control.Monad (mzero, guard, void)
 import Text.Parsec
 
 implicitHeadingReferencesSpec

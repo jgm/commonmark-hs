@@ -36,7 +36,10 @@ The following optional extensions are provided:
 - `definition_lists`: definition lists
 - `attributes`: attributes for all inline and block elements
 - `raw_attribute`: special raw block and inline elements in any format
-- `bracketed_spans`: spans of inlines with attributes
+- `bracketed_spans`: spans of inline elements with attributes
+- `fenced_divs`: groups of block elements with attributes
+- `auto_identifiers`: automatic generation of identifiers for headings
+- `implicit_heading_references`: headings implicitly define link references
 
 ## Notes on the design
 

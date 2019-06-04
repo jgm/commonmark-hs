@@ -54,4 +54,16 @@ See the [Heading] above.
 <p>See the <a href="#heading">Heading</a> above.</p>
 ````````````````````````````````
 
+Empty headings don't create implicit references:
 
+```````````````````````````````` example
+#
+
+##   
+
+See [] and [   ].
+.
+<h1 id=""></h1>
+<h2 id="-1"></h2>
+<p>See [] and [   ].</p>
+````````````````````````````````

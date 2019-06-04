@@ -16,6 +16,8 @@ import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.Blocks
 import Commonmark.ReferenceMap
+import qualified Data.Text as T
+import Control.Monad (unless)
 import Data.Maybe (fromMaybe)
 import Text.Parsec
 
@@ -42,10 +44,11 @@ addHeadingRef bd
       -- update ref map
       let lab = untokenize . removeIndent . mconcat . reverse . blockLines $ bd
       let ident = fromMaybe "" $ lookup "id" $ blockAttributes bd
-      updateState $ \s -> s{
-        referenceMap = insertReference lab 
-          LinkInfo{ linkDestination = "#" <> ident
-                  , linkTitle = mempty
-                  , linkAttributes = mempty }
-          (referenceMap s) }
+      unless (T.null lab) $
+        updateState $ \s -> s{
+          referenceMap = insertReference lab
+            LinkInfo{ linkDestination = "#" <> ident
+                    , linkTitle = mempty
+                    , linkAttributes = mempty }
+            (referenceMap s) }
   | otherwise = return ()

@@ -647,11 +647,16 @@ atxHeadingSpec = BlockSpec
      , blockContinue       = const mzero
      , blockConstructor    = \node -> do
          let level = fromDyn (blockData (rootLabel node)) 1
+         ils <- runInlineParser (getBlockText removeIndent node)
+         return $ (addRange node . heading level) ils
+     , blockFinalize       = \node@(Node cdata children) parent -> do
+         let oldAttr = blockAttributes cdata
          let toks = getBlockText removeIndent node
-         (content, attr) <- parseFinalAttributes True toks <|> return (toks, mempty)
-         ils <- runInlineParser content
-         return $ (addRange node . addAttributes attr . heading level) ils
-     , blockFinalize       = defaultFinalizer
+         (newtoks, attr) <- parseFinalAttributes True toks
+                        <|> return (toks, mempty)
+         defaultFinalizer (Node cdata{ blockAttributes = oldAttr <> attr
+                                     , blockLines = [newtoks] }
+                                children) parent
      }
 
 setextHeadingSpec :: (Monad m, IsBlock il bl)
@@ -696,11 +701,16 @@ setextHeadingSpec = BlockSpec
      , blockContinue       = const mzero
      , blockConstructor    = \node -> do
          let level = fromDyn (blockData (rootLabel node)) 1
+         ils <- runInlineParser (getBlockText removeIndent node)
+         return $ (addRange node . heading level) ils
+     , blockFinalize       = \node@(Node cdata children) parent -> do
+         let oldAttr = blockAttributes cdata
          let toks = getBlockText removeIndent node
-         (content, attr) <- parseFinalAttributes True toks <|> return (toks, mempty)
-         ils <- runInlineParser content
-         return $ (addRange node . addAttributes attr . heading level) ils
-     , blockFinalize       = defaultFinalizer
+         (newtoks, attr) <- parseFinalAttributes True toks
+                        <|> return (toks, mempty)
+         defaultFinalizer (Node cdata{ blockAttributes = oldAttr <> attr
+                                     , blockLines = [newtoks] }
+                                children) parent
      }
 
 parseFinalAttributes :: Monad m

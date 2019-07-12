@@ -1,10 +1,19 @@
-* TODO end-of-heading attributes...
-don't work properly w implicit_heading_references
-because they are not resolved til the blockConstructor
-phase. Same might be true for thingsi like fenced code
-block attributes.
-Create a better system for putting these into blockAttributes,
-and stripping out the relevant tokens, in the finalize stage.
+* TODO extensions
+** TODO subscript
+** TODO superscript
+** TODO fancy_lists
+** TODO example_lists
+** TODO emoji
+** TODO implicit_figures
+** TODO line_blocks
+** TODO task_lists
+** TODO yaml_metadata_block
+maybe in a separate package?
+** TODO pandoc_title_block
+** TODO citations
+** TODO simple tables
+** TODO multiline tables
+** TODO grid tables
 * TODO create a markdown-aware spell checker
 emits source locations and misspelled words,
 or applies a special attribute...
@@ -27,22 +36,6 @@ that.  Then the effect can be state dependenet.
 
 Would it make sense to do this for footnotes instead of
 including the ad hoc after document thing?
-* TODO extensions
-** TODO subscript
-** TODO superscript
-** TODO fancy_lists
-** TODO example_lists
-** TODO emoji
-** TODO implicit_figures
-** TODO line_blocks
-** TODO task_lists
-** TODO yaml_metadata_block
-maybe in a separate package?
-** TODO pandoc_title_block
-** TODO citations
-** TODO simple tables
-** TODO multiline tables
-** TODO grid tables
 * TODO documentation
 ** TODO example of creating instances for roff man
 ** TODO example of modifying existing HTML output

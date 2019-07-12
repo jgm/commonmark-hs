@@ -26,6 +26,7 @@ main = do
              , ("test/pipe_tables.txt", pipeTableSpec)
              , ("test/footnotes.txt", footnoteSpec)
              , ("test/math.txt", mathSpec)
+             , ("test/emoji.txt", emojiSpec)
              , ("test/autolinks.txt", autolinkSpec)
              , ("test/definition_lists.txt", definitionListSpec)
              , ("test/attributes.txt", attributesSpec)

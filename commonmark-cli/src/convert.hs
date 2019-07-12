@@ -129,6 +129,7 @@ extensions :: (Monad m, Typeable m,
                IsBlock il bl, IsInline il,
                HasPipeTable il bl,
                HasMath il,
+               HasEmoji il,
                HasSpan il,
                ToPlainText il,
                HasStrikethrough il,
@@ -142,6 +143,7 @@ extensions =
   ,("strikethrough", strikethroughSpec)
   ,("smart", smartPunctuationSpec)
   ,("math", mathSpec)
+  ,("emoji", emojiSpec)
   ,("footnotes", footnoteSpec)
   ,("definition_lists", definitionListSpec)
   ,("attributes", attributesSpec)
@@ -164,7 +166,7 @@ listExtensions =
 specFromExtensionNames ::
  (Monad m, Typeable m, Typeable bl, Typeable il,
   IsBlock il bl, IsInline il,
-  HasPipeTable il bl, HasMath il,
+  HasPipeTable il bl, HasMath il, HasEmoji il,
   HasSpan il,
   ToPlainText il,
   HasStrikethrough il,

@@ -24,6 +24,7 @@ import Text.Pandoc.Walk
 import qualified Text.Pandoc.Builder as B
 import Commonmark.Types as C
 import Commonmark.Extensions.Math
+import Commonmark.Extensions.Emoji
 import Commonmark.Extensions.PipeTable
 import Commonmark.Extensions.Strikethrough
 import Commonmark.Extensions.DefinitionList
@@ -101,6 +102,10 @@ instance Rangeable (Cm SourceRange B.Blocks) where
 instance HasMath (Cm b B.Inlines) where
   inlineMath t = Cm $ B.math (T.unpack t)
   displayMath t = Cm $ B.displayMath (T.unpack t)
+
+instance HasEmoji (Cm b B.Inlines) where
+  emoji kw t = Cm $ B.spanWith ("",["emoji"],[("emoji",T.unpack t)])
+                  $ B.text (T.unpack kw)
 
 instance HasPipeTable (Cm a B.Inlines) (Cm a B.Blocks) where
   pipeTable aligns headerCells rows =

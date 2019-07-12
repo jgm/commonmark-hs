@@ -84,6 +84,7 @@ library
       Commonmark.Extensions.Strikethrough
       Commonmark.Extensions.PipeTable
       Commonmark.Extensions.Math
+      Commonmark.Extensions.Emoji
       Commonmark.Extensions.Autolink
       Commonmark.Extensions.Footnote
       Commonmark.Extensions.DefinitionList

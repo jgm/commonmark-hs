@@ -1,16 +1,20 @@
 * TODO extensions
 ** TODO subscript
 ** TODO superscript
+** TODO emoji
 ** TODO fancy_lists
 ** TODO example_lists
-** TODO emoji
 ** TODO implicit_figures
 ** TODO line_blocks
 ** TODO task_lists
 ** TODO yaml_metadata_block
-maybe in a separate package?
+in a separate package, or just in pandoc itself?
+to avoid yaml dependency
 ** TODO pandoc_title_block
+in a separate package, or just in pandoc itself?
 ** TODO citations
+tricky: need to make sure this comes first in bracketed specs to avoid
+interpretation as a span.
 ** TODO simple tables
 ** TODO multiline tables
 ** TODO grid tables

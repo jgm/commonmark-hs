@@ -8,6 +8,7 @@ module Commonmark
     , module Commonmark.Extensions.Strikethrough
     , module Commonmark.Extensions.PipeTable
     , module Commonmark.Extensions.Math
+    , module Commonmark.Extensions.Emoji
     , module Commonmark.Extensions.Autolink
     , module Commonmark.Extensions.Footnote
     , module Commonmark.Extensions.DefinitionList
@@ -25,6 +26,7 @@ import           Commonmark.Extensions.Smart
 import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.PipeTable
 import           Commonmark.Extensions.Math
+import           Commonmark.Extensions.Emoji
 import           Commonmark.Extensions.Autolink
 import           Commonmark.Extensions.Footnote
 import           Commonmark.Extensions.DefinitionList

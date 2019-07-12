@@ -58,15 +58,7 @@ addId bd
         updateState $ \st ->
           st{ counters = M.insert key (toDyn cnt) counterMap }
         return $ bd{ blockAttributes = ("id",ident') : blockAttributes bd }
-      Just ident -> do
-        let key = "identifier:" <> ident
-        counterMap <- counters <$> getState
-        case M.lookup key counterMap of
-          Nothing -> updateState $ \st ->
-                       st{ counters = M.insert key (toDyn (1 :: Int))
-                                          (counters st) }
-          Just _  -> return ()
-        return bd
+      Just _ -> return bd
   | otherwise = return bd
 
 makeIdentifier :: T.Text -> T.Text

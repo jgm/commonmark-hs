@@ -48,6 +48,7 @@ extra-source-files:
     test/bracketed_spans.txt
     test/footnotes.txt
     test/math.txt
+    test/emoji.txt
     test/smart_punct.txt
     test/strikethrough.txt
     test/regression.txt

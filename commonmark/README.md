@@ -31,6 +31,7 @@ The following optional extensions are provided:
 - `smart`: smart quotes, dashes, and ellipses
 - `strikethrough`: strikethrough
 - `math`: LaTeX math
+- `emoji`: emoji
 - `autolinks`: autolink bare URLs and email addresses
 - `footnotes`: footnotes
 - `definition_lists`: definition lists

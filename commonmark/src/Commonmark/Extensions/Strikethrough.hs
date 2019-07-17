@@ -15,7 +15,7 @@ strikethroughSpec :: (Monad m, IsBlock il bl, IsInline il, HasStrikethrough il)
               => SyntaxSpec m il bl
 strikethroughSpec = mempty
   { syntaxFormattingSpecs = [
-      FormattingSpec '~' False Nothing (Just strikethrough) '~'
+      FormattingSpec '~' True True Nothing (Just strikethrough) '~'
       ]
   }
 

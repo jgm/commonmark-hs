@@ -21,10 +21,10 @@ smartPunctuationSpec = mempty
   }
 
 singleQuotedSpec :: IsInline il => FormattingSpec il
-singleQuotedSpec = FormattingSpec '\'' False (Just singleQuoted) Nothing '’'
+singleQuotedSpec = FormattingSpec '\'' False False (Just singleQuoted) Nothing '’'
 
 doubleQuotedSpec :: IsInline il => FormattingSpec il
-doubleQuotedSpec = FormattingSpec '"' False (Just doubleQuoted) Nothing '“'
+doubleQuotedSpec = FormattingSpec '"' False False (Just doubleQuoted) Nothing '“'
 
 singleQuoted :: IsInline il => il -> il
 singleQuoted x = str "‘" <> x <> str "’"

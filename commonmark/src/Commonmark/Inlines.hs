@@ -183,6 +183,9 @@ data FormattingSpec il = FormattingSpec
                               -- ^ Character that triggers formatting
     , formattingIntraWord     :: !Bool
                               -- ^ True if formatting can start/end in a word
+    , formattingIgnorePunctuation :: !Bool
+                              -- ^ Treat punctuation like letters for
+                              -- purposes of computing can open/can close
     , formattingSingleMatch   :: Maybe (il -> il)
                               -- ^ Constructor to use for text between
                               -- single delimiters.
@@ -199,8 +202,8 @@ type FormattingSpecMap il = M.Map Char (FormattingSpec il)
 
 defaultFormattingSpecs :: IsInline il => [FormattingSpec il]
 defaultFormattingSpecs =
-  [ FormattingSpec '*' True (Just emph) (Just strong) '*'
-  , FormattingSpec '_' False (Just emph) (Just strong) '_'
+  [ FormattingSpec '*' True False (Just emph) (Just strong) '*'
+  , FormattingSpec '_' False False (Just emph) (Just strong) '_'
   ]
 
 mkFormattingSpecMap :: [FormattingSpec il] -> FormattingSpecMap il
@@ -325,12 +328,17 @@ pDelimChunk specmap = do
   st <- getState
   next <- option LineEnd (tokType <$> lookAhead anyTok)
   let precededByWhitespace = afterSpace st == pos
-  let precededByPunctuation = afterPunct st == pos
+  let precededByPunctuation =
+       case formattingIgnorePunctuation <$> mbspec of
+         Just True -> False
+         _         -> afterPunct st == pos
   let followedByWhitespace = next == Spaces ||
                              next == LineEnd ||
                              next == UnicodeSpace
-  let followedByPunctuation = not followedByWhitespace &&
-                              next /= WordChars
+  let followedByPunctuation =
+       case formattingIgnorePunctuation <$> mbspec of
+         Just True -> False
+         _         -> not followedByWhitespace && next /= WordChars
   let leftFlanking = not followedByWhitespace &&
          (not followedByPunctuation ||
           precededByWhitespace ||

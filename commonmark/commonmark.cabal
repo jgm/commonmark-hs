@@ -51,6 +51,8 @@ extra-source-files:
     test/emoji.txt
     test/smart_punct.txt
     test/strikethrough.txt
+    test/superscript.txt
+    test/subscript.txt
     test/regression.txt
 
 source-repository head
@@ -83,6 +85,8 @@ library
       Commonmark.SourceMap
       Commonmark.Extensions.Smart
       Commonmark.Extensions.Strikethrough
+      Commonmark.Extensions.Superscript
+      Commonmark.Extensions.Subscript
       Commonmark.Extensions.PipeTable
       Commonmark.Extensions.Math
       Commonmark.Extensions.Emoji

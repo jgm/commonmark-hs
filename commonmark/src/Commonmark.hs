@@ -6,6 +6,8 @@ module Commonmark
     , module Commonmark.SourceMap
     , module Commonmark.Extensions.Smart
     , module Commonmark.Extensions.Strikethrough
+    , module Commonmark.Extensions.Superscript
+    , module Commonmark.Extensions.Subscript
     , module Commonmark.Extensions.PipeTable
     , module Commonmark.Extensions.Math
     , module Commonmark.Extensions.Emoji
@@ -24,6 +26,8 @@ import           Commonmark.Syntax
 import           Commonmark.SourceMap
 import           Commonmark.Extensions.Smart
 import           Commonmark.Extensions.Strikethrough
+import           Commonmark.Extensions.Superscript
+import           Commonmark.Extensions.Subscript
 import           Commonmark.Extensions.PipeTable
 import           Commonmark.Extensions.Math
 import           Commonmark.Extensions.Emoji

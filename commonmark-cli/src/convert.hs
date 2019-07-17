@@ -133,6 +133,8 @@ extensions :: (Monad m, Typeable m,
                HasSpan il,
                ToPlainText il,
                HasStrikethrough il,
+               HasSuperscript il,
+               HasSubscript il,
                HasDefinitionList il bl,
                HasDiv bl,
                HasFootnote il bl)
@@ -141,6 +143,8 @@ extensions =
   [ ("autolinks", autolinkSpec)
   ,("pipe_tables", pipeTableSpec)
   ,("strikethrough", strikethroughSpec)
+  ,("superscript", superscriptSpec)
+  ,("subscript", subscriptSpec)
   ,("smart", smartPunctuationSpec)
   ,("math", mathSpec)
   ,("emoji", emojiSpec)
@@ -170,6 +174,8 @@ specFromExtensionNames ::
   HasSpan il,
   ToPlainText il,
   HasStrikethrough il,
+  HasSuperscript il,
+  HasSubscript il,
   HasDefinitionList il bl,
   HasDiv bl,
   HasFootnote il bl)

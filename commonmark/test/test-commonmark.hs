@@ -23,6 +23,8 @@ main = do
              , ("test/regression.txt", mempty)
              , ("test/smart_punct.txt", smartPunctuationSpec)
              , ("test/strikethrough.txt", strikethroughSpec)
+             , ("test/superscript.txt", superscriptSpec)
+             , ("test/subscript.txt", subscriptSpec)
              , ("test/pipe_tables.txt", pipeTableSpec)
              , ("test/footnotes.txt", footnoteSpec)
              , ("test/math.txt", mathSpec)

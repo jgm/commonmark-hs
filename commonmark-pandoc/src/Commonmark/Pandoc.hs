@@ -27,6 +27,8 @@ import Commonmark.Extensions.Math
 import Commonmark.Extensions.Emoji
 import Commonmark.Extensions.PipeTable
 import Commonmark.Extensions.Strikethrough
+import Commonmark.Extensions.Superscript
+import Commonmark.Extensions.Subscript
 import Commonmark.Extensions.DefinitionList
 import Commonmark.Extensions.Attributes
 import Commonmark.Extensions.Footnote
@@ -128,6 +130,12 @@ instance Rangeable (Cm a B.Blocks)
 
 instance HasStrikethrough (Cm a B.Inlines) where
   strikethrough ils = B.strikeout <$> ils
+
+instance HasSuperscript (Cm a B.Inlines) where
+  superscript ils = B.superscript <$> ils
+
+instance HasSubscript (Cm a B.Inlines) where
+  subscript ils = B.subscript <$> ils
 
 instance Rangeable (Cm a B.Inlines) => HasSpan (Cm a B.Inlines) where
   spanWith attrs ils =

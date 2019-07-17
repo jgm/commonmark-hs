@@ -30,6 +30,8 @@ The following optional extensions are provided:
 - `pipe_tables`: pipe tables
 - `smart`: smart quotes, dashes, and ellipses
 - `strikethrough`: strikethrough
+- `superscript`: superscript
+- `subscript`: subscript
 - `math`: LaTeX math
 - `emoji`: emoji
 - `autolinks`: autolink bare URLs and email addresses

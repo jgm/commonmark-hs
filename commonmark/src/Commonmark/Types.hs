@@ -9,6 +9,8 @@ module Commonmark.Types
   ( Format(..)
   , ListSpacing(..)
   , ListType(..)
+  , DelimiterType(..)
+  , EnumeratorType(..)
   , IsInline(..)
   , IsBlock(..)
   , SourceRange(..)
@@ -39,9 +41,24 @@ data ListSpacing =
      | LooseList
      deriving (Show, Ord, Eq, Data, Typeable)
 
+data EnumeratorType =
+       Decimal
+     | UpperAlpha
+     | LowerAlpha
+     | UpperRoman
+     | LowerRoman
+     deriving (Show, Ord, Eq, Data, Typeable)
+
+data DelimiterType =
+       Period
+     | OneParen
+     | TwoParens
+     deriving (Show, Ord, Eq, Data, Typeable)
+
 data ListType =
        BulletList !Char
-     | OrderedList !Int !Char
+     | OrderedList !Int !EnumeratorType !DelimiterType
+     -- first Text is before, second Text is after enumerator
      deriving (Show, Ord, Eq, Data, Typeable)
 
 class (Monoid a, Show a, Rangeable a, HasAttributes a) => IsInline a where

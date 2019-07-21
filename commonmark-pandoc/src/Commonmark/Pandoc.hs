@@ -85,7 +85,7 @@ instance (Rangeable (Cm a B.Inlines),
                       else map unCm items
           paraToPlain (Para xs) = Plain xs
           paraToPlain x = x
-  list (C.OrderedList startnum _) lSpacing items =
+  list (C.OrderedList startnum enumtype delimtype) lSpacing items =
     Cm $ B.orderedListWith attr items'
     where items' = if lSpacing == TightList
                       then map (B.fromList . map paraToPlain . B.toList. unCm)
@@ -93,7 +93,17 @@ instance (Rangeable (Cm a B.Inlines),
                       else map unCm items
           paraToPlain (Para xs) = Plain xs
           paraToPlain x = x
-          attr = (startnum, DefaultStyle, DefaultDelim)
+          sty = case enumtype of
+                  C.Decimal    -> B.Decimal
+                  C.UpperAlpha -> B.UpperAlpha
+                  C.LowerAlpha -> B.LowerAlpha
+                  C.UpperRoman -> B.UpperRoman
+                  C.LowerRoman -> B.LowerRoman
+          delim = case delimtype of
+                    C.Period    -> B.Period
+                    C.OneParen  -> B.OneParen
+                    C.TwoParens -> B.TwoParens
+          attr = (startnum, sty, delim)
 
 instance Rangeable (Cm () B.Blocks) where
   ranged _r x = x

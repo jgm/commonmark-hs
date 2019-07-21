@@ -784,14 +784,15 @@ listItemSpec = BlockSpec
              (cur:_) <- nodeStack <$> getState
              when (blockParagraph (bspec cur)) $ do
                guard $ case listType listdata of
-                            BulletList _    -> True
-                            OrderedList 1 _ -> True
-                            _               -> False
+                            BulletList _      -> True
+                            OrderedList 1 _ _ -> True
+                            _                 -> False
                notFollowedBy blankLine
              let curdata = fromDyn (blockData (rootLabel cur))
                                 (ListData undefined undefined)
              let matchesList (BulletList c) (BulletList d)       = c == d
-                 matchesList (OrderedList _ c) (OrderedList _ d) = c == d
+                 matchesList (OrderedList _ e1 d1)
+                             (OrderedList _ e2 d2) = e1 == e2 && d1 == d2
                  matchesList _ _                                 = False
              case blockType (bspec cur) of
                   "List" | listType curdata `matchesList`
@@ -863,8 +864,8 @@ orderedListMarker :: Monad m => BlockParser m il bl ListType
 orderedListMarker = do
   Tok WordChars _ ds <- satisfyWord (\t -> T.all isDigit t && T.length t < 10)
   (start :: Int) <- either fail (return . fst) (TR.decimal ds)
-  Tok (Symbol delim) _ _ <- symbol '.' <|> symbol ')'
-  return $ OrderedList start delim
+  delimtype <- Period <$ symbol '.' <|> OneParen <$ symbol ')'
+  return $ OrderedList start Decimal delimtype
 
 listSpec :: (Monad m, IsBlock il bl) => BlockSpec m il bl
 listSpec = BlockSpec

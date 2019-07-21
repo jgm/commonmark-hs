@@ -127,11 +127,17 @@ instance IsInline (Html a) => IsBlock (Html a) (Html a) where
                    Just ((if lSpacing == TightList
                              then mempty
                              else nl) <> x)
-  list (OrderedList startnum _) lSpacing items =
+  list (OrderedList startnum enumtype _delimtype) lSpacing items =
     (if startnum /= 1
         then addAttribute ("start", T.pack (show startnum))
-        else id) $
-    htmlBlock "ol" $
+        else id) .
+    (case enumtype of
+       Decimal  -> id
+       UpperAlpha -> addAttribute ("type", "A")
+       LowerAlpha -> addAttribute ("type", "a")
+       UpperRoman -> addAttribute ("type", "I")
+       LowerRoman -> addAttribute ("type", "i"))
+    $ htmlBlock "ol" $
       Just (nl <> mconcat (map li items))
    where li x = htmlBlock "li" $
                    Just ((if lSpacing == TightList

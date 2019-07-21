@@ -40,6 +40,8 @@ module Commonmark.Blocks
   , setextHeadingSpec
   , thematicBreakSpec
   , listItemSpec
+  , bulletListMarker
+  , orderedListMarker
   , rawHtmlSpec
   , attributeSpec
   , paraSpec
@@ -305,7 +307,7 @@ defaultBlockSpecs =
     , atxHeadingSpec
     , setextHeadingSpec
     , thematicBreakSpec
-    , listItemSpec
+    , listItemSpec (bulletListMarker <|> orderedListMarker)
     , rawHtmlSpec
     , attributeSpec
     ]
@@ -763,12 +765,14 @@ blockQuoteSpec = BlockSpec
      , blockFinalize       = defaultFinalizer
      }
 
-listItemSpec :: (Monad m, IsBlock il bl) => BlockSpec m il bl
-listItemSpec = BlockSpec
+listItemSpec :: (Monad m, IsBlock il bl)
+             => BlockParser m il bl ListType
+             -> BlockSpec m il bl
+listItemSpec parseListMarker = BlockSpec
      { blockType           = "ListItem"
      , blockStart          = try $ do
-             (pos, lidata) <- itemStart
-             let linode = Node (defBlockData listItemSpec){
+             (pos, lidata) <- itemStart parseListMarker
+             let linode = Node (defBlockData $ listItemSpec parseListMarker){
                              blockData = toDyn lidata,
                              blockStartPos = [pos] } []
              let listdata = ListData{
@@ -837,12 +841,14 @@ listItemSpec = BlockSpec
                            parent
      }
 
-itemStart :: Monad m => BlockParser m il bl (SourcePos, ListItemData)
-itemStart = do
+itemStart :: Monad m
+          => BlockParser m il bl ListType
+          -> BlockParser m il bl (SourcePos, ListItemData)
+itemStart parseListMarker = do
   beforecol <- sourceColumn <$> getPosition
   gobbleUpToSpaces 3
   pos <- getPosition
-  ty <- bulletListMarker <|> orderedListMarker
+  ty <- parseListMarker
   aftercol <- sourceColumn <$> getPosition
   lookAhead whitespace
   numspaces <- try (gobbleUpToSpaces 4 <* notFollowedBy whitespace)

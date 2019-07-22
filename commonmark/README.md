@@ -37,6 +37,8 @@ The following optional extensions are provided:
 - `autolinks`: autolink bare URLs and email addresses
 - `footnotes`: footnotes
 - `definition_lists`: definition lists
+- `fancy_lists`: fancy ordered list markers (parentheses, alpha,
+  roman)
 - `attributes`: attributes for all inline and block elements
 - `raw_attribute`: special raw block and inline elements in any format
 - `bracketed_spans`: spans of inline elements with attributes

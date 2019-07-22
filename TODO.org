@@ -1,7 +1,7 @@
 * TODO data- prefixes in HTML attributes
 like in pandoc, with whitelist and exceptions
 * TODO extensions
-** TODO fancy_lists
+** TODO fancy_lists -- DONE except for spec and tests
 ** TODO example_lists
 ** TODO implicit_figures
 ** TODO line_blocks

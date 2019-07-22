@@ -150,6 +150,7 @@ extensions =
   ,("emoji", emojiSpec)
   ,("footnotes", footnoteSpec)
   ,("definition_lists", definitionListSpec)
+  ,("fancy_lists", fancyListSpec)
   ,("attributes", attributesSpec)
   ,("raw_attribute", rawAttributeSpec)
   ,("bracketed_spans", bracketedSpanSpec)

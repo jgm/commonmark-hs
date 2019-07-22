@@ -788,9 +788,9 @@ listItemSpec parseListMarker = BlockSpec
              (cur:_) <- nodeStack <$> getState
              when (blockParagraph (bspec cur)) $ do
                guard $ case listType listdata of
-                            BulletList _      -> True
-                            OrderedList 1 _ _ -> True
-                            _                 -> False
+                            BulletList _            -> True
+                            OrderedList 1 Decimal _ -> True
+                            _                       -> False
                notFollowedBy blankLine
              let curdata = fromDyn (blockData (rootLabel cur))
                                 (ListData undefined undefined)

@@ -32,8 +32,9 @@ fancyListSpec = mempty
 fancyOrderedListMarker :: Monad m => BlockParser m il bl ListType
 fancyOrderedListMarker = do
   initialParen <- option False $ True <$ symbol '('
-  (start, enumtype) <- pDecimal <|> pLowerAlpha <|> pUpperAlpha
-                   <|> pLowerRoman <|> pUpperRoman
+  (start, enumtype) <- pDecimal <|>
+                       pLowerRoman <|> pUpperRoman <|>
+                       pLowerAlpha <|> pUpperAlpha
   delimtype <- if initialParen
                   then TwoParens <$ symbol ')'
                   else Period <$ symbol '.' <|> OneParen <$ symbol ')'
@@ -69,7 +70,7 @@ fancyOrderedListMarker = do
                               T.all isUpper t)
       case T.uncons ds of
         Nothing    -> mzero
-        Just (c,_) -> return (1 + ord c - ord 'A', LowerAlpha)
+        Just (c,_) -> return (1 + ord c - ord 'A', UpperAlpha)
 
     pLowerRoman = do
       Tok WordChars _ ds <- satisfyWord (\t ->

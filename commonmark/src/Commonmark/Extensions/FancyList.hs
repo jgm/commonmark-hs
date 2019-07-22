@@ -17,7 +17,7 @@ import Commonmark.Syntax
 import Commonmark.Util
 import Commonmark.Blocks
 import qualified Data.Text as T
-import Control.Monad (mzero)
+import Control.Monad (mzero, guard, when)
 import Text.Parsec
 import qualified Data.Text.Read as TR
 import Data.Char (isAlpha, isDigit, isLower, isUpper, ord, toLower)
@@ -37,6 +37,12 @@ fancyOrderedListMarker = do
   delimtype <- if initialParen
                   then TwoParens <$ symbol ')'
                   else Period <$ symbol '.' <|> OneParen <$ symbol ')'
+  when (enumtype == UpperRoman || enumtype == UpperAlpha) $ do
+    Tok tt _ t <- lookAhead anyTok
+    guard $ case tt of
+              Spaces  -> T.length t > 1
+              LineEnd -> True
+              _       -> False
   return $ OrderedList start enumtype delimtype
 
   where

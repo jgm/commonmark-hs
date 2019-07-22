@@ -31,6 +31,7 @@ main = do
              , ("test/emoji.txt", emojiSpec)
              , ("test/autolinks.txt", autolinkSpec)
              , ("test/definition_lists.txt", definitionListSpec)
+             , ("test/fancy_lists.txt", fancyListSpec)
              , ("test/attributes.txt", attributesSpec)
              , ("test/raw_attribute.txt", rawAttributeSpec)
              , ("test/bracketed_spans.txt", bracketedSpanSpec)

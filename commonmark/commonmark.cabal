@@ -38,6 +38,7 @@ extra-source-files:
     README.md
     test/spec.txt
     test/definition_lists.txt
+    test/fancy_lists.txt
     test/autolinks.txt
     test/auto_identifiers.txt
     test/implicit_heading_references.txt

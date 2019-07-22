@@ -38,7 +38,8 @@ fancyOrderedListMarker = do
   delimtype <- if initialParen
                   then TwoParens <$ symbol ')'
                   else Period <$ symbol '.' <|> OneParen <$ symbol ')'
-  when (enumtype == UpperRoman || enumtype == UpperAlpha) $ do
+  when (delimtype == Period &&
+        (enumtype == UpperRoman || enumtype == UpperAlpha)) $ do
     Tok tt _ t <- lookAhead anyTok
     guard $ case tt of
               Spaces  -> T.length t > 1

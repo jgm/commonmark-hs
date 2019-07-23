@@ -1,5 +1,3 @@
-* TODO data- prefixes in HTML attributes
-like in pandoc, with whitelist and exceptions
 * TODO extensions
 ** TODO example_lists
 ** TODO implicit_figures
@@ -17,8 +15,7 @@ interpretation as a span.
 ** TODO multiline tables
 ** TODO grid tables
 * TODO create a markdown-aware spell checker
-emits source locations and misspelled words,
-or applies a special attribute...
+emits source locations and misspelled words
 * TODO create a sample markdown linter
 do a specific transformation on semantically identified
 text (e.g. capitalization)

@@ -5,7 +5,7 @@ env: &env
       LC_ALL: "C.UTF-8"
       GHC_OPTS: "-O0 -Wall -fno-warn-unused-do-bind -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -Wincomplete-uni-patterns -Werror=missing-home-modules -Widentities -Wcpp-undef -fhide-source-paths"
     docker:
-      - image: fpco/stack-build:lts
+      - image: fpco/stack-build:lts-13
 
 #-----------------------------------------------------------------------------
 # Common utility stuff, not to be modified usually

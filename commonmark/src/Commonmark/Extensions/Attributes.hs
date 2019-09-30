@@ -31,6 +31,9 @@ import Data.Dynamic
 import Data.Tree
 import Control.Monad (mzero, guard, void)
 import Text.Parsec
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup
+#endif
 
 class HasDiv bl where
   div_ :: bl -> bl

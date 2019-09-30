@@ -38,7 +38,7 @@ jobs:
           cabal v2-build --enable-tests --disable-optimization all 2>&1 | tee build.log
           # fail if warnings in local build
           ! grep -q "[Ww]arning:" build.log
-          cabal v2-test --disable-optimization
+          cabal v2-test --disable-optimization all
 
   macos:
 

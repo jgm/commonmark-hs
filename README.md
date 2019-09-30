@@ -1,6 +1,5 @@
 # commonmark
 
-[![CircleCI](https://circleci.com/gh/jgm/commonmark-hs.svg?style=svg)](https://circleci.com/gh/jgm/commonmark-hs)
 [![CI
 tests](https://github.com/jgm/commonmark-hs/workflows/CI%20tests/badge.svg)](https://github.com/jgm/commonmark-hs/actions)
 

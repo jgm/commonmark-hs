@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/jgm/commonmark-hs.svg?style=svg)](https://circleci.com/gh/jgm/commonmark-hs)
 [![CI
-Tests](https://github.com/jgm/commonmark-hs/workflows/CI%20tests/badge.svg)
+tests](https://github.com/jgm/commonmark-hs/workflows/CI%20tests/badge.svg)](https://github.com/jgm/commonmark-hs/actions)
 
 This repository contains three packages:
 

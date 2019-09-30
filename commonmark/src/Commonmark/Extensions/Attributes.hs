@@ -129,7 +129,7 @@ class IsInline a => HasSpan a where
 instance Rangeable (Html a) => HasSpan (Html a) where
   spanWith attrs ils = addAttributes attrs $ htmlInline "span" (Just ils)
 
-instance (HasSpan i, Monoid i)
+instance (HasSpan i, Semigroup i, Monoid i)
         => HasSpan (WithSourceMap i) where
   spanWith attrs x = (spanWith attrs <$> x) <* addName "span"
 

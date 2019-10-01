@@ -40,6 +40,26 @@ jobs:
           ! grep -q "[Ww]arning:" build.log
           cabal v2-test --disable-optimization all
 
+  windows:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install stack
+      shell: cmd
+      run: |
+          choco install haskell-stack
+    - name: Install dependencies
+      run: |
+          stack update
+          stack test --dependencies-only --fast
+    - name: Build and test
+      shell: cmd
+      run: |
+          stack test --fast --ghc-options=-Werror
+
+
   macos:
 
     runs-on: macOS-latest
@@ -53,7 +73,7 @@ jobs:
     - name: Install dependencies
       run: |
           ./stack update
-          ./stack test --dependencies-only --fast --ghc-options=-Werror
+          ./stack test --dependencies-only --fast
     - name: Build and test
       run: |
-          ./stack test --fast
+          ./stack test --fast --ghc-options=-Werror

@@ -10,6 +10,8 @@ import           Data.List             (groupBy)
 import           Data.Text             (Text)
 import qualified Data.Text             as T
 import qualified Data.Text.IO          as T
+import           System.IO             (hSetEncoding, utf8, openFile,
+                                        IOMode(..))
 import qualified Data.Text.Lazy        as TL
 import           Test.Tasty
 import           Test.Tasty.HUnit
@@ -19,6 +21,12 @@ import           Text.Parsec.Pos
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Semigroup
 #endif
+
+readTextFile :: FilePath -> IO Text
+readTextFile fp = do
+  h <- openFile fp ReadMode
+  hSetEncoding h utf8
+  T.hGetContents h
 
 main :: IO ()
 main = do
@@ -67,7 +75,7 @@ getSpecTestTree fp syntaxspec = do
 getSpecTests :: FilePath -> IO [SpecTest]
 getSpecTests fp = do
   speclines <- zip [1..] . T.lines . T.replace "→" "\t"
-                <$> T.readFile fp
+                <$> readTextFile fp
   return $ either (error . show) id $ runParser
              (many (try (skipMany normalLine *> parseSpecTest))
                 <* skipMany normalLine <* eof) ("",1) fp

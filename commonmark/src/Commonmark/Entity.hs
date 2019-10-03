@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 -- This code for lookupEntity is lifted from Text.HTML.TagSoup.Entity
 -- (C) 2006--2018 Neil Mitchell, released under the BSD-3 license
@@ -21,8 +22,10 @@ import qualified Data.Text as T
 import Data.Text (Text)
 import Control.Monad (guard, mzero)
 import Data.Char (isDigit, isHexDigit)
-import Data.Semigroup (Semigroup(..))
 import Data.Maybe (isJust)
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup(..))
+#endif
 
 -- | Lookup an entity, using 'lookupNumericEntity' if it starts with
 --   @#@ and 'lookupNamedEntity' otherwise

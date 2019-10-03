@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -28,7 +29,9 @@ import qualified Data.Text            as T
 import           Data.Typeable        (Typeable)
 import           Text.Parsec.Pos      (SourcePos, sourceColumn, sourceLine,
                                        sourceName)
+#if !MIN_VERSION_base(4,11,0)
 import           Data.Semigroup       (Semigroup, (<>))
+#endif
 
 newtype Format = Format Text
   deriving (Show, Data, Typeable)

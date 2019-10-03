@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE ExtendedDefaultRules       #-}
 {-# LANGUAGE ExtendedDefaultRules       #-}
@@ -18,7 +19,6 @@ where
 
 import qualified Data.Text as T
 import qualified Data.Text.Read as TR
-import Data.Semigroup       (Semigroup)
 import Text.Pandoc.Definition
 import Text.Pandoc.Walk
 import qualified Text.Pandoc.Builder as B
@@ -34,6 +34,9 @@ import Commonmark.Extensions.Attributes
 import Commonmark.Extensions.Footnote
 import Data.Char (isSpace)
 import Data.Coerce (coerce)
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup       (Semigroup)
+#endif
 
 newtype Cm b a = Cm { unCm :: a }
   deriving (Show, Semigroup, Monoid)

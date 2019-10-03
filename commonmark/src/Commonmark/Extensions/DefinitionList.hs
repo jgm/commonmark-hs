@@ -18,8 +18,8 @@ import Commonmark.SourceMap
 import Commonmark.Util
 import Commonmark.Html
 import Control.Monad (mzero)
-import Data.Semigroup (Semigroup)
 #if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup)
 import Data.Monoid
 #endif
 import Data.Dynamic

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Commonmark.ReferenceMap
   ( ReferenceMap(..)
@@ -10,8 +11,10 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Map as M
 import Data.Dynamic
-import Data.Typeable (Typeable)
 import Commonmark.Types
+#if !MIN_VERSION_base(4,13,0)
+import Data.Typeable (Typeable)
+#endif
 
 -- | Lookup table for link references.
 newtype ReferenceMap = ReferenceMap { unReferenceMap :: M.Map Text [Dynamic] }

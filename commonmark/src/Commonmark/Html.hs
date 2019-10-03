@@ -26,12 +26,11 @@ import qualified Data.Text.Lazy as TL
 import           Data.Text.Lazy.Builder (Builder, fromText, toLazyText)
 import           Data.Text.Encoding   (encodeUtf8)
 import qualified Data.ByteString.Char8 as B
-import           Data.Semigroup       ((<>))
 import           Text.Printf          (printf)
 import           Data.Char            (ord, isAlphaNum, isAscii, isSpace)
 import           Data.Maybe           (fromMaybe)
 #if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup
+import           Data.Semigroup
 #endif
 
 data ElementType =

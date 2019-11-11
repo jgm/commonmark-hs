@@ -906,7 +906,7 @@ pLinkDestination = try $ pAngleDest <|> pNormalDest 0
             Tok (Symbol '(') _ _ -> (t:) <$> pNormalDest' (numparens + 1)
             Tok (Symbol ')') _ _ -> (t:) <$> pNormalDest' (numparens - 1)
             _                    -> (t:) <$> pNormalDest' numparens)
-          <|> return []
+          <|> ([] <$ guard (numparens == 0))
 
 -- parses backslash + escapable character, or just backslash
 pEscaped :: Monad m => ParsecT [Tok] s m Tok

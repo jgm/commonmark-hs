@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                        #-}
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE FlexibleInstances          #-}
@@ -38,9 +39,9 @@ data ElementType =
   | BlockElement
 
 data Html a =
-    HtmlElement ElementType Text [Attribute] (Maybe (Html a))
-  | HtmlText Text
-  | HtmlRaw Text
+    HtmlElement !ElementType !Text [Attribute] (Maybe (Html a))
+  | HtmlText !Text
+  | HtmlRaw !Text
   | HtmlNull
   | HtmlConcat (Html a) (Html a)
 

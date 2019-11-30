@@ -178,9 +178,9 @@ blankLine = try $ do
 restOfLine :: Monad m => ParsecT [Tok] s m ([Tok], SourcePos)
 restOfLine = do
   ts <- many (satisfyTok (not . hasType LineEnd))
-  pos <- getPosition
-  (do le <- lineEnd
-      return (ts ++ [le], pos)) <|> (do eof
-                                        guard (not (null ts))
+  (do le@(Tok _ pos _) <- lineEnd
+      return (ts ++ [le], pos)) <|> (do guard (not (null ts))
+                                        eof
+                                        pos <- getPosition
                                         return (ts, pos))
 {-# INLINEABLE restOfLine #-}

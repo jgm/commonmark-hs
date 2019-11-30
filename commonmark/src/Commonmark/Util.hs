@@ -23,7 +23,7 @@ module Commonmark.Util
   , skipWhile
   )
   where
-import           Control.Monad   (mzero, void, guard)
+import           Control.Monad   (mzero, void)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Text.Parsec
@@ -177,10 +177,14 @@ blankLine = try $ do
 -- (if there is one).
 restOfLine :: Monad m => ParsecT [Tok] s m ([Tok], SourcePos)
 restOfLine = do
-  ts <- many (satisfyTok (not . hasType LineEnd))
-  (do le@(Tok _ pos _) <- lineEnd
-      return (ts ++ [le], pos)) <|> (do guard (not (null ts))
-                                        eof
-                                        pos <- getPosition
-                                        return (ts, pos))
+  toks <- getInput
+  case break (hasType LineEnd) toks of
+    (_,[]) -> do
+      ts <- many1 anyTok
+      pos <- getPosition
+      return (ts, pos)
+    (ts,le@(Tok _ pos _):rest) -> do
+      setInput (le:rest)
+      lineEnd -- gobble le, so parsec doesn't think nothing consumed
+      return (ts ++ [le], pos)
 {-# INLINEABLE restOfLine #-}

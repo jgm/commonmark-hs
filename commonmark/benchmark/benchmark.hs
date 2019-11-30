@@ -14,7 +14,7 @@ import Data.Monoid
 
 main :: IO ()
 main = do
-  sample <- TIO.readFile "benchmark/sample.md"
+  sample <- T.replicate 10 <$> TIO.readFile "benchmark/sample.md"
   defaultMainWith defaultConfig
     [ bgroup "tokenize"
       [ benchTokenize ("sample.md", sample) ]

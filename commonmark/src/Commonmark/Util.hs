@@ -60,13 +60,12 @@ symbol c = satisfyTok (hasType (Symbol c))
 
 -- | Parses a 'Tok' with one of the listed types.
 oneOfToks ::  Monad m => [TokType] -> ParsecT [Tok] s m Tok
-oneOfToks toktypes = satisfyTok (\t -> any ($ t) (map hasType toktypes))
+oneOfToks toktypes = satisfyTok (hasTypeIn toktypes)
 {-# INLINEABLE oneOfToks #-}
 
 -- | Parses a 'Tok' with none of the listed types.
 noneOfToks ::  Monad m => [TokType] -> ParsecT [Tok] s m Tok
-noneOfToks toktypes =
-  satisfyTok (\t -> not $ any ($ t) (map hasType toktypes))
+noneOfToks toktypes = satisfyTok (not . hasTypeIn toktypes)
 {-# INLINEABLE noneOfToks #-}
 
 -- | Parses one or more whitespace 'Tok's.
@@ -138,6 +137,9 @@ withRaw parser = do
 hasType :: TokType -> Tok -> Bool
 hasType ty (Tok ty' _ _) = ty == ty'
 {-# INLINEABLE hasType #-}
+
+hasTypeIn :: [TokType] -> Tok -> Bool
+hasTypeIn tys (Tok ty' _ _) = ty' `elem` tys
 
 -- | Filters tokens with certain contents.
 textIs :: (Text -> Bool) -> Tok -> Bool

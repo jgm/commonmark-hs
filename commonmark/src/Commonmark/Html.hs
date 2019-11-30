@@ -205,7 +205,17 @@ toBuilder (HtmlElement eltType tagname attrs mbcontents) =
                               fromText tagname <> ">"
 
 escapeHtml :: Text -> Text
-escapeHtml = T.concatMap escapeHtmlChar
+escapeHtml t =
+  case T.uncons post of
+    Just (c, rest) -> pre <> escapeHtmlChar c <> escapeHtml rest
+    Nothing -> t
+ where
+  (pre,post)        = T.break needsEscaping t
+  needsEscaping '<' = True
+  needsEscaping '>' = True
+  needsEscaping '&' = True
+  needsEscaping '"' = True
+  needsEscaping _   = False
 
 escapeHtmlChar :: Char -> Text
 escapeHtmlChar '<' = "&lt;"

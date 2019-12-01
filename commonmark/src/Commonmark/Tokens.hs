@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE StrictData #-}
+{-# LANGUAGE Strict #-}
 
 module Commonmark.Tokens
   ( Tok(..)
@@ -15,9 +16,9 @@ import qualified Data.Text       as T
 import           Data.Data       (Data, Typeable)
 import           Text.Parsec.Pos
 
-data Tok = Tok { tokType     :: !TokType
-               , tokPos      :: !SourcePos
-               , tokContents :: !Text
+data Tok = Tok { tokType     :: TokType
+               , tokPos      :: SourcePos
+               , tokContents :: Text
                }
                deriving (Show, Eq, Data, Typeable)
 
@@ -26,7 +27,7 @@ data TokType =
      | UnicodeSpace
      | LineEnd
      | WordChars
-     | Symbol !Char
+     | Symbol Char
      deriving (Show, Eq, Ord, Data, Typeable)
 
 -- | Convert a 'Text' into a list of 'Tok'. The first parameter
@@ -34,10 +35,10 @@ data TokType =
 tokenize :: String -> Text -> [Tok]
 tokenize name = go (initialPos name)
   where
-    go !pos !txt =
+    go pos txt =
       case T.uncons txt of
         Nothing  -> []
-        Just (!c, !t) ->
+        Just (c, t) ->
             -- in  tok : go newpos t'
           case c of
             ' ' -> let (sps,rest) = T.span (==' ') t

@@ -47,7 +47,6 @@ jobs:
           choco install haskell-stack
     - name: Install dependencies
       run: |
-          chcp 65001
           stack update
           stack test --dependencies-only --fast
     - name: Build and test

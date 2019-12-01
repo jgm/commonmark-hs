@@ -34,7 +34,7 @@ data TokType =
 tokenize :: String -> Text -> [Tok]
 tokenize name = go (initialPos name)
   where
-    go pos t =
+    go !pos !t =
       case T.uncons t of
         Nothing  -> []
         Just x   ->

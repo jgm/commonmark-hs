@@ -132,9 +132,7 @@ parseChunks _ _ _ _ _ []             = return (Right [])
 parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
   runParserT (setPosition (tokPos t) >>
     many (pChunk specmap attrParser ilParsers) <* eof)
-          IPState{ afterPunct = initialPos "",
-                   afterSpace = tokPos t,
-                   backtickSpans = getBacktickSpans (t:ts),
+          IPState{ backtickSpans = getBacktickSpans (t:ts),
                    userState = undefined,
                    formattingDelimChars = Set.fromList $
                      '[' : ']' : suffixchars ++ prefixchars
@@ -167,9 +165,7 @@ data ChunkType a =
      deriving Show
 
 data IPState = IPState
-     { afterPunct           :: SourcePos -- pos of next token after punctuation
-     , afterSpace           :: SourcePos  -- pos of next token after space
-     , backtickSpans        :: IntMap.IntMap [SourcePos]
+     { backtickSpans        :: IntMap.IntMap [SourcePos]
                                -- record of lengths of
                                -- backtick spans so we don't scan in vain
      , userState            :: Dynamic
@@ -328,20 +324,28 @@ pDelimChunk :: (IsInline a, Monad m)
             => FormattingSpecMap a
             -> InlineParser m (Chunk a)
 pDelimChunk specmap = do
-  tok@(Tok (Symbol c) pos _) <- pDelimTok
+  Tok (Symbol c) pos _ <- pDelimTok
   let mbspec = M.lookup c specmap
   if isJust mbspec
      then skipMany $ symbol c
      else return ()
   newpos <- getPosition
   toks <- getSlice pos newpos
-  st <- getState
   next <- option LineEnd (tokType <$> lookAhead anyTok)
-  let precededByWhitespace = afterSpace st == pos
+  prevtok <- getPreviousTok pos
+  let precededByWhitespace =
+        case tokType <$> prevtok of
+          Just Spaces       -> True
+          Just UnicodeSpace -> True
+          Just LineEnd      -> True
+          _                 -> False
   let precededByPunctuation =
-       case formattingIgnorePunctuation <$> mbspec of
-         Just True -> False
-         _         -> afterPunct st == pos
+        case tokType <$> prevtok of
+          Just (Symbol _) ->
+            case formattingIgnorePunctuation <$> mbspec of
+              Just True -> False
+              _         -> True
+          _ -> False
   let followedByWhitespace = next == Spaces ||
                              next == LineEnd ||
                              next == UnicodeSpace
@@ -367,7 +371,6 @@ pDelimChunk specmap = do
           (maybe True formattingIntraWord mbspec ||
            not leftFlanking ||
            followedByPunctuation)
-  updateState $ \s -> s{ afterPunct = newpos }
   let toks' = case mbspec of
                     Nothing -> toks
                     -- change tokens to unmatched fallback
@@ -402,13 +405,23 @@ getSlice startpos stoppos = do
   let j = fromMaybe (V.length tv - 1) $ M.lookup stoppos spm
   return $ V.slice i j tv
 
+getPreviousTok :: Monad m => SourcePos -> InlineParser m (Maybe Tok)
+getPreviousTok sp = do
+  tv <- tokenVector <$> getState
+  spm <- sourcePosMap <$> getState
+  return $
+    case M.lookup sp spm of
+      Just n
+        | n > 0
+          -> tv V.!? (n - 1)
+      _   -> Nothing
+
 pInline :: (IsInline a, Monad m)
         => [InlineParser m a]
         -> InlineParser m (Chunk a)
 pInline ilParsers = do
   pos <- getPosition
   (res, tv) <- withRaw' $ choice ilParsers <|> pSymbol
-  newpos <- getPosition
   -- TODO: remove this garbage; now we can just look at sourcepos in tv
   -- case tokType (last toks) of
   --      Spaces       -> updateState $ \st -> st{ afterSpace = newpos }
@@ -659,16 +672,17 @@ processEm st =
                         (Just c1, _)     -> (c1, 1)
                         _                -> (fallbackConstructor, 1)
                (openrest, opentoks) =
-                 splitAt (openlen - numtoks) (chunkToks opendelim)
+                 V.splitAt (openlen - numtoks) (chunkToks opendelim)
                (closetoks, closerest) =
-                 splitAt numtoks (chunkToks closedelim)
+                 V.splitAt numtoks (chunkToks closedelim)
                addnewopen = if null openrest
                                then id
                                else (opendelim{ chunkToks = openrest } :)
                addnewclose = if null closerest
                                 then id
                                 else (closedelim{ chunkToks = closerest } :)
-               emphtoks = opentoks ++ concatMap chunkToks contents ++ closetoks
+               emphtoks = opentoks <> mconcat (map chunkToks contents)
+                                   <> closetoks
                newelt = Chunk
                          (Parsed $
                            ranged (rangeFromToks emphtoks) $
@@ -791,11 +805,13 @@ processBs bracketedSpecs st =
               key = if any isBracket chunksinside
                        then ""
                        else
-                         case untokenize (concatMap chunkToks chunksinside) of
+                         case untokenize . V.toList . mconcat $
+                              map chunkToks chunksinside of
                               ks | T.length ks <= 999 -> ks
                               _  -> ""
               prefixChar = case befores left of
-                                 Chunk Delim{delimType = c} _ [_] : _
+                                 -- TODO previously we checked chunks for length 1
+                                 Chunk Delim{delimType = c} _ _ : _
                                     -> Just c
                                  _  -> Nothing
               rm = refmap st
@@ -815,7 +831,7 @@ processBs bracketedSpecs st =
                        pos <- getPosition
                        return (spec, constructor, pos)))
                  ""
-                 (mconcat (map chunkToks (afters right))) of
+                 (V.toList $ mconcat (map chunkToks (afters right))) of
                    Left _ -> -- match but no link/image
                          processBs bracketedSpecs
                             st{ leftCursor = moveLeft (leftCursor st)
@@ -832,9 +848,9 @@ processBs bracketedSpecs st =
                          openerPos = case openers of
                                           (x:_) -> chunkPos x
                                           _     -> chunkPos opener
-                         elttoks = concatMap chunkToks
-                                     (openers ++ chunksinside ++ [closer])
-                                      ++ desttoks
+                         elttoks = mconcat (map chunkToks
+                                        (openers ++ chunksinside ++ [closer]))
+                                      <> V.fromList desttoks
                          elt = ranged (rangeFromToks elttoks)
                                   $ constructor $ unChunks $
                                        processEmphasis chunksinside

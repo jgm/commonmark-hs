@@ -48,7 +48,7 @@ import           Data.Dynamic               (Dynamic)
 import           Data.List                  (foldl')
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map                   as M
-import           Data.Maybe                 (isJust, mapMaybe)
+import           Data.Maybe                 (isJust, mapMaybe, fromMaybe)
 import qualified Data.Set                   as Set
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid                ((<>))
@@ -109,15 +109,14 @@ unChunks = foldl' mappend mempty . go
         case chunkType c of
           AddAttributes _ -> go rest
           Delim{} ->
-            f (ranged range (str (untokenize ts))) : go rest
+            f (ranged range (str (untokenize . V.toList $ ts))) : go rest
               where ts = chunkToks c
-                    range =
-                      case ts of
-                       []    -> mempty
-                       (_:_) -> SourceRange
-                                  [(chunkPos c,
-                                    incSourceColumn
-                                      (tokPos (last ts)) 1)]
+                    range = if V.null ts
+                               then mempty
+                               else SourceRange
+                                    [(chunkPos c,
+                                      incSourceColumn
+                                        (tokPos (V.last ts)) 1)]
           Parsed ils          -> f ils : go rest
 
 
@@ -301,11 +300,15 @@ pChunk :: (IsInline a, Monad m)
        -> [InlineParser m a]
        -> InlineParser m (Chunk a)
 pChunk specmap attrParser ilParsers =
- do pos <- getPosition
-    (res, ts) <- withRaw (AddAttributes <$> attrParser)
-                    <|> (\(x,ts) -> (Parsed x,ts)) <$> pInline ilParsers
-    return $ Chunk res pos ts
-  <|> pDelimChunk specmap
+  pAttributes attrParser <|> pInline ilParsers <|> pDelimChunk specmap
+
+pAttributes :: (IsInline a, Monad m)
+            => InlineParser m Attributes
+            -> InlineParser m (Chunk a)
+pAttributes attrParser = do
+  pos <- getPosition
+  (res, tv) <- withRaw' attrParser
+  return $ Chunk (AddAttributes res) pos tv
 
 pDelimTok :: Monad m => InlineParser m Tok
 pDelimTok = do
@@ -327,11 +330,11 @@ pDelimChunk :: (IsInline a, Monad m)
 pDelimChunk specmap = do
   tok@(Tok (Symbol c) pos _) <- pDelimTok
   let mbspec = M.lookup c specmap
-  more <- if isJust mbspec
-             then many $ symbol c
-             else return []
-  let toks = tok:more
+  if isJust mbspec
+     then skipMany $ symbol c
+     else return ()
   newpos <- getPosition
+  toks <- getSlice pos newpos
   st <- getState
   next <- option LineEnd (tokType <$> lookAhead anyTok)
   let precededByWhitespace = afterSpace st == pos
@@ -371,8 +374,8 @@ pDelimChunk specmap = do
                     -- this is mainly for quotes
                     Just spec
                       | formattingWhenUnmatched spec /= c ->
-                         map (\t -> t{ tokContents =
-                               T.map (\_ -> formattingWhenUnmatched spec)
+                         V.map (\t -> t{ tokContents =
+                                T.map (\_ -> formattingWhenUnmatched spec)
                                   (tokContents t) }) toks
                     _ -> toks
   return $ Chunk Delim{ delimType = c
@@ -382,32 +385,53 @@ pDelimChunk specmap = do
                       , delimLength = length toks'
                       } pos toks'
 
+withRaw' :: Monad m
+         => InlineParser m a -> InlineParser m (a, V.Vector Tok)
+withRaw' p = do
+  pos <- getPosition
+  res <- p
+  newpos <- getPosition
+  sl <- getSlice pos newpos
+  return (res, sl)
+
+getSlice :: Monad m => SourcePos -> SourcePos -> InlineParser m (V.Vector Tok)
+getSlice startpos stoppos = do
+  tv <- tokenVector <$> getState
+  spm <- sourcePosMap <$> getState
+  let i = fromMaybe 0 $ M.lookup startpos spm
+  let j = fromMaybe (V.length tv - 1) $ M.lookup stoppos spm
+  return $ V.slice i j tv
+
 pInline :: (IsInline a, Monad m)
         => [InlineParser m a]
-        -> InlineParser m (a, [Tok])
+        -> InlineParser m (Chunk a)
 pInline ilParsers = do
-  (res, toks) <- withRaw $ choice ilParsers <|> pSymbol
+  pos <- getPosition
+  (res, tv) <- withRaw' $ choice ilParsers <|> pSymbol
   newpos <- getPosition
-  case tokType (last toks) of
-       Spaces       -> updateState $ \st -> st{ afterSpace = newpos }
-       UnicodeSpace -> updateState $ \st -> st{ afterSpace = newpos }
-       LineEnd      -> updateState $ \st -> st{ afterSpace = newpos }
-       Symbol _     -> updateState $ \st -> st{ afterPunct = newpos }
-       _            -> return ()
-  return (ranged (rangeFromToks toks) res, toks)
+  -- TODO: remove this garbage; now we can just look at sourcepos in tv
+  -- case tokType (last toks) of
+  --      Spaces       -> updateState $ \st -> st{ afterSpace = newpos }
+  --      UnicodeSpace -> updateState $ \st -> st{ afterSpace = newpos }
+  --      LineEnd      -> updateState $ \st -> st{ afterSpace = newpos }
+  --      Symbol _     -> updateState $ \st -> st{ afterPunct = newpos }
+  --      _            -> return ()
+  return (Chunk (Parsed (ranged (rangeFromToks tv) res)) pos tv)
 
-rangeFromToks :: [Tok] -> SourceRange
+rangeFromToks :: V.Vector Tok -> SourceRange
 rangeFromToks = SourceRange . go
  where go ts =
-        case break (hasType LineEnd) ts of
-             ([], [])     -> []
-             ([], _:ys)   -> go ys
-             (x:xs, [])   ->
-                let y = last (x:xs) in
-                [(tokPos x,
+        case V.break (hasType LineEnd) ts of
+             (v1, v2)
+              | V.null v1
+              , V.null v2 -> mempty
+              | V.null v1 -> go (V.tail v2)
+              | V.null v2 ->
+                let y = V.last v1 in
+                [(tokPos (V.head v1),
                   incSourceColumn (tokPos y) (T.length (tokContents y)))]
-             (x:_, y:ys) ->
-                (tokPos x, tokPos y) : go ys
+              | otherwise ->
+                (tokPos (V.head v1), tokPos (V.head v2)) : go (V.tail v2)
 
 pEscapedChar :: (IsInline a, Monad m) => InlineParser m a
 pEscapedChar = do

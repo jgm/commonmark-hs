@@ -109,7 +109,7 @@ test-suite test-commonmark
   main-is: test-commonmark.hs
   hs-source-dirs:
       test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N -with-rtsopts=-K40K
+  ghc-options: -threaded -rtsopts -with-rtsopts=-K40K
   build-depends:
       base >=4.7 && <5
     , commonmark
@@ -133,5 +133,5 @@ benchmark benchmark-commonmark
      , containers
      , bytestring
      , criterion >= 1.0 && < 1.6
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N -with-rtsopts=-K10K
+  ghc-options: -threaded -rtsopts -with-rtsopts=-K10K
   default-language: Haskell2010

@@ -141,7 +141,10 @@ parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
                      '[' : ']' : suffixchars ++ prefixchars
                                   ++ M.keys specmap,
                    ipReferenceMap = rm,
-                   tokenVector = V.fromList (t:ts) }
+                   tokenVector = V.fromList (t:ts),
+                   sourcePosMap = foldr (\(i, tok) m ->
+                                    M.insert (tokPos tok) i m)
+                                    mempty (zip [0..] (t:ts)) }
           "source" (t:ts)
   where specmap = mkFormattingSpecMap specs
         prefixchars = mapMaybe bracketedPrefix bspecs
@@ -150,7 +153,7 @@ parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
 data Chunk a = Chunk
      { chunkType :: ChunkType a
      , chunkPos  :: !SourcePos
-     , chunkToks :: [Tok]
+     , chunkToks :: V.Vector Tok
      } deriving Show
 
 data ChunkType a =
@@ -174,6 +177,7 @@ data IPState = IPState
      , formattingDelimChars :: Set.Set Char
      , ipReferenceMap       :: ReferenceMap
      , tokenVector          :: V.Vector Tok
+     , sourcePosMap         :: M.Map SourcePos Int
      } deriving Show
 
 type InlineParser m = ParsecT [Tok] IPState m

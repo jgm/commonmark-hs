@@ -42,13 +42,13 @@ import           Commonmark.Tokens
 import           Commonmark.Util
 import           Commonmark.ReferenceMap
 import           Commonmark.Types
-import           Control.Monad              (guard, mzero, when)
+import           Control.Monad              (guard, mzero)
 import           Data.Char                  (isAscii, isLetter)
 import           Data.Dynamic               (Dynamic)
 import           Data.List                  (foldl')
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map                   as M
-import           Data.Maybe                 (isJust, mapMaybe, fromMaybe)
+import           Data.Maybe                 (isJust, mapMaybe)
 import qualified Data.Set                   as Set
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid                ((<>))
@@ -401,10 +401,12 @@ getSlice :: Monad m => SourcePos -> SourcePos -> InlineParser m (V.Vector Tok)
 getSlice startpos stoppos = do
   tv <- tokenVector <$> getState
   spm <- sourcePosMap <$> getState
-  let i = fromMaybe 0 $ M.lookup startpos spm
-  let j = fromMaybe (V.length tv - 1) $ M.lookup stoppos spm
-  when (i > j) $ error "getSlice: negative length"
-  return $ V.slice i (j - i) tv
+  case (M.lookup startpos spm, M.lookup stoppos spm) of
+    (Just i, Just j)
+      | j > i     -> return (V.slice i (j - i) tv)
+      | otherwise -> error "getSlice: negative or zero length"
+    (Just i, Nothing) -> return (V.slice i (V.length tv - i) tv)
+    (Nothing, _) -> error "getSlice: could not find start token"
 
 getPreviousTok :: Monad m => SourcePos -> InlineParser m (Maybe Tok)
 getPreviousTok sp = do

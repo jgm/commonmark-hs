@@ -425,13 +425,6 @@ pInline :: (IsInline a, Monad m)
 pInline ilParsers = do
   pos <- getPosition
   (res, tv) <- withRaw' $ choice ilParsers <|> pSymbol
-  -- TODO: remove this garbage; now we can just look at sourcepos in tv
-  -- case tokType (last toks) of
-  --      Spaces       -> updateState $ \st -> st{ afterSpace = newpos }
-  --      UnicodeSpace -> updateState $ \st -> st{ afterSpace = newpos }
-  --      LineEnd      -> updateState $ \st -> st{ afterSpace = newpos }
-  --      Symbol _     -> updateState $ \st -> st{ afterPunct = newpos }
-  --      _            -> return ()
   return (Chunk (Parsed (ranged (rangeFromToks tv) res)) pos tv)
 
 rangeFromToks :: V.Vector Tok -> SourceRange

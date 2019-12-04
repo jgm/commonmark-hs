@@ -68,6 +68,7 @@ library
     , text
     , bytestring
     , containers
+    , vector
     , transformers
     , parsec
   if !impl(ghc >= 8.0)

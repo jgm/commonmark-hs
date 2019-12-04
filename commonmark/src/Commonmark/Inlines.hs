@@ -55,6 +55,7 @@ import           Data.Monoid                ((<>))
 #endif
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
+import qualified Data.Vector                as V
 import           Commonmark.Entity          (unEntity, charEntity, numEntity)
 import           Text.Parsec                hiding (State, space)
 import           Text.Parsec.Pos
@@ -139,7 +140,8 @@ parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
                    formattingDelimChars = Set.fromList $
                      '[' : ']' : suffixchars ++ prefixchars
                                   ++ M.keys specmap,
-                   ipReferenceMap = rm }
+                   ipReferenceMap = rm,
+                   tokenVector = V.fromList (t:ts) }
           "source" (t:ts)
   where specmap = mkFormattingSpecMap specs
         prefixchars = mapMaybe bracketedPrefix bspecs
@@ -171,6 +173,7 @@ data IPState = IPState
      , userState            :: Dynamic
      , formattingDelimChars :: Set.Set Char
      , ipReferenceMap       :: ReferenceMap
+     , tokenVector          :: V.Vector Tok
      } deriving Show
 
 type InlineParser m = ParsecT [Tok] IPState m

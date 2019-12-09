@@ -16,7 +16,6 @@ import Commonmark.Html
 import Text.Emoji (emojiFromAlias)
 import Text.Parsec
 import Data.Text (Text)
-import qualified Data.Map as M
 
 emojiSpec :: (Monad m, IsBlock il bl, IsInline il, HasEmoji il)
           => SyntaxSpec m il bl

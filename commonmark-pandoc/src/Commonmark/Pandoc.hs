@@ -17,6 +17,7 @@ module Commonmark.Pandoc
 
 where
 
+import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import qualified Data.Text.Read as TR
 import Text.Pandoc.Definition
@@ -47,17 +48,17 @@ instance Functor (Cm b) where
 instance Rangeable (Cm b B.Inlines) => IsInline (Cm b B.Inlines) where
   lineBreak = Cm B.linebreak
   softBreak = Cm B.softbreak
-  str t = Cm $ B.text (T.unpack t)
+  str t = Cm $ B.text t
   entity t
     | illegalCodePoint t = Cm $ B.str "\xFFFD"
-    | otherwise = Cm $ B.str (T.unpack t)
-  escapedChar c = Cm $ B.str [c]
+    | otherwise = Cm $ B.str t
+  escapedChar c = Cm $ B.str $ T.singleton c
   emph ils = B.emph <$> ils
   strong ils = B.strong <$> ils
-  link target title ils = B.link (T.unpack target) (T.unpack title) <$> ils
-  image target title ils = B.image (T.unpack target) (T.unpack title) <$> ils
-  code t = Cm $ B.code (T.unpack t)
-  rawInline (C.Format f) t = Cm $ B.rawInline (T.unpack f) (T.unpack t)
+  link target title ils = B.link target title <$> ils
+  image target title ils = B.image target title <$> ils
+  code t = Cm $ B.code t
+  rawInline (C.Format f) t = Cm $ B.rawInline f t
 
 instance Rangeable (Cm () B.Inlines) where
   ranged _r x = x
@@ -75,11 +76,11 @@ instance (Rangeable (Cm a B.Inlines),
   plain ils = Cm $ B.plain $ unCm ils
   thematicBreak = Cm B.horizontalRule
   blockQuote bs = B.blockQuote <$> bs
-  codeBlock info t = Cm $ B.codeBlockWith attr (T.unpack t)
-    where attr = ("", [T.unpack lang | not (T.null lang)], [])
+  codeBlock info t = Cm $ B.codeBlockWith attr t
+    where attr = ("", [lang | not (T.null lang)], [])
           lang = T.takeWhile (not . isSpace) info
   heading level ils = Cm $ B.header level $ unCm ils
-  rawBlock (C.Format f) t = Cm $ B.rawBlock (T.unpack f) (T.unpack t)
+  rawBlock (C.Format f) t = Cm $ B.rawBlock f t
   referenceLinkDefinition _ _ = Cm mempty
   list (C.BulletList _) lSpacing items = Cm $ B.bulletList items'
     where items' = if lSpacing == TightList
@@ -112,15 +113,15 @@ instance Rangeable (Cm () B.Blocks) where
   ranged _r x = x
 
 instance Rangeable (Cm SourceRange B.Blocks) where
-  ranged r x = B.divWith ("",[],[("data-pos",show r)]) <$> x
+  ranged r x = B.divWith ("",[],[("data-pos",T.pack (show r))]) <$> x
 
 instance HasMath (Cm b B.Inlines) where
-  inlineMath t = Cm $ B.math (T.unpack t)
-  displayMath t = Cm $ B.displayMath (T.unpack t)
+  inlineMath t = Cm $ B.math t
+  displayMath t = Cm $ B.displayMath t
 
 instance HasEmoji (Cm b B.Inlines) where
-  emoji kw t = Cm $ B.spanWith ("",["emoji"],[("emoji",T.unpack t)])
-                  $ B.text (T.unpack kw)
+  emoji kw t = Cm $ B.spanWith ("",["emoji"],[("emoji",t)])
+                  $ B.text kw
 
 instance HasPipeTable (Cm a B.Inlines) (Cm a B.Blocks) where
   pipeTable aligns headerCells rows =
@@ -184,12 +185,12 @@ addToPandocAttr :: Attributes -> Attr -> Attr
 addToPandocAttr attrs curattrs = (id'', classes'', kvs'')
  where
    (id', classes', kvs') = curattrs
-   id'' = maybe id' T.unpack $ lookup "id" attrs
+   id'' = fromMaybe id' $ lookup "id" attrs
    classes'' = case lookup "class" attrs of
                       Nothing  -> classes'
-                      Just cs  -> classes' ++ words (T.unpack cs)
+                      Just cs  -> classes' ++ T.words cs
    kvs'' = [(k, v) | (k, v) <- kvs' ++
-                              map (\(x,y) -> (T.unpack x, T.unpack y)) attrs
+                              map (\(x,y) -> (x, y)) attrs
                    , k /= "id"
                    , k /= "class"]
 
@@ -220,10 +221,11 @@ stringify = query go . walk (deNote . deQuote)
   where go :: Inline -> T.Text
         go Space                                         = " "
         go SoftBreak                                     = " "
-        go (Str x)                                       = T.pack x
-        go (Code _ x)                                    = T.pack x
-        go (Math _ x)                                    = T.pack x
-        go (RawInline (B.Format "html") ('<':'b':'r':_)) = " "
+        go (Str x)                                       = x
+        go (Code _ x)                                    = x
+        go (Math _ x)                                    = x
+        go (RawInline (B.Format "html") t)
+           | "<br" `T.isPrefixOf` t                      = " "
         go LineBreak                                     = " "
         go _                                             = mempty
 

@@ -482,7 +482,7 @@ pUri = try $ do
   return (uri, uri)
 
 pScheme :: Monad m => InlineParser m Text
-pScheme = try $ do
+pScheme = do
   t <- satisfyWord (\t -> case T.uncons t of
                                Nothing -> False
                                Just (c,rest) -> isAscii c && isLetter c &&
@@ -494,7 +494,7 @@ pScheme = try $ do
   return s
 
 pEmail :: Monad m => InlineParser m (Text, Text)
-pEmail = try $ do
+pEmail = do
   let isEmailSymbolTok (Tok (Symbol c) _ _) =
          c == '.' || c == '!' || c == '#' || c == '$' || c == '%' ||
          c == '&' || c == '\'' || c == '*' || c == '+' || c == '/' ||
@@ -875,7 +875,7 @@ pInlineLink = try $ do
                     , linkAttributes = mempty }
 
 pLinkDestination :: Monad m => ParsecT [Tok] s m [Tok]
-pLinkDestination = try $ pAngleDest <|> pNormalDest 0
+pLinkDestination = pAngleDest <|> pNormalDest 0
   where
     pAngleDest = do
       _ <- symbol '<'

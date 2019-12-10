@@ -20,14 +20,6 @@ main = do
       [ benchTokenize ("sample.md", sample) ]
     , bgroup "parse sample.md"
       [ benchCommonmark defaultSyntaxSpec ("commonmark default", sample)
-      , benchCommonmark (smartPunctuationSpec <> defaultSyntaxSpec)
-          ("commonmark +smart", sample)
-      , benchCommonmark (autolinkSpec <> defaultSyntaxSpec)
-          ("commonmark +autolink", sample)
-      , benchCommonmark (attributesSpec <> defaultSyntaxSpec)
-          ("commonmark +attributes", sample)
-      , benchCommonmark (defaultSyntaxSpec <> pipeTableSpec)
-          ("commonmark +pipe_table", sample)
       ]
     , bgroup "pathological"
       (map toPathBench pathtests)

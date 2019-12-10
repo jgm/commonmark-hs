@@ -71,7 +71,7 @@ library
     , transformers
     , parsec
     -- for extensions:
-    , emojis >= 0.1 && < 0.2
+    -- , emojis >= 0.1 && < 0.2
   if !impl(ghc >= 8.0)
     build-depends: semigroups == 0.18.*
   exposed-modules:
@@ -86,20 +86,6 @@ library
       Commonmark.Blocks
       Commonmark.Util
       Commonmark.SourceMap
-      Commonmark.Extensions.Smart
-      Commonmark.Extensions.Strikethrough
-      Commonmark.Extensions.Superscript
-      Commonmark.Extensions.Subscript
-      Commonmark.Extensions.PipeTable
-      Commonmark.Extensions.Math
-      Commonmark.Extensions.Emoji
-      Commonmark.Extensions.Autolink
-      Commonmark.Extensions.Footnote
-      Commonmark.Extensions.DefinitionList
-      Commonmark.Extensions.Attributes
-      Commonmark.Extensions.AutoIdentifiers
-      Commonmark.Extensions.FancyList
-      Commonmark.Extensions.ImplicitHeadingReferences
   other-modules:
       Commonmark.Tag
       Commonmark.Entity

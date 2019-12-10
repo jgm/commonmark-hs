@@ -33,24 +33,6 @@ main = do
   tests <- mapM (uncurry getSpecTestTree)
              [ ("test/spec.txt", mempty)
              , ("test/regression.txt", mempty)
-             , ("test/smart_punct.txt", smartPunctuationSpec)
-             , ("test/strikethrough.txt", strikethroughSpec)
-             , ("test/superscript.txt", superscriptSpec)
-             , ("test/subscript.txt", subscriptSpec)
-             , ("test/pipe_tables.txt", pipeTableSpec)
-             , ("test/footnotes.txt", footnoteSpec)
-             , ("test/math.txt", mathSpec)
-             , ("test/emoji.txt", emojiSpec)
-             , ("test/autolinks.txt", autolinkSpec)
-             , ("test/definition_lists.txt", definitionListSpec)
-             , ("test/fancy_lists.txt", fancyListSpec)
-             , ("test/attributes.txt", attributesSpec)
-             , ("test/raw_attribute.txt", rawAttributeSpec)
-             , ("test/bracketed_spans.txt", bracketedSpanSpec)
-             , ("test/fenced_divs.txt", fencedDivSpec)
-             , ("test/auto_identifiers.txt", autoIdentifiersSpec <> attributesSpec)
-             , ("test/implicit_heading_references.txt",
-                 autoIdentifiersSpec <> attributesSpec <> implicitHeadingReferencesSpec)
              ]
   defaultMain $ testGroup "Tests"
      (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip

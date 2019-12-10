@@ -5,13 +5,7 @@ module Main where
 
 import           Commonmark
 import           Commonmark.Html
-import           Commonmark.Pandoc
-import           Data.Aeson                 (encode)
-import qualified Data.ByteString.Lazy       as BL
-import qualified Text.Pandoc.Builder        as B
-import           Control.Monad
 import           Control.Monad.Identity
-import           Data.Typeable
 import qualified Data.Text.IO               as TIO
 import qualified Data.Text.Lazy.IO          as TLIO
 import qualified Data.Map                   as M
@@ -37,19 +31,15 @@ data Opt =
      | SourcePos
      | Highlight
      | PandocJSON
-     | ListExtensions
-     | Extension String
      deriving Eq
 
 options :: [OptDescr Opt]
 options =
   [ Option ['t'] ["tokenize"] (NoArg Tokenize) "tokenize"
-  , Option ['x'] ["extension"] (ReqArg Extension "extension") "use extension"
   , Option ['p'] ["sourcepos"] (NoArg SourcePos) "source positions"
   , Option [] ["highlight"] (NoArg Highlight) "highlight"
   , Option ['j'] ["json"] (NoArg PandocJSON) "pandoc JSON output"
   , Option ['v'] ["version"] (NoArg Version) "version info"
-  , Option [] ["list-extensions"] (NoArg ListExtensions) "list extensions"
   , Option ['h'] ["help"] (NoArg Help) "help message"
   ]
 
@@ -66,9 +56,6 @@ main = catch (do
   when (Help `elem` opts) $ do
     putStr (usageMessage prg options)
     exitSuccess
-  when (ListExtensions `elem` opts) $ do
-    listExtensions
-    exitSuccess
   when (Version `elem` opts) $ do
     putStrLn $ prg ++ " " ++ showVersion version
     exitSuccess
@@ -79,7 +66,7 @@ main = catch (do
     print toks
     exitSuccess
   if Highlight `elem` opts then do
-      spec <- specFromExtensionNames [x | Extension x <- opts]
+      let spec = defaultSyntaxSpec
       case runWithSourceMap <$>
               runIdentity (parseCommonmarkWith spec toks) of
            Left e -> errExit e
@@ -96,22 +83,14 @@ main = catch (do
                "</body>\n"
   else
     if SourcePos `elem` opts then do
-       spec <- specFromExtensionNames [x | Extension x <- opts]
+       let spec = defaultSyntaxSpec
        case runIdentity (parseCommonmarkWith spec toks) of
             Left e -> errExit e
             Right (r :: Html SourceRange)
                    -> TLIO.putStr . renderHtml $ r
-    else
-      if PandocJSON `elem` opts then do
-        spec <- specFromExtensionNames [x | Extension x <- opts]
-        case runIdentity (parseCommonmarkWith spec toks) of
-             Left e -> errExit e
-             Right (r :: Cm () B.Blocks) -> do
-               BL.putStr . encode $ B.doc $ unCm r
-               BL.putStr "\n"
-      else do
-        spec <- specFromExtensionNames [x | Extension x <- opts]
-        case runIdentity (parseCommonmarkWith spec toks) of
+    else do
+      let spec = defaultSyntaxSpec
+      case runIdentity (parseCommonmarkWith spec toks) of
              Left e -> errExit e
              Right (r :: Html ()) -> TLIO.putStr . renderHtml $ r)
    (\(e :: AsyncException) -> do
@@ -123,76 +102,6 @@ errExit :: ParseError -> IO a
 errExit err = do
   hPrint stderr err
   exitWith (ExitFailure 1)
-
-extensions :: (Monad m, Typeable m,
-               Typeable bl, Typeable il,
-               IsBlock il bl, IsInline il,
-               HasPipeTable il bl,
-               HasMath il,
-               HasEmoji il,
-               HasSpan il,
-               ToPlainText il,
-               HasStrikethrough il,
-               HasSuperscript il,
-               HasSubscript il,
-               HasDefinitionList il bl,
-               HasDiv bl,
-               HasFootnote il bl)
-           => [(String, SyntaxSpec m il bl)]
-extensions =
-  [ ("autolinks", autolinkSpec)
-  ,("pipe_tables", pipeTableSpec)
-  ,("strikethrough", strikethroughSpec)
-  ,("superscript", superscriptSpec)
-  ,("subscript", subscriptSpec)
-  ,("smart", smartPunctuationSpec)
-  ,("math", mathSpec)
-  ,("emoji", emojiSpec)
-  ,("footnotes", footnoteSpec)
-  ,("definition_lists", definitionListSpec)
-  ,("fancy_lists", fancyListSpec)
-  ,("attributes", attributesSpec)
-  ,("raw_attribute", rawAttributeSpec)
-  ,("bracketed_spans", bracketedSpanSpec)
-  ,("fenced_divs", fencedDivSpec)
-  ,("auto_identifiers", autoIdentifiersSpec)
-  ,("implicit_heading_references", implicitHeadingReferencesSpec)
-  ]
-
-extensionList :: [String]
-extensionList = map fst
-  (extensions :: [(String, SyntaxSpec IO (Html ()) (Html ()))])
-
-listExtensions :: IO ()
-listExtensions =
-  putStr $ "Available extensions (or 'all' for all):\n" ++
-    unlines (map ("  " ++) extensionList)
-
-specFromExtensionNames ::
- (Monad m, Typeable m, Typeable bl, Typeable il,
-  IsBlock il bl, IsInline il,
-  HasPipeTable il bl, HasMath il, HasEmoji il,
-  HasSpan il,
-  ToPlainText il,
-  HasStrikethrough il,
-  HasSuperscript il,
-  HasSubscript il,
-  HasDefinitionList il bl,
-  HasDiv bl,
-  HasFootnote il bl)
-  => [String] -> IO (SyntaxSpec m il bl)
-specFromExtensionNames extnames = do
- let extFromName name =
-       case lookup name extensions of
-         Just ext -> return ext
-         Nothing  -> do
-           hPutStrLn stderr $ "Unknown extension " ++ name
-           listExtensions
-           exitWith (ExitFailure 1)
- exts <- if "all" `elem` extnames
-            then return $ mconcat (map snd extensions)
-            else mconcat <$> mapM extFromName extnames
- return $ exts <> defaultSyntaxSpec
 
 highlightWith :: SourceMap -> [Tok] -> Builder
 highlightWith sm ts = "<pre>" <>  mconcat (map (renderTok sm) ts) <> "</pre>"

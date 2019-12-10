@@ -7,4 +7,3 @@ ghc-options:
 packages:
 - commonmark
 - commonmark-cli
-- commonmark-pandoc

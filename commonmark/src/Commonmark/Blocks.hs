@@ -183,12 +183,12 @@ addEndPos endpos (Node bdata children) =
 
 doBlockStarts :: Monad m => [BlockSpec m il bl] -> BlockParser m il bl ()
 doBlockStarts [] = mzero
-doBlockStarts (spec:otherSpecs) = try $ do
+doBlockStarts (spec:otherSpecs) = do
   st' <- getState
   initPos <- getPosition
   case M.lookup (blockType spec) (failurePositions st') of
      Just pos' | initPos < pos' -> doBlockStarts otherSpecs
-     _ -> (do
+     _ -> try (do
        pst <- getParserState
        res <- blockStart spec
        case res of

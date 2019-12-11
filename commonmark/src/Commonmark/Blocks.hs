@@ -189,10 +189,12 @@ doBlockStarts (spec:otherSpecs) = try $ do
   case M.lookup (blockType spec) (failurePositions st') of
      Just pos' | initPos < pos' -> doBlockStarts otherSpecs
      _ -> (do
+       pst <- getParserState
        res <- blockStart spec
        case res of
          BlockStartMatch -> return ()
          BlockStartNoMatchBefore pos -> do
+           setParserState pst
            unless (pos == initPos) $
              updateState $ \st ->
                 st{ failurePositions =

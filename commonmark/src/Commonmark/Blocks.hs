@@ -7,7 +7,6 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE UndecidableInstances  #-}
-{-# LANGUAGE BangPatterns          #-}
 module Commonmark.Blocks
   ( mkBlockParser
   , defaultBlockSpecs
@@ -59,6 +58,7 @@ import           Commonmark.Types
 import           Control.Monad             (foldM, guard, mzero, void, unless,
                                             when)
 import           Control.Monad.Trans.Class (lift)
+import           Data.Foldable             (foldrM)
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid
 #endif
@@ -101,7 +101,7 @@ processLines :: (Monad m, IsBlock il bl)
              -> [BlockParser m il bl bl] -- ^ Parsers to run at end
              -> BlockParser m il bl bl
 processLines specs finalParsers = do
-  many (processLine specs)
+  _ <- skipMany (processLine specs)
   eof
   tree <- (nodeStack <$> getState) >>= collapseNodeStack
   updateState $ \st -> st{ nodeStack = [reverseSubforests tree] }
@@ -122,25 +122,23 @@ processLine specs = do
                  , maybeLazy = False
                  , maybeBlank = True
                  , failurePositions = M.empty }
-  conts <- mapM checkContinue $ reverse (nodeStack st')
-  let matched = [x | (True, x) <- conts]
-  let unmatched = [x | (False, x) <- conts]
+  (matched, unmatched) <- foldrM checkContinue ([],[]) (nodeStack st')
 
   -- if not everything matched, and last unmatched is paragraph,
   -- then we may have a lazy paragraph continuation
-  case reverse unmatched of
+  case unmatched of
          m:_ | blockParagraph (bspec m) ->
            updateState $ \st -> st{ maybeLazy = True }
          _ -> return ()
 
   -- close unmatched blocks
   if null unmatched
-    then updateState $ \st -> st{ nodeStack = reverse matched }
+    then updateState $ \st -> st{ nodeStack = matched }
          -- this update is needed or we lose startpos information
-    else case reverse matched of
+    else case matched of
               []     -> error "no blocks matched"
               m:ms   -> do
-                stack' <- (: ms) <$> collapseNodeStack (reverse unmatched ++ [m])
+                stack' <- (: ms) <$> collapseNodeStack (unmatched ++ [m])
                 updateState $ \st -> st{ nodeStack = stack' }
 
   isblank <- option False $ True <$ (do getState >>= guard . maybeBlank
@@ -152,7 +150,7 @@ processLine specs = do
         -- lazy line
         sp <- getPosition
         updateState $ \st -> st{ nodeStack =
-             map (addStartPos sp) (reverse unmatched) ++ reverse matched })
+             map (addStartPos sp) (unmatched ++ matched) })
       <|>
     void (blockStart paraSpec)
       <|>
@@ -208,8 +206,9 @@ doBlockStarts (spec:otherSpecs) = try $ do
 
 checkContinue :: Monad m
               => BlockNode m il bl
-              -> BlockParser m il bl (Bool, BlockNode m il bl)
-checkContinue nd = do
+              -> ([BlockNode m il bl],[BlockNode m il bl])
+              -> BlockParser m il bl ([BlockNode m il bl],[BlockNode m il bl])
+checkContinue nd (matched, unmatched) = do
   ismatched <- blockMatched <$> getState
   if ismatched
      then
@@ -223,17 +222,20 @@ checkContinue nd = do
            pos' <- if matched'
                       then return startpos
                       else getPosition
-           return (matched',
-                   Node bdata{ blockStartPos =
-                     startpos : blockStartPos bdata,
-                     blockEndPos =
+           let new = Node bdata{ blockStartPos =
+                      startpos : blockStartPos bdata,
+                      blockEndPos =
                          if matched'
                             then blockEndPos bdata
                             else pos' : blockEndPos bdata
-                     } children))
-       <|> (False, nd) <$ updateState (\st -> st{
-                              blockMatched = False })
-     else return (False, nd)
+                      } children
+           return $
+             if matched'
+                then (new:matched, unmatched)
+                else (matched, new:unmatched))
+       <|> (matched, nd:unmatched) <$ updateState (\st -> st{
+                                         blockMatched = False })
+     else return (matched, nd:unmatched)
 
 
 {-

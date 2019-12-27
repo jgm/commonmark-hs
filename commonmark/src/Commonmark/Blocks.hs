@@ -182,27 +182,30 @@ addEndPos endpos (Node bdata children) =
   Node bdata{ blockEndPos = endpos : blockEndPos bdata } children
 
 doBlockStarts :: Monad m => [BlockSpec m il bl] -> BlockParser m il bl ()
-doBlockStarts [] = mzero
-doBlockStarts (spec:otherSpecs) = do
+doBlockStarts specs = do
   st' <- getState
   initPos <- getPosition
-  case M.lookup (blockType spec) (failurePositions st') of
-     Just pos' | initPos < pos' -> doBlockStarts otherSpecs
-     _ -> try (do
-       pst <- getParserState
-       res <- blockStart spec
-       case res of
-         BlockStartMatch -> return ()
-         BlockStartNoMatchBefore pos -> do
-           setParserState pst
-           unless (pos == initPos) $
-             updateState $ \st ->
-                st{ failurePositions =
-                     M.insert (blockType spec)
-                     pos (failurePositions st) }
-           doBlockStarts otherSpecs)
-          <|> doBlockStarts otherSpecs
-
+  let failurePosMap = failurePositions st'
+  let specs' = foldr (\spec sps ->
+                        case M.lookup (blockType spec) failurePosMap of
+                          Just pos' | initPos < pos' -> sps
+                          _ -> spec:sps) [] specs
+  go initPos specs'
+ where
+  go _ [] = mzero
+  go initPos (spec:otherSpecs) = try (do
+    pst <- getParserState
+    res <- blockStart spec
+    case res of
+      BlockStartMatch -> return ()
+      BlockStartNoMatchBefore pos -> do
+        setParserState pst
+        unless (pos == initPos) $
+          updateState $ \st ->
+             st{ failurePositions =
+                  M.insert (blockType spec)
+                  pos (failurePositions st) }
+        go initPos otherSpecs) <|> go initPos otherSpecs
 
 checkContinue :: Monad m
               => BlockNode m il bl

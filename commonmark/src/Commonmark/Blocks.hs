@@ -208,7 +208,6 @@ doBlockStarts specs = do
                   pos (failurePositions st) }
         go initPos otherSpecs) <|> go initPos otherSpecs
 
-
 checkContinue :: Monad m
               => BlockNode m il bl
               -> ([BlockNode m il bl],[BlockNode m il bl])

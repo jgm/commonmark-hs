@@ -143,7 +143,7 @@ processLine specs = do
 
   isblank <- option False $ True <$ (do getState >>= guard . maybeBlank
                                         lookAhead blankLine)
-  (skipMany1 (doBlockStarts specs) >> optional (blockStart paraSpec))
+  (skipMany1 (doBlockStarts specs) >> optional (try (blockStart paraSpec)))
       <|>
     (do getState >>= guard . maybeLazy
         guard $ not isblank
@@ -152,7 +152,7 @@ processLine specs = do
         updateState $ \st -> st{ nodeStack =
              map (addStartPos sp) (unmatched ++ matched) })
       <|>
-    void (blockStart paraSpec)
+    void (try (blockStart paraSpec))
       <|>
     return ()
 
@@ -559,7 +559,7 @@ paraSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 paraSpec = BlockSpec
      { blockType           = "Paragraph"
-     , blockStart          = try $ do
+     , blockStart          = do
              interruptsParagraph >>= guard . not
              skipWhile (hasType Spaces)
              pos <- getPosition
@@ -628,7 +628,7 @@ atxHeadingSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 atxHeadingSpec = BlockSpec
      { blockType           = "ATXHeading"
-     , blockStart          = try $ do
+     , blockStart          = do
              nonindentSpaces
              pos <- getPosition
              hashes <- many1 (symbol '#')
@@ -679,7 +679,7 @@ setextHeadingSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 setextHeadingSpec = BlockSpec
      { blockType           = "SetextHeading"
-     , blockStart          = try $ do
+     , blockStart          = do
              (cur:rest) <- nodeStack <$> getState
              guard $ blockParagraph (bspec cur)
              nonindentSpaces
@@ -748,7 +748,7 @@ parseFinalAttributes requireWhitespace ts = do
 blockQuoteSpec :: (Monad m, IsBlock il bl) => BlockSpec m il bl
 blockQuoteSpec = BlockSpec
      { blockType           = "BlockQuote"
-     , blockStart          = try $ do
+     , blockStart          = do
              nonindentSpaces
              pos <- getPosition
              _ <- symbol '>'
@@ -776,7 +776,7 @@ listItemSpec :: (Monad m, IsBlock il bl)
              -> BlockSpec m il bl
 listItemSpec parseListMarker = BlockSpec
      { blockType           = "ListItem"
-     , blockStart          = try $ do
+     , blockStart          = do
              (pos, lidata) <- itemStart parseListMarker
              let linode = Node (defBlockData $ listItemSpec parseListMarker){
                              blockData = toDyn lidata,
@@ -929,7 +929,7 @@ thematicBreakSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 thematicBreakSpec = BlockSpec
      { blockType           = "ThematicBreak"
-     , blockStart          = try $ do
+     , blockStart          = do
             nonindentSpaces
             pos <- getPosition
             Tok (Symbol c) _ _ <- symbol '-'
@@ -957,7 +957,7 @@ indentedCodeSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 indentedCodeSpec = BlockSpec
      { blockType           = "IndentedCode"
-     , blockStart          = try $ do
+     , blockStart          = do
              interruptsParagraph >>= guard . not
              getState >>= guard . not . maybeLazy
              _ <- gobbleSpaces 4
@@ -996,7 +996,7 @@ fencedCodeSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 fencedCodeSpec = BlockSpec
      { blockType           = "FencedCode"
-     , blockStart          = try $ do
+     , blockStart          = do
              prepos <- getPosition
              nonindentSpaces
              pos <- getPosition
@@ -1056,7 +1056,7 @@ rawHtmlSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 rawHtmlSpec = BlockSpec
      { blockType           = "RawHTML"
-     , blockStart          = try $ do
+     , blockStart          = do
          pos <- getPosition
          (rawHtmlType, toks) <- withRaw $
            do nonindentSpaces

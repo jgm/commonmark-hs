@@ -16,9 +16,9 @@ import qualified Data.Text       as T
 import           Data.Data       (Data, Typeable)
 import           Text.Parsec.Pos
 
-data Tok = Tok { tokType     :: TokType
-               , tokPos      :: SourcePos
-               , tokContents :: Text
+data Tok = Tok { tokType     :: !TokType
+               , tokPos      :: !SourcePos
+               , tokContents :: !Text
                }
                deriving (Show, Eq, Data, Typeable)
 
@@ -27,7 +27,7 @@ data TokType =
      | UnicodeSpace
      | LineEnd
      | WordChars
-     | Symbol Char
+     | Symbol !Char
      deriving (Show, Eq, Ord, Data, Typeable)
 
 -- | Convert a 'Text' into a list of 'Tok'. The first parameter

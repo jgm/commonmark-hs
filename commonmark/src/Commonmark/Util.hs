@@ -70,7 +70,10 @@ noneOfToks toktypes = satisfyTok (not . hasTypeIn toktypes)
 
 -- | Parses one or more whitespace 'Tok's.
 whitespace ::  Monad m => ParsecT [Tok] s m [Tok]
-whitespace = many1 $ oneOfToks [Spaces, LineEnd]
+whitespace = many1 $ satisfyTok (\t -> case tokType t of
+                                         Spaces  -> True
+                                         LineEnd -> True
+                                         _       -> False)
 {-# INLINEABLE whitespace #-}
 
 -- | Parses a 'LineEnd' token.

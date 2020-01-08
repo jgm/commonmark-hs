@@ -45,23 +45,23 @@ The following optional extensions are provided:
 - [`auto_identifiers`] (automatic generation of identifiers for headings)
 - [`implicit_heading_references`] (headings implicitly define link references)
 
-[`pipe_tables`]: test/pipe_tables.txt
-[`smart`]: test/smart.txt
-[`strikethrough`]: test/strikethrough.txt
-[`superscript`]: test/superscript.txt
-[`subscript`]: test/subscript.txt
-[`math`]: test/math.txt
-[`emoji`]: test/emoji.txt
-[`autolinks`]: test/autolinks.txt
-[`footnotes`]: test/footnotes.txt
-[`definition_lists`]: test/definition_lists.txt
-[`fancy_lists`]: test/fancy_lists.txt
-[`attributes`]: test/attributes.txt
-[`raw_attribute`]: test/raw_attribute.txt
-[`bracketed_spans`]: test/bracketed_spans.txt
-[`fenced_divs`]: test/fenced_divs.txt
-[`auto_identifiers`]: test/auto_identifiers.txt
-[`implicit_heading_references`]: test/implicit_heading_references.txt
+[`pipe_tables`]: test/pipe_tables.md
+[`smart`]: test/smart.md
+[`strikethrough`]: test/strikethrough.md
+[`superscript`]: test/superscript.md
+[`subscript`]: test/subscript.md
+[`math`]: test/math.md
+[`emoji`]: test/emoji.md
+[`autolinks`]: test/autolinks.md
+[`footnotes`]: test/footnotes.md
+[`definition_lists`]: test/definition_lists.md
+[`fancy_lists`]: test/fancy_lists.md
+[`attributes`]: test/attributes.md
+[`raw_attribute`]: test/raw_attribute.md
+[`bracketed_spans`]: test/bracketed_spans.md
+[`fenced_divs`]: test/fenced_divs.md
+[`auto_identifiers`]: test/auto_identifiers.md
+[`implicit_heading_references`]: test/implicit_heading_references.md
 
 
 

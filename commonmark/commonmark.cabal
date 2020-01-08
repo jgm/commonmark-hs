@@ -37,24 +37,24 @@ extra-source-files:
     changelog.md
     README.md
     test/spec.txt
-    test/definition_lists.txt
-    test/fancy_lists.txt
-    test/autolinks.txt
-    test/auto_identifiers.txt
-    test/implicit_heading_references.txt
-    test/pipe_tables.txt
-    test/attributes.txt
-    test/raw_attribute.txt
-    test/fenced_divs.txt
-    test/bracketed_spans.txt
-    test/footnotes.txt
-    test/math.txt
-    test/emoji.txt
-    test/smart.txt
-    test/strikethrough.txt
-    test/superscript.txt
-    test/subscript.txt
-    test/regression.txt
+    test/definition_lists.md
+    test/fancy_lists.md
+    test/autolinks.md
+    test/auto_identifiers.md
+    test/implicit_heading_references.md
+    test/pipe_tables.md
+    test/attributes.md
+    test/raw_attribute.md
+    test/fenced_divs.md
+    test/bracketed_spans.md
+    test/footnotes.md
+    test/math.md
+    test/emoji.md
+    test/smart.md
+    test/strikethrough.md
+    test/superscript.md
+    test/subscript.md
+    test/regression.md
 
 source-repository head
   type: git

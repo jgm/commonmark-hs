@@ -27,28 +27,26 @@ varies linearly with input length.
 
 The following optional extensions are provided:
 
-- [`pipe_tables`]: pipe tables
-- [`smart`]: smart quotes, dashes, and ellipses
-- [`strikethrough`]: strikethrough
-- [`superscript`]: superscript
-- [`subscript`]: subscript
-- [`math`]: LaTeX math
-- [`emoji`]: emoji
-- [`autolinks`]: autolink bare URLs and email addresses
-- [`footnotes`]: footnotes
-- [`definition_lists`]: definition lists
-- [`fancy_lists`]: fancy ordered list markers (parentheses, alpha,
-  [roman)
-- [`attributes`]: attributes for all inline and block elements
-- [`raw_attribute`]: special raw block and inline elements in any format
-- [`bracketed_spans`]: spans of inline elements with attributes
-- [`fenced_divs`]: groups of block elements with attributes
-- [`auto_identifiers`]: automatic generation of identifiers for headings
-- [`implicit_heading_references`]: headings implicitly define link references
-
+- [`pipe_tables`] (pipe tables)
+- [`smart`] (smart quotes, dashes, and ellipses)
+- [`strikethrough`] (strikethrough)
+- [`superscript`] (superscript)
+- [`subscript`] (subscript)
+- [`math`] (LaTeX math)
+- [`emoji`] (emoji)
+- [`autolinks`] (autolink bare URLs and email addresses)
+- [`footnotes`] (footnotes)
+- [`definition_lists`] (definition lists)
+- [`fancy_lists`] (fancy ordered list markers (parentheses, alpha, roman)
+- [`attributes`] (attributes for all inline and block elements)
+- [`raw_attribute`] (special raw block and inline elements in any format)
+- [`bracketed_spans`] (spans of inline elements with attributes)
+- [`fenced_divs`] (groups of block elements with attributes)
+- [`auto_identifiers`] (automatic generation of identifiers for headings)
+- [`implicit_heading_references`] (headings implicitly define link references)
 
 [`pipe_tables`]: test/pipe_tables.txt
-[`smart`]: test/smart_punct.txt
+[`smart`]: test/smart.txt
 [`strikethrough`]: test/strikethrough.txt
 [`superscript`]: test/superscript.txt
 [`subscript`]: test/subscript.txt

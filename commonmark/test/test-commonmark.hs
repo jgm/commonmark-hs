@@ -33,7 +33,7 @@ main = do
   tests <- mapM (uncurry getSpecTestTree)
              [ ("test/spec.txt", mempty)
              , ("test/regression.txt", mempty)
-             , ("test/smart_punct.txt", smartPunctuationSpec)
+             , ("test/smart.txt", smartPunctuationSpec)
              , ("test/strikethrough.txt", strikethroughSpec)
              , ("test/superscript.txt", superscriptSpec)
              , ("test/subscript.txt", subscriptSpec)

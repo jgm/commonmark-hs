@@ -50,7 +50,7 @@ extra-source-files:
     test/footnotes.txt
     test/math.txt
     test/emoji.txt
-    test/smart_punct.txt
+    test/smart.txt
     test/strikethrough.txt
     test/superscript.txt
     test/subscript.txt

@@ -5,8 +5,8 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE LambdaCase #-}
+
+
 module Commonmark.Extensions.FancyList
   ( fancyListSpec
   )
@@ -128,4 +128,5 @@ romanNumeral upperCase = do
     if total == 0
        then fail "not a roman numeral"
        else return total
+
 

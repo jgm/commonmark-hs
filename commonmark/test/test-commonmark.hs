@@ -32,7 +32,7 @@ main :: IO ()
 main = do
   tests <- mapM (uncurry getSpecTestTree)
              [ ("test/spec.txt", mempty)
-             , ("test/regression.txt", mempty)
+             , ("test/regression.md", mempty)
              ]
   defaultMain $ testGroup "Tests"
      (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip

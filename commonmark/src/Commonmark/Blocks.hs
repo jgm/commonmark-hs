@@ -143,10 +143,11 @@ processLine specs = do
 
   isblank <- option False $ True <$ (do getState >>= guard . maybeBlank
                                         lookAhead blankLine)
-  (skipMany1 (doBlockStarts specs) >> optional (try (blockStart paraSpec)))
+  unless isblank $
+    (do skipMany1 (doBlockStarts specs)
+        optional (try (blockStart paraSpec)))
       <|>
     (do getState >>= guard . maybeLazy
-        guard $ not isblank
         -- lazy line
         sp <- getPosition
         updateState $ \st -> st{ nodeStack =

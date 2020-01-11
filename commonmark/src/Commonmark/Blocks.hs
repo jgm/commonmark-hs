@@ -1011,20 +1011,25 @@ fencedCodeSpec = BlockSpec
              let infoTok = noneOfToks (LineEnd : [Symbol '`' | c == '`'])
              info <- T.strip . unEntity <$> many (pEscaped <|> infoTok)
              lookAhead $ void lineEnd <|> eof
+
+             let infotoks = tokenize "info string" info
+             (content, attrs) <- parseFinalAttributes False infotoks
+                                  <|> return (infotoks, mempty)
              addNodeToStack $
                 Node (defBlockData fencedCodeSpec){
                           blockData = toDyn
-                               (c, fencelength, indentspaces, info),
+                               (c, fencelength, indentspaces,
+                               untokenize content, attrs),
                           blockStartPos = [pos] } []
              return BlockStartMatch
      , blockCanContain     = const False
      , blockContainsLines  = True
      , blockParagraph      = False
      , blockContinue       = \node -> try (do
-             let ((c, fencelength, _, _)
-                    :: (Char, Int, Int, Text)) = fromDyn
+             let ((c, fencelength, _, _, _)
+                    :: (Char, Int, Int, Text, Attributes)) = fromDyn
                                    (blockData (rootLabel node))
-                                   ('`', 3, 0, mempty)
+                                   ('`', 3, 0, mempty, mempty)
              nonindentSpaces
              pos <- getPosition
              ts <- many1 (symbol c)
@@ -1033,24 +1038,21 @@ fencedCodeSpec = BlockSpec
              lookAhead $ void lineEnd <|> eof
              endOfBlock
              return (pos, node))
-               <|> (do let ((_, _, indentspaces, _)
-                              :: (Char, Int, Int, Text)) = fromDyn
+               <|> (do let ((_, _, indentspaces, _, _)
+                              :: (Char, Int, Int, Text, Attributes)) = fromDyn
                                    (blockData (rootLabel node))
-                                   ('`', 3, 0, mempty)
+                                   ('`', 3, 0, mempty, mempty)
                        pos <- getPosition
                        _ <- gobbleUpToSpaces indentspaces
                        return (pos, node))
      , blockConstructor    = \node -> do
-           let ((_, _, _, info) :: (Char, Int, Int, T.Text)) =
-                   fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty)
+           let ((_, _, _, info, attrs) :: (Char, Int, Int, Text, Attributes)) =
+                   fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty, mempty)
            let codetext = untokenize $ drop 1 (getBlockText id node)
-           let infotoks = tokenize "info string" info
-           -- drop 1 initial lineend token
-           (content, attrs) <- parseFinalAttributes False infotoks <|> return (infotoks, mempty)
            return $ addRange node $
               if null attrs
                  then codeBlock info codetext
-                 else addAttributes attrs $ codeBlock (untokenize content) codetext
+                 else addAttributes attrs $ codeBlock info codetext
      , blockFinalize       = defaultFinalizer
      }
 

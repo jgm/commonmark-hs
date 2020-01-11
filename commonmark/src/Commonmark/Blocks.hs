@@ -127,10 +127,10 @@ processLine specs = do
 
   -- if not everything matched, and last unmatched is paragraph,
   -- then we may have a lazy paragraph continuation
-  case unmatched of
-         m:_ | blockParagraph (bspec m) ->
-           updateState $ \st -> st{ maybeLazy = True }
-         _ -> return ()
+  updateState $ \st -> st{ maybeLazy =
+    case unmatched of
+         m:_ -> blockParagraph (bspec m)
+         _   -> False }
 
   -- close unmatched blocks
   if null unmatched

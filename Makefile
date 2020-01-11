@@ -7,7 +7,7 @@ else
   TESTARGS?="--hide-successes"
   BENCHARGS?="--output $(LOGS)/benchmark-$(DATE).html --time-limit=2"
 endif
-SOURCEFILES?=$(shell find app src test -name '*.hs')
+SOURCEFILES?=$(shell find commonmark/src commonmark-cli/src commonmark-pandoc/src -name '*.hs')
 GHC_OPTS=-Wall -fno-warn-unused-do-bind -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -Wincomplete-uni-patterns -Werror=missing-home-modules -Widentities -Wcpp-undef -fhide-source-paths
 
 all:
@@ -43,7 +43,7 @@ reformat:
 	for f in $(SOURCEFILES); do echo $$f; stylish-haskell -i $$f ; done
 
 lint:
-	for f in $(SOURCEFILES); do echo $$f; hlint --verbose --refactor --refactor-options='-i -s' $$f; done
+	for f in $(SOURCEFILES); do echo $$f; hlint --verbose --cpp-simple --refactor --refactor-options='-i -s' $$f; done
 
 clean:
 	stack clean

@@ -7,6 +7,7 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE BangPatterns          #-}
 module Commonmark.Blocks
   ( mkBlockParser
   , defaultBlockSpecs
@@ -136,10 +137,10 @@ processLine specs = do
     then updateState $ \st -> st{ nodeStack = matched }
          -- this update is needed or we lose startpos information
     else case matched of
-              []     -> error "no blocks matched"
-              m:ms   -> do
-                stack' <- (: ms) <$> collapseNodeStack (unmatched ++ [m])
-                updateState $ \st -> st{ nodeStack = stack' }
+              []   -> error "no blocks matched"
+              m:ms -> do
+                m' <- collapseNodeStack (unmatched ++ [m])
+                updateState $ \st -> st{ nodeStack = m':ms }
 
   isblank <- option False $ True <$ (do getState >>= guard . maybeBlank
                                         lookAhead blankLine)

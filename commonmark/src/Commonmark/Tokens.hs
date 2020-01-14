@@ -14,6 +14,7 @@ import           Data.Char       (isAlphaNum, isSpace)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Data.Data       (Data, Typeable)
+import           Data.List       (foldl')
 import           Text.Parsec.Pos
 
 data Tok = Tok { tokType     :: !TokType
@@ -67,4 +68,4 @@ tokenize name = go (initialPos name)
 -- | Reverses 'tokenize'.  @untokenize . tokenize ""@ should be
 -- the identity.
 untokenize :: [Tok] -> Text
-untokenize = mconcat . map tokContents
+untokenize = foldl' mappend mempty . map tokContents

@@ -18,8 +18,8 @@ import           Data.List       (foldl')
 import           Text.Parsec.Pos
 
 data Tok = Tok { tokType     :: !TokType
-               , tokPos      :: !SourcePos
-               , tokContents :: !Text
+               , tokPos      :: SourcePos
+               , tokContents :: Text
                }
                deriving (Show, Eq, Data, Typeable)
 

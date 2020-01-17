@@ -380,12 +380,19 @@ pInline :: (IsInline a, Monad m)
         -> InlineParser m (a, [Tok])
 pInline ilParsers = do
   (res, toks) <- withRaw $ choice ilParsers <|> pSymbol
-  newpos <- getPosition
   case tokType (last toks) of
-       Spaces       -> updateState $ \st -> st{ afterSpace = newpos }
-       UnicodeSpace -> updateState $ \st -> st{ afterSpace = newpos }
-       LineEnd      -> updateState $ \st -> st{ afterSpace = newpos }
-       Symbol _     -> updateState $ \st -> st{ afterPunct = newpos }
+       Spaces       -> do
+         newpos <- getPosition
+         updateState $ \st -> st{ afterSpace = newpos }
+       UnicodeSpace -> do
+         newpos <- getPosition
+         updateState $ \st -> st{ afterSpace = newpos }
+       LineEnd      -> do
+         newpos <- getPosition
+         updateState $ \st -> st{ afterSpace = newpos }
+       Symbol _     -> do
+         newpos <- getPosition
+         updateState $ \st -> st{ afterPunct = newpos }
        _            -> return ()
   return (ranged (rangeFromToks toks) res, toks)
 

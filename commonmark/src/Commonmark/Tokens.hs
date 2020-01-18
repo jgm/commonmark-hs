@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE BangPatterns #-}
+
 
 module Commonmark.Tokens
   ( Tok(..)

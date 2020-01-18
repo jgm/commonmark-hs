@@ -42,7 +42,7 @@ tokenize name = go (initialPos name) . T.groupBy f
                 = True
     f _   _     = False
     go _pos [] = []
-    go pos (!t:ts)
+    go pos (t:ts)
        | T.any (== ' ') t =
           Tok Spaces pos t :
           go (incSourceColumn pos (T.length t)) ts

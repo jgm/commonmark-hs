@@ -131,20 +131,20 @@ Here are some benchmarks on real-world commonmark documents.
 To get `benchmark.md`, we concatenated a number of READMEs
 collected
 [here](https://github.com/fitzgen/common-mark-benchmarks/tree/master/github-explore-frontend-js).
+The resulting file was 116,608 characters.
 The [`bench`](http://hackage.haskell.org/package/bench) tool was
 used to run the benchmarks.
 
  | program                   | time (ms) |
  | -------                   | ---------:|
- | cmark                     | 10        |
+ | cmark                     | 12        |
  | cheapskate                | 48        |
- | comark-hs                 | 86        |
- | commonmark.js             | 164       |
- | **commonmark-hs**         | 169       |
- | pandoc -f markdown_strict | 482       |
- | pandoc -f markdown        | 810       |
+ | **commonmark-hs**         | 176       |
+ | commonmark.js             | 485       |
+ | pandoc -f commonmark      | 488       |
+ | pandoc -f markdown_strict | 495       |
+ | pandoc -f markdown        | 1059      |
 
-It would be good to close the gap somewhat between commonmark-hs
-and cheapskate and comark-hs (which is based on cheapskate).
-I'd welcome suggestions about how to accomplish this.
+It would be good to improve performance.  I'd welcome suggestions about how
+to accomplish this.
 

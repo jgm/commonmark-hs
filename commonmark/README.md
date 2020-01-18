@@ -130,21 +130,20 @@ so you can specify `myNewSyntaxSpec <> defaultSyntaxSpec`.
 Here are some benchmarks on real-world commonmark documents.
 To get `benchmark.md`, we concatenated a number of READMEs
 collected
-[here](https://github.com/fitzgen/common-mark-benchmarks/tree/master/github-explore-frontend-js).
-The resulting file was 116,608 characters.
+[here](https://github.com/fitzgen/common-mark-benchmarks/tree/master/github-explore-frontend-js), five times.  The resulting file was 583K.
 The [`bench`](http://hackage.haskell.org/package/bench) tool was
 used to run the benchmarks.
 
  | program                   | time (ms) |
  | -------                   | ---------:|
- | cmark                     | 12        |
- | cheapskate                | 48        |
- | **commonmark-hs**         | 176       |
- | commonmark.js             | 485       |
- | pandoc -f commonmark      | 488       |
- | pandoc -f markdown_strict | 495       |
- | pandoc -f markdown        | 1059      |
+ | cmark                     |  26       |
+ | cheapskate                |  229      |
+ | commonmark.js             |  440      |
+ | **commonmark-hs**         |  861      |
+ | pandoc -f commonmark      | 1978      |
+ | pandoc -f markdown_strict | 1932      |
 
-It would be good to improve performance.  I'd welcome suggestions about how
+It would be good to improve performance, at least to the level
+of commonmark.js.  I'd welcome suggestions about how
 to accomplish this.
 

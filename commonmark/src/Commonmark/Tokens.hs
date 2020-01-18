@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE StrictData #-}
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Commonmark.Tokens
   ( Tok(..)
@@ -34,33 +33,35 @@ data TokType =
 -- | Convert a 'Text' into a list of 'Tok'. The first parameter
 -- species the source name.
 tokenize :: String -> Text -> [Tok]
-tokenize name = go (initialPos name) . T.unpack
+tokenize name = go (initialPos name) . T.groupBy f
   where
+    f '\r' '\n' = True
+    f ' ' ' '   = True
+    f x   y     | isAlphaNum x
+                , isAlphaNum y
+                = True
+    f _   _     = False
     go _pos [] = []
-    go pos  (c:cs) =
-          case c of
-            ' ' -> let (sps,rest) = span (==' ') cs
-                   in  Tok Spaces pos (T.pack (' ':sps)) :
-                        go (incSourceColumn pos (1 + length sps)) rest
-            '\t' -> Tok Spaces pos "\t" :
-                    go (incSourceColumn pos (4 - (sourceColumn pos - 1) `mod` 4)) cs
-            '\r' -> case cs of
-                      ('\n':cs')
-                        -> Tok LineEnd pos "\r\n" :
-                           go (incSourceLine (setSourceColumn pos 1) 1) cs'
-                      _ -> Tok LineEnd pos "\r" :
-                           go (incSourceLine (setSourceColumn pos 1) 1) cs
-            '\n' -> Tok LineEnd pos "\n" :
-                    go (incSourceLine (setSourceColumn pos 1) 1) cs
-            _ | isAlphaNum c ->
-                  let (ws,rest) = span isAlphaNum cs
-                  in  Tok WordChars pos (T.pack (c : ws)) :
-                      go (incSourceColumn pos (1 + length ws)) rest
-              | isSpace c    ->
-                  Tok UnicodeSpace pos (T.singleton c) : go (incSourceColumn pos 1) cs
-              | otherwise    ->
-                  Tok (Symbol c) pos (T.singleton c) :
-                  go (incSourceColumn pos 1) cs
+    go pos (!t:ts)
+       | T.any (== ' ') t =
+          Tok Spaces pos t :
+          go (incSourceColumn pos (T.length t)) ts
+       | t == "\t" =
+          Tok Spaces pos t :
+          go (incSourceColumn pos (4 - (sourceColumn pos - 1) `mod` 4)) ts
+       | t == "\r" || t == "\n" || t == "\r\n" =
+          Tok LineEnd pos t :
+          go (incSourceLine (setSourceColumn pos 1) 1) ts
+       | T.any isAlphaNum t =
+         Tok WordChars pos t :
+         go (incSourceColumn pos (T.length t)) ts
+       | T.any isSpace t =
+         Tok UnicodeSpace pos t :
+         go (incSourceColumn pos (T.length t)) ts
+       | T.length t == 1 =
+         Tok (Symbol (T.head t)) pos t :
+         go (incSourceColumn pos 1) ts
+       | otherwise = error $ "Don't know what to do with" ++ show t
 
 -- | Reverses 'tokenize'.  @untokenize . tokenize ""@ should be
 -- the identity.

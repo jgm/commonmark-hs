@@ -75,7 +75,6 @@ main = catch (do
   toks <- if null files
             then tokenize "stdin" <$> TIO.getContents
             else mconcat <$> mapM (\f -> tokenize f <$> TIO.readFile f) files
-  hPutStrLn stderr $ show $ length toks
   when (Tokenize `elem` opts) $ do
     print toks
     exitSuccess

@@ -138,12 +138,11 @@ used to run the benchmarks.
  | -------                   | ---------:|
  | cmark                     |  24       |
  | cheapskate                |  182      |
+ | **commonmark-hs**         |  588      |
  | commonmark.js             |  591      |
- | **commonmark-hs**         |  795      |
  | pandoc -f commonmark      | 1982      |
  | pandoc -f markdown_strict | 1913      |
 
-It would be good to improve performance, at least to the level
-of commonmark.js.  I'd welcome suggestions about how
+It would be good to improve performance.  I'd welcome suggestions about how
 to accomplish this.
 

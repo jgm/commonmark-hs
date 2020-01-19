@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BangPatterns #-}
 module Commonmark.Util
   ( satisfyTok
   , satisfyWord
@@ -36,8 +37,8 @@ satisfyTok f = tokenPrim (T.unpack . tokContents) updatePos matcher
   where matcher t | f t       = Just t
                   | otherwise = Nothing
         updatePos :: SourcePos -> Tok -> [Tok] -> SourcePos
-        updatePos _spos _ (Tok _ pos _ : _) = pos
-        updatePos spos (Tok _ _pos t) []    =
+        updatePos _spos _ (Tok _ !pos _ : _) = pos
+        updatePos !spos (Tok _ _pos !t) []    =
           updatePosString spos (T.unpack t)
 {-# INLINEABLE satisfyTok #-}
 

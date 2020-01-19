@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
--- This code for lookupEntity is lifted from Text.HTML.TagSoup.Entity
+-- This code for lookupEntity is modified from Text.HTML.TagSoup.Entity
 -- (C) 2006--2018 Neil Mitchell, released under the BSD-3 license
 
 module Commonmark.Entity
@@ -29,9 +29,11 @@ import Data.Semigroup (Semigroup(..))
 
 -- | Lookup an entity, using 'lookupNumericEntity' if it starts with
 --   @#@ and 'lookupNamedEntity' otherwise
-lookupEntity :: String -> Maybe String
-lookupEntity ('#':xs) = lookupNumericEntity xs
-lookupEntity xs = lookupNamedEntity xs
+lookupEntity :: Text -> Maybe Text
+lookupEntity t =
+  case T.uncons t of
+    Just ('#', t') -> T.pack <$> lookupNumericEntity (T.unpack t')
+    _              -> lookupNamedEntity t
 
 
 -- | Lookup a numeric entity, the leading @\'#\'@ must have already been removed.
@@ -69,15 +71,16 @@ lookupNumericEntity = f
 --
 -- > lookupNamedEntity "amp" == Just "&"
 -- > lookupNamedEntity "haskell" == Nothing
-lookupNamedEntity :: String -> Maybe String
-lookupNamedEntity = \x -> Map.lookup x mp
-    where mp = Map.fromList htmlEntities
+lookupNamedEntity :: Text -> Maybe Text
+lookupNamedEntity = \x -> Map.lookup x htmlEntityMap
 
+htmlEntityMap :: Map.Map Text Text
+htmlEntityMap = Map.fromList htmlEntities
 
 -- | A table mapping HTML entity names to resolved strings. Most resolved strings are a single character long,
 --   but some (e.g. @"ngeqq"@) are two characters long. The list is taken from
 --   <http://www.w3.org/TR/html5/syntax.html#named-character-references>.
-htmlEntities :: [(String, String)]
+htmlEntities :: [(Text, Text)]
 htmlEntities =
     [("Aacute", "\x00C1")
     ,("aacute", "\x00E1")
@@ -2316,7 +2319,7 @@ charEntity :: Monad m => ParsecT [Tok] s m [Tok]
 charEntity = do
   wc@(Tok WordChars _ ts) <- satisfyTok (hasType WordChars)
   semi <- symbol ';'
-  guard $ isJust $ lookupEntity (T.unpack (ts <> ";"))
+  guard $ isJust $ lookupEntity (ts <> ";")
   return [wc, semi]
 
 numEntity :: Monad m => ParsecT [Tok] s m [Tok]
@@ -2346,6 +2349,6 @@ unEntity ts = untokenize $
           pos <- getPosition
           symbol '&'
           ent <- untokenize <$> (numEntity <|> charEntity)
-          case lookupEntity (T.unpack ent) of
-                Just s  -> return $ Tok WordChars pos (T.pack s)
+          case lookupEntity ent of
+                Just s  -> return $ Tok WordChars pos s
                 Nothing -> mzero

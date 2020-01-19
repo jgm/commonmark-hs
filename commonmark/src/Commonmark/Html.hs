@@ -76,8 +76,8 @@ instance Rangeable (Html a) => IsInline (Html a) where
   lineBreak = htmlInline "br" Nothing <> nl
   softBreak = nl
   str t = htmlText t
-  entity t = case lookupEntity (drop 1 $ T.unpack t) of
-                   Just t' -> htmlText (T.pack t')
+  entity t = case lookupEntity (T.drop 1 t) of
+                   Just t' -> htmlText t'
                    Nothing -> htmlRaw t
   escapedChar c = htmlText (T.singleton c)
   emph ils = htmlInline "em" (Just ils)

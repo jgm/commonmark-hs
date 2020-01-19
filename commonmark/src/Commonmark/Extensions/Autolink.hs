@@ -27,7 +27,7 @@ autolinkSpec = mempty
 parseAutolink :: (Monad m, IsInline a) => InlineParser m a
 parseAutolink = do
   (prefix, linktext) <- withRaw $ wwwAutolink <|> urlAutolink <|> emailAutolink
-  return $ link (prefix <> untokenize linktext) "" (str . untokenize $ linktext)
+  return $! link (prefix <> untokenize linktext) "" (str . untokenize $ linktext)
 
 wwwAutolink :: Monad m => InlineParser m Text
 wwwAutolink = try $ do

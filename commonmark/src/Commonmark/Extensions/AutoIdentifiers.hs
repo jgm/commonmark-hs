@@ -39,7 +39,7 @@ addAutoIdentifiers = do
   nodes <- nodeStack <$> getState
   nodes' <- mapM (traverse addId) nodes
   updateState $ \st -> st{ nodeStack = nodes' }
-  return mempty
+  return $! mempty
 
 addId :: (Monad m, IsBlock il bl, IsInline il, ToPlainText il)
        => BlockData m il bl -> BlockParser m il bl (BlockData m il bl)
@@ -54,15 +54,15 @@ addId bd
         let key = "identifier:" <> ident
         cnt <- case M.lookup key counterMap of
                     Nothing -> return 0
-                    Just x  -> return (fromDyn x (0 :: Int) + 1)
+                    Just x  -> return $! (fromDyn x (0 :: Int) + 1)
         let ident' = if cnt == 0
                         then ident
                         else ident <> "-" <> T.pack (show cnt)
         updateState $ \st ->
           st{ counters = M.insert key (toDyn cnt) counterMap }
-        return $ bd{ blockAttributes = ("id",ident') : blockAttributes bd }
-      Just _ -> return bd
-  | otherwise = return bd
+        return $! bd{ blockAttributes = ("id",ident') : blockAttributes bd }
+      Just _ -> return $! bd
+  | otherwise = return $! bd
 
 makeIdentifier :: T.Text -> T.Text
 makeIdentifier = toIdent

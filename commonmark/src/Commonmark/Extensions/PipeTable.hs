@@ -86,7 +86,7 @@ pCells = try $ do
   guard $ not (null cells)
   guard $ hasPipe || not (null pipedCells) -- need at least one |
   lookAhead blankLine
-  return cells
+  return $! cells
 
 pCell :: Monad m => ParsecT [Tok] s m [Tok]
 pCell = mconcat <$> many1
@@ -94,11 +94,11 @@ pCell = mconcat <$> many1
       (do tok' <- symbol '\\'
           tok@(Tok (Symbol c) _ _) <- anySymbol
           if c == '|'
-             then return [tok]
-             else return [tok',tok])
+             then return $! [tok]
+             else return $! [tok',tok])
   <|> (do tok <- (satisfyTok $ \t -> not (hasType (Symbol '|') t ||
                                        hasType LineEnd t))
-          return [tok])
+          return $! [tok])
   ) <|> ([] <$ lookAhead (symbol '|'))
 
 pDividers :: Monad m => ParsecT [Tok] s m [ColAlignment]
@@ -110,7 +110,7 @@ pDividers = try $ do
   guard $ not (null aligns)
   guard $ hasPipe || not (null pipedAligns) -- need at least one |
   lookAhead blankLine
-  return aligns
+  return $! aligns
 
 
 pDivider :: Monad m => ParsecT [Tok] s m ColAlignment
@@ -127,7 +127,7 @@ pDivider = try $ do
        many1 (symbol '-')
     ]
   skipMany $ satisfyTok (hasType Spaces)
-  return align
+  return $! align
 
 pipeTableSpec :: (Monad m, IsBlock il bl, IsInline il, HasPipeTable il bl)
               => SyntaxSpec m il bl
@@ -175,8 +175,8 @@ pipeTableBlockSpec = BlockSpec
              cells <- pCells
              let tabledata' = tabledata{ pipeTableRows =
                                  cells : pipeTableRows tabledata }
-             return (pos, Node ndata{ blockData =
-                                 toDyn tabledata' } children)
+             return $! (pos, Node ndata{ blockData =
+                                   toDyn tabledata' } children)
            else
              -- last line was first; check for separators
              -- and if not found, convert to paragraph:
@@ -184,11 +184,12 @@ pipeTableBlockSpec = BlockSpec
                      guard $ length aligns ==
                              length (pipeTableHeaders tabledata)
                      let tabledata' = tabledata{ pipeTableAlignments = aligns }
-                     return (pos, Node ndata{ blockLines = []
+                     return $! (pos, Node ndata{
+                                              blockLines = []
                                             , blockData = toDyn tabledata'
                                             } children))
-             <|> return (pos, Node ndata{
-                                 blockSpec = paraSpec } children)
+             <|> (return $! (pos, Node ndata{
+                                   blockSpec = paraSpec } children))
      , blockConstructor    = \(Node ndata _) -> do
          let tabledata = fromDyn
                 (blockData ndata)
@@ -200,7 +201,7 @@ pipeTableBlockSpec = BlockSpec
          let numcols = length headers
          rows <- mapM (mapM runInlineParser . take numcols . (++ (repeat [])))
                     (reverse $ pipeTableRows tabledata)
-         return (pipeTable aligns headers rows)
+         return $! (pipeTable aligns headers rows)
      , blockFinalize       = \(Node ndata children) parent ->
          defaultFinalizer
            (if null (blockLines ndata)

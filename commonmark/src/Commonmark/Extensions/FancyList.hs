@@ -45,7 +45,7 @@ fancyOrderedListMarker = do
               Spaces  -> T.length t > 1
               LineEnd -> True
               _       -> False
-  return $ OrderedList start enumtype delimtype
+  return $! OrderedList start enumtype delimtype
 
   where
     pDecimal = do
@@ -53,7 +53,7 @@ fancyOrderedListMarker = do
                               T.all isDigit t && T.length t < 10)
       case TR.decimal ds of
         Left e -> fail e
-        Right (x,_) -> return (x, Decimal)
+        Right (x,_) -> return $! (x, Decimal)
 
     pLowerAlpha = do
       Tok WordChars _ ds <- satisfyWord (\t ->
@@ -62,7 +62,7 @@ fancyOrderedListMarker = do
                               T.all isLower t)
       case T.uncons ds of
         Nothing    -> mzero
-        Just (c,_) -> return (1 + ord c - ord 'a', LowerAlpha)
+        Just (c,_) -> return $! (1 + ord c - ord 'a', LowerAlpha)
 
     pUpperAlpha = do
       Tok WordChars _ ds <- satisfyWord (\t ->
@@ -71,7 +71,7 @@ fancyOrderedListMarker = do
                               T.all isUpper t)
       case T.uncons ds of
         Nothing    -> mzero
-        Just (c,_) -> return (1 + ord c - ord 'A', UpperAlpha)
+        Just (c,_) -> return $! (1 + ord c - ord 'A', UpperAlpha)
 
     pLowerRoman = do
       Tok WordChars _ ds <- satisfyWord (\t ->
@@ -79,7 +79,7 @@ fancyOrderedListMarker = do
                               T.all isLowerRoman t)
       case parse (romanNumeral False) "" ds of
         Left _     -> mzero
-        Right x    -> return (x, LowerRoman)
+        Right x    -> return $! (x, LowerRoman)
 
     pUpperRoman = do
       Tok WordChars _ ds <- satisfyWord (\t ->
@@ -87,7 +87,7 @@ fancyOrderedListMarker = do
                               T.all isUpperRoman t)
       case parse (romanNumeral True) "" ds of
         Left _     -> mzero
-        Right x    -> return (x, UpperRoman)
+        Right x    -> return $! (x, UpperRoman)
 
 isLowerRoman :: Char -> Bool
 isLowerRoman c = c `elem` ['i','v','x','l','c','d','m']
@@ -127,6 +127,4 @@ romanNumeral upperCase = do
                 fives + fours + ones
     if total == 0
        then fail "not a roman numeral"
-       else return total
-
-
+       else return $! total

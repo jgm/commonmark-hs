@@ -52,7 +52,7 @@ pInlineMath = try $ do
                          , noneOfToks [Symbol '$']
                          ]
   symbol '$'
-  return $ inlineMath (untokenize toks)
+  return $! inlineMath (untokenize toks)
 
 pDisplayMath :: (Monad m, HasMath a) => InlineParser m a
 pDisplayMath = try $ do
@@ -62,4 +62,4 @@ pDisplayMath = try $ do
                          , noneOfToks [Symbol '$']
                          ]
   count 2 $ symbol '$'
-  return $ displayMath (untokenize toks)
+  return $! displayMath (untokenize toks)

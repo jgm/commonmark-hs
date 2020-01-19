@@ -47,5 +47,4 @@ parseEmoji = try $ do
   let kw = untokenize ts
   case emojiFromAlias kw of
     Nothing -> fail "emoji not found"
-    Just t  -> return (emoji kw t)
-
+    Just t  -> return $! emoji kw t

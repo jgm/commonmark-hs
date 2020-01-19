@@ -48,7 +48,7 @@ definitionListBlockSpec = BlockSpec
          let getItem item@(Node _ ds) = do
                term <- runInlineParser (getBlockText removeIndent item)
                defs <- mapM (\c -> (blockConstructor (bspec c)) c) ds
-               return (term, defs)
+               return $! (term, defs)
          definitionList listType <$> mapM getItem items
      , blockFinalize       = \(Node cdata children) parent -> do
           let spacing =
@@ -119,7 +119,7 @@ definitionListDefinitionBlockSpec = BlockSpec
                    --    keep the tokens; they will be the term
                    -- remove paragraph from stack
                    updateState $ \st -> st{ nodeStack = rest }
-                   return $ Node (defBlockData definitionListItemBlockSpec)
+                   return $! Node (defBlockData definitionListItemBlockSpec)
                             { blockData = toDyn TightList
                             , blockLines = blockLines bdata
                             , blockStartPos = blockStartPos bdata
@@ -135,7 +135,7 @@ definitionListDefinitionBlockSpec = BlockSpec
                          -- remove paragraph from stack
                          updateState $ \st -> st{ nodeStack =
                               Node bdata rest' : rest }
-                         return $ Node (defBlockData
+                         return $! Node (defBlockData
                                     definitionListItemBlockSpec)
                                   { blockData = toDyn LooseList
                                   , blockStartPos = blockStartPos
@@ -168,7 +168,7 @@ definitionListDefinitionBlockSpec = BlockSpec
      , blockContinue       = \node -> do
          pos <- getPosition
          gobbleSpaces 4 <|> 0 <$ lookAhead blankLine
-         return (pos, node)
+         return $! (pos, node)
      , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = defaultFinalizer
      }

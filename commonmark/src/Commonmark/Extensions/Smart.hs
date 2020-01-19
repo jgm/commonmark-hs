@@ -35,7 +35,7 @@ doubleQuoted x = str "“" <> x <> str "”"
 pEllipses :: (Monad m, IsInline a) => InlineParser m a
 pEllipses = try $ do
   count 3 (symbol '.')
-  return $ str "…"
+  return $! str "…"
 
 pDash :: (Monad m, IsInline a) => InlineParser m a
 pDash = try $ do
@@ -47,6 +47,6 @@ pDash = try $ do
                | n `mod` 2 == 0 -> (0, n `div` 2)
                | n `mod` 3 == 2 -> ((n - 2) `div` 3, 1)
                | otherwise      -> ((n - 4) `div` 3, 2)
-  return $ mconcat $
+  return $! mconcat $
     replicate emcount (str "—") <>
     replicate encount (str "–")

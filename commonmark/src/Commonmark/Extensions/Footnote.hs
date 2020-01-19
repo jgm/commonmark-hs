@@ -83,7 +83,7 @@ footnoteBlockSpec = BlockSpec
              () <$ (gobbleSpaces 4)
                <|> (skipWhile (hasType Spaces) >> () <$ lookAhead lineEnd)
              pos <- getPosition
-             return (pos, n)
+             return $! (pos, n)
      , blockConstructor    = \node ->
           (addRange node . mconcat) <$> mapM (\n ->
               blockConstructor (blockSpec (rootLabel n)) n)
@@ -101,14 +101,14 @@ footnoteBlockSpec = BlockSpec
                               (FootnoteDef num lab' mkNoteContents)
                               (referenceMap s)
              }
-         return parent
+         return $! parent
      }
 
 pFootnoteLabel :: Monad m => ParsecT [Tok] u m Text
 pFootnoteLabel = try $ do
   lab <- pLinkLabel
   case T.uncons lab of
-        Just ('^', t') -> return t'
+        Just ('^', t') -> return $! t'
         _ -> mzero
 
 pFootnoteRef :: (Monad m, Typeable m, Typeable a,
@@ -122,7 +122,7 @@ pFootnoteRef = try $ do
           res <- lift $ mkContents rm
           case res of
                Left err -> mkPT (\_ -> return (Empty (return (Error err))))
-               Right contents -> return $
+               Right contents -> return $!
                  footnoteRef (T.pack (show num)) lab contents
         Nothing -> mzero
 
@@ -137,7 +137,7 @@ addFootnoteList = do
         res <- lift $ mkContents rm
         case res of
              Left err -> mkPT (\_ -> return (Empty (return (Error err))))
-             Right contents -> return $ footnote num lab contents
+             Right contents -> return $! footnote num lab contents
   if null notes
      then return mempty
      else footnoteList <$> mapM renderNote notes

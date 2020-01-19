@@ -88,14 +88,14 @@ fencedDivBlockSpec = BlockSpec
              skipWhile (hasType Spaces)
              lookAhead $ void lineEnd <|> eof
              endOfBlock
-             return (pos, node))
+             return $! (pos, node))
                <|> (do let ((_, indentspaces, _)
                               :: (Int, Int, Attributes)) = fromDyn
                                    (blockData (rootLabel node))
                                    (3, 0, mempty)
                        pos <- getPosition
                        _ <- gobbleUpToSpaces indentspaces
-                       return (pos, node))
+                       return $! (pos, node))
      , blockConstructor    = \node -> do
            let ((_, _, attrs) :: (Int, Int, Attributes)) =
                    fromDyn (blockData (rootLabel node)) (3, 0, mempty)
@@ -121,7 +121,7 @@ bracketedSpanSpec = mempty
             }
    pSpanSuffix _rm _key = do
      attrs <- pAttributes
-     return $ spanWith attrs
+     return $! spanWith attrs
 
 class IsInline a => HasSpan a where
   spanWith :: Attributes -> a -> a
@@ -137,12 +137,12 @@ pRawSpan :: (IsInline a, Monad m) => InlineParser m a
 pRawSpan = do
   pBacktickSpan >>=
    \case
-    Left ticks     -> return $ str (untokenize ticks)
+    Left ticks     -> return $! str (untokenize ticks)
     Right codetoks -> do
       let raw = untokenize codetoks
       (do f <- pRawAttribute
-          return $ rawInline f raw)
-       <|> return (code . normalizeCodeSpan $ raw)
+          return $! rawInline f raw)
+       <|> (return $! code . normalizeCodeSpan $ raw)
 
 rawAttributeSpec :: (Monad m, IsBlock il bl)
                          => SyntaxSpec m il bl
@@ -189,21 +189,21 @@ rawAttributeBlockSpec = BlockSpec
              skipWhile (hasType Spaces)
              lookAhead $ void lineEnd <|> eof
              endOfBlock
-             return (pos, node))
+             return $! (pos, node))
                <|> (do let ((_, _, indentspaces, _)
                               :: (Char, Int, Int, Format)) = fromDyn
                                    (blockData (rootLabel node))
                                    ('`', 3, 0, Format mempty)
                        pos <- getPosition
                        _ <- gobbleUpToSpaces indentspaces
-                       return (pos, node))
+                       return $! (pos, node))
      , blockConstructor    = \node -> do
            let ((_, _, _, fmt) :: (Char, Int, Int, Format)) =
                    fromDyn (blockData (rootLabel node))
                      ('`', 3, 0, Format mempty)
            let codetext = untokenize $ drop 1 (getBlockText id node)
            -- drop 1 initial lineend token
-           return $ addRange node $ rawBlock fmt codetext
+           return $! addRange node $ rawBlock fmt codetext
      , blockFinalize       = defaultFinalizer
      }
 
@@ -226,7 +226,7 @@ pAttributes = mconcat <$> many1 pattr
       as <- many $ try (whitespace *> (pIdentifier <|> pClass <|> pKeyValue))
       optional whitespace
       symbol '}'
-      return (a:as)
+      return $! (a:as)
 
 pRawAttribute :: Monad m => ParsecT [Tok] u m Format
 pRawAttribute = try $ do
@@ -236,7 +236,7 @@ pRawAttribute = try $ do
   Tok _ _ t <- satisfyWord (const True)
   optional whitespace
   symbol '}'
-  return $ Format t
+  return $! Format t
 
 pIdentifier :: Monad m => ParsecT [Tok] u m Attribute
 pIdentifier = try $ do
@@ -245,7 +245,7 @@ pIdentifier = try $ do
         satisfyWord (const True)
     <|> satisfyTok (\c -> hasType (Symbol '-') c || hasType (Symbol '_') c
                         || hasType (Symbol ':') c || hasType (Symbol '.') c)
-  return ("id", unEntity xs)
+  return $! ("id", unEntity xs)
 
 pClass :: Monad m => ParsecT [Tok] u m Attribute
 pClass = do
@@ -253,7 +253,7 @@ pClass = do
   xs <- many1 $
         satisfyWord (const True)
     <|> satisfyTok (\c -> hasType (Symbol '-') c || hasType (Symbol '_') c)
-  return ("class", unEntity xs)
+  return $! ("class", unEntity xs)
 
 pKeyValue :: Monad m => ParsecT [Tok] u m Attribute
 pKeyValue = do
@@ -267,5 +267,4 @@ pKeyValue = do
                Tok (Symbol '"') _ _:_:_  -> drop 1 $ init $ val
                Tok (Symbol '\'') _ _:_:_ -> mzero
                _ -> val
-  return (untokenize name, unEntity val')
-
+  return $! (untokenize name, unEntity val')

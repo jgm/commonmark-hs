@@ -100,7 +100,7 @@ instance (IsBlock b a, IsInline b, IsInline (WithSourceMap b), Semigroup a)
   referenceLinkDefinition k x = referenceLinkDefinition k x <$
                addName "referenceLinkDefinition"
   list lt ls items = (do xs <- sequence items
-                         return $ list lt ls xs) <* addName "list"
+                         return $! list lt ls xs) <* addName "list"
 
 instance (Rangeable a, Monoid a, Show a)
          => Rangeable (WithSourceMap a) where
@@ -124,7 +124,7 @@ instance (Rangeable a, Monoid a, Show a)
          let sm' = foldr addStart sm starts
          let sm'' = foldr addEnd sm' ends
          put (mempty, SourceMap sm'')
-         return res
+         return $! res
 
 instance ToPlainText a => ToPlainText (WithSourceMap a) where
   toPlainText (WithSourceMap x) =

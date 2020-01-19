@@ -119,7 +119,7 @@ processLine :: (Monad m, IsBlock il bl)
 processLine specs = do
   -- check block continuations for each node in stack
   st' <- getState
-  putState $! st'{ blockMatched = True
+  putState $  st'{ blockMatched = True
                  , maybeLazy = False
                  , maybeBlank = True
                  , failurePositions = M.empty }

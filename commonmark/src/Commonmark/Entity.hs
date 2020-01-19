@@ -14,12 +14,12 @@ where
 import Data.Char (chr)
 import Data.Functor.Identity (Identity)
 import qualified Data.Map as Map
-import Numeric (readHex)
 import Commonmark.Util
 import Commonmark.Tokens
 import Text.Parsec
 import qualified Data.Text as T
 import Data.Text (Text)
+import qualified Data.Text.Read as TR
 import Control.Monad (guard, mzero)
 import Data.Char (isDigit, isHexDigit)
 import Data.Maybe (isJust)
@@ -32,7 +32,7 @@ import Data.Semigroup (Semigroup(..))
 lookupEntity :: Text -> Maybe Text
 lookupEntity t =
   case T.uncons t of
-    Just ('#', t') -> T.pack <$> lookupNumericEntity (T.unpack t')
+    Just ('#', t') -> lookupNumericEntity t'
     _              -> lookupNamedEntity t
 
 
@@ -46,25 +46,24 @@ lookupEntity t =
 -- > lookupNumericEntity "Haskell" == Nothing
 -- > lookupNumericEntity "" == Nothing
 -- > lookupNumericEntity "89439085908539082" == Nothing
-lookupNumericEntity :: String -> Maybe String
+lookupNumericEntity :: Text -> Maybe Text
 lookupNumericEntity = f
         -- entity = '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
     where
-        f (x:xs) | x `elem` ['x','X']
-             = g readHex xs
-        f xs = g reads xs
+        f t = case T.uncons t of
+                Just ('x', t') -> g TR.hexadecimal t'
+                Just ('X', t') -> g TR.hexadecimal t'
+                _              -> g TR.decimal     t
 
-        g :: ReadS Integer -> String -> Maybe String
-        g reader xs = do
-            let test b = if b then Just () else Nothing
-            test $ not $ null xs
-            case reader xs of
-                [(a,rest)]
-                  | null rest || rest == ";" -> do
-                    if a < 1 || a > 0x10FFFF
-                       then return "\xFFFD"  -- illegal code point
-                       else return [chr $ fromInteger a]
-                _ -> Nothing
+        g :: TR.Reader Integer -> Text -> Maybe Text
+        g reader t =
+            case reader t of
+              Right (x,t')
+                | T.null t' || t' == ";" ->
+                  if x < 1 || x > 0x10FFFF
+                     then Just "\xFFFD" -- illegal code point
+                     else Just $ T.singleton $ chr $ fromInteger x
+              _  -> Nothing
 
 
 -- | Lookup a named entity, using 'htmlEntities'

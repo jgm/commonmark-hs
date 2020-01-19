@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE BangPatterns #-}
 module Commonmark.ReferenceMap
   ( ReferenceMap(..)
   , LinkInfo(..)
@@ -36,7 +37,7 @@ insertReference :: Typeable a
                 -> ReferenceMap
 insertReference label x (ReferenceMap m) =
   ReferenceMap (M.insertWith (\new old -> old ++ new)
-    (T.toCaseFold $ normalizeSpaces label) [toDyn x] m)
+    (T.toCaseFold $! normalizeSpaces label) [toDyn x] m)
 
 -- | Lookup a reference in a reference map.  If there are several
 -- values at this key, we return the first one in the list that
@@ -46,12 +47,12 @@ lookupReference :: Typeable a
                 -> ReferenceMap
                 -> Maybe a
 lookupReference label (ReferenceMap m) =
-  getFirst $ M.lookup (T.toCaseFold $ normalizeSpaces label) m
+  getFirst $! M.lookup (T.toCaseFold $! normalizeSpaces label) m
   where getFirst Nothing       = Nothing
         getFirst (Just [])     = Nothing
         getFirst (Just (x:xs)) = case fromDynamic x of
-                                      Just v  -> Just v
-                                      Nothing -> getFirst (Just xs)
+                                      Just !v  -> Just v
+                                      Nothing  -> getFirst (Just xs)
 
 normalizeSpaces :: Text -> Text
 normalizeSpaces = T.unwords . T.words

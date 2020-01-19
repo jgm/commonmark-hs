@@ -74,7 +74,7 @@ mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   let attrParser = choice attrParsers
   res <- parseChunks bracketedSpecs formattingSpecs ilParsers attrParser rm
          (dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks)
-  return $
+  return $!
     case res of
        Left err     -> Left err
        Right chunks ->
@@ -258,13 +258,13 @@ pLinkSuffix :: IsInline il
             => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
 pLinkSuffix rm key = do
   LinkInfo target title attrs <- pLink rm key
-  return $ addAttributes attrs . link target title
+  return $! addAttributes attrs . link target title
 
 pImageSuffix :: IsInline il
              => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
 pImageSuffix rm key = do
   LinkInfo target title attrs <- pLink rm key
-  return $ addAttributes attrs . image target title
+  return $! addAttributes attrs . image target title
 
 ---
 
@@ -297,7 +297,7 @@ pChunk specmap attrParser ilParsers =
  do pos <- getPosition
     (res, ts) <- withRaw (AddAttributes <$> attrParser)
                     <|> (\(x,ts) -> (Parsed x,ts)) <$> pInline ilParsers
-    return $ Chunk res pos ts
+    return $! Chunk res pos ts
   <|> pDelimChunk specmap
 
 pDelimTok :: Monad m => InlineParser m Tok
@@ -368,7 +368,7 @@ pDelimChunk specmap = do
                                T.map (\_ -> formattingWhenUnmatched spec)
                                   (tokContents t) }) toks
                     _ -> toks
-  return $ Chunk Delim{ delimType = c
+  return $! Chunk Delim{ delimType = c
                       , delimCanOpen = canOpen
                       , delimCanClose = canClose
                       , delimSpec = mbspec
@@ -413,7 +413,7 @@ pEscapedChar :: (IsInline a, Monad m) => InlineParser m a
 pEscapedChar = do
   symbol '\\'
   (do Tok (Symbol c) _ _ <- satisfyTok asciiSymbol
-      return $ escapedChar c)
+      return $! escapedChar c)
    <|>
    (lineBreak <$ lineEnd)
    <|>
@@ -439,15 +439,15 @@ pBacktickSpan = do
           guard $ length backticks == numticks
           updateState $ \st ->
             st{ backtickSpans = IntMap.insert numticks ps (backtickSpans st) }
-          return $ Right codetoks
-     _ -> return $ Left ts
+          return $! Right codetoks
+     _ -> return $! Left ts
 
 pCodeSpan :: (IsInline a, Monad m) => InlineParser m a
 pCodeSpan =
   pBacktickSpan >>=
   \case
-    Left ticks     -> return $ str (untokenize ticks)
-    Right codetoks -> return $ code . normalizeCodeSpan . untokenize
+    Left ticks     -> return $! str (untokenize ticks)
+    Right codetoks -> return $! code . normalizeCodeSpan . untokenize
                              $ codetoks
 
 normalizeCodeSpan :: Text -> Text
@@ -472,7 +472,7 @@ pAutolink = try $ do
   symbol '<'
   (target, lab) <- pUri <|> pEmail
   symbol '>'
-  return $ link target "" (str lab)
+  return $! link target "" (str lab)
 
 pUri :: Monad m => InlineParser m (Text, Text)
 pUri = try $ do
@@ -539,7 +539,7 @@ pSoftbreak = softBreak <$ satisfyTok (hasType LineEnd)
 pWords :: (IsInline a, Monad m) => InlineParser m a
 pWords = do
   t <- satisfyTok (hasType WordChars)
-  return $ str (tokContents t)
+  return $! str (tokContents t)
 
 {-
 getWord :: [Tok] -> [Tok]
@@ -877,7 +877,7 @@ pInlineLink = try $ do
   title <- option "" $
              unEntity <$> (pLinkTitle <* optional whitespace)
   _ <- symbol ')'
-  return $ LinkInfo { linkDestination = target
+  return $! LinkInfo { linkDestination = target
                     , linkTitle = title
                     , linkAttributes = mempty }
 
@@ -948,4 +948,4 @@ pReferenceLink rm key = do
   let key' = if T.null lab
                 then key
                 else lab
-  maybe mzero return $ lookupReference key' rm
+  maybe mzero return $! lookupReference key' rm

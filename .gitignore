@@ -1,6 +1,8 @@
 benchmark-*.html
 test/__pycache__/
 .stack-work/
+dist-newstyle/
+dist/
 *~
 log/
 *.prof

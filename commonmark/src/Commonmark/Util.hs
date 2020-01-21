@@ -78,17 +78,18 @@ gobble' requireAll numspaces
 
 -- | Applies a parser and returns its value (if successful)
 -- plus a list of the raw tokens parsed.
-withRaw :: (Monad m, Stream s m Char) => ParsecT s u m a -> ParsecT s u m (a, [Tok])
+withRaw :: (Monad m, Stream s m Char) => ParsecT s u m a -> ParsecT s u m (a, [Char])
 withRaw parser = do
-  toks <- getInput
+  pst <- getParserState
   res <- parser
   newpos <- getPosition
-  let rawtoks = takeWhile ((< newpos) . tokPos) toks
+  setParserState pst
+  toks <- many ((getPosition >>= guard (< newpos)) >> anyChar)
   return $! (res, rawtoks)
 {-# INLINEABLE withRaw #-}
 
 -- | Gobble up to 3 spaces (may be part of a tab).
-nonindentSpaces :: (Monad m, Stream s m Char) => ParsecT [Tok] u m ()
+nonindentSpaces :: (Monad m, Stream s m Char) => ParsecT [Char] u m ()
 nonindentSpaces = void $ gobbleUpToSpaces 3
 {-# INLINEABLE nonindentSpaces #-}
 

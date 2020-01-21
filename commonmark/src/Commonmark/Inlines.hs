@@ -71,9 +71,9 @@ mkInlineParser :: (Monad m, IsInline a)
 mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
   let attrParser = choice attrParsers
+  let toks' = dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks
   res <- parseChunks bracketedSpecs formattingSpecs ilParsers attrParser rm
-         (length toks `seq`
-          dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks)
+         (length toks' `seq` toks')
   return $!
     case res of
        Left err     -> Left err

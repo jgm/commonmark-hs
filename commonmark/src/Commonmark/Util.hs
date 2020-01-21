@@ -1,21 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
 module Commonmark.Util
-  ( satisfyTok
-  , satisfyWord
-  , anyTok
-  , anySymbol
+  ( anySymbol
   , symbol
   , whitespace
   , lineEnd
-  , spaceTok
-  , oneOfToks
-  , noneOfToks
   , gobbleSpaces
   , gobbleUpToSpaces
   , withRaw
-  , hasType
-  , textIs
   , blankLine
   , restOfLine
   , isOneOfCI
@@ -29,23 +21,6 @@ import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Text.Parsec
 import           Text.Parsec.Pos (updatePosString)
-import           Commonmark.Tokens
-
--- | Parses a single 'Tok' satisfying a predicate.
-satisfyTok :: Monad m => (Tok -> Bool) -> ParsecT [Tok] s m Tok
-satisfyTok f = tokenPrim (T.unpack . tokContents) updatePos matcher
-  where matcher t | f t       = Just t
-                  | otherwise = Nothing
-        updatePos :: SourcePos -> Tok -> [Tok] -> SourcePos
-        updatePos _spos _ (Tok _ !pos _ : _) = pos
-        updatePos !spos (Tok _ _pos !t) []    =
-          updatePosString spos (T.unpack t)
-{-# INLINEABLE satisfyTok #-}
-
--- | Parses any 'Tok'.
-anyTok :: Monad m => ParsecT [Tok] s m Tok
-anyTok = satisfyTok (const True)
-{-# INLINEABLE anyTok #-}
 
 -- | Parses any 'Symbol' 'Tok'.
 anySymbol :: Monad m => ParsecT [Tok] s m Tok
@@ -59,16 +34,6 @@ symbol ::  Monad m => Char -> ParsecT [Tok] s m Tok
 symbol c = satisfyTok (hasType (Symbol c))
 {-# INLINEABLE symbol #-}
 
--- | Parses a 'Tok' with one of the listed types.
-oneOfToks ::  Monad m => [TokType] -> ParsecT [Tok] s m Tok
-oneOfToks toktypes = satisfyTok (hasTypeIn toktypes)
-{-# INLINEABLE oneOfToks #-}
-
--- | Parses a 'Tok' with none of the listed types.
-noneOfToks ::  Monad m => [TokType] -> ParsecT [Tok] s m Tok
-noneOfToks toktypes = satisfyTok (not . hasTypeIn toktypes)
-{-# INLINEABLE noneOfToks #-}
-
 -- | Parses one or more whitespace 'Tok's.
 whitespace ::  Monad m => ParsecT [Tok] s m [Tok]
 whitespace = many1 $ satisfyTok (\t -> case tokType t of
@@ -81,16 +46,6 @@ whitespace = many1 $ satisfyTok (\t -> case tokType t of
 lineEnd ::  Monad m => ParsecT [Tok] s m Tok
 lineEnd = satisfyTok (hasType LineEnd)
 {-# INLINEABLE lineEnd #-}
-
--- | Parses a 'Spaces' token.
-spaceTok :: Monad m => ParsecT [Tok] s m Tok
-spaceTok = satisfyTok (hasType Spaces)
-{-# INLINEABLE spaceTok #-}
-
--- | Parses a 'WordChars' token matching a predicate.
-satisfyWord ::  Monad m => (Text -> Bool) -> ParsecT [Tok] s m Tok
-satisfyWord f = satisfyTok (\t -> hasType WordChars t && textIs f t)
-{-# INLINEABLE satisfyWord #-}
 
 -- | Parses exactly @n@ spaces. If tabs are encountered,
 -- they are split into spaces before being consumed; so
@@ -136,19 +91,6 @@ withRaw parser = do
   let rawtoks = takeWhile ((< newpos) . tokPos) toks
   return $! (res, rawtoks)
 {-# INLINEABLE withRaw #-}
-
--- | Filters tokens of a certain type.
-hasType :: TokType -> Tok -> Bool
-hasType ty (Tok ty' _ _) = ty == ty'
-{-# INLINEABLE hasType #-}
-
-hasTypeIn :: [TokType] -> Tok -> Bool
-hasTypeIn tys (Tok ty' _ _) = ty' `elem` tys
-
--- | Filters tokens with certain contents.
-textIs :: (Text -> Bool) -> Tok -> Bool
-textIs f (Tok _ _ t) = f t
-{-# INLINEABLE textIs #-}
 
 -- | Gobble up to 3 spaces (may be part of a tab).
 nonindentSpaces :: Monad m => ParsecT [Tok] u m ()

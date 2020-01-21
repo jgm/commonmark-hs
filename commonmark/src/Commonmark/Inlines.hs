@@ -88,11 +88,11 @@ defaultInlineParsers =
                 [ pWords
                 , pSpaces
                 , pSoftbreak
+                , pCodeSpan
                 , pEscapedChar
                 , pEntity
-                , pCodeSpan
-                , pHtml
                 , pAutolink
+                , pHtml
                 ]
 
 unChunks :: IsInline a => [Chunk a] -> a

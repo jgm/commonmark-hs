@@ -2,7 +2,6 @@
 {-# LANGUAGE BangPatterns #-}
 module Commonmark.Util
   ( anySymbol
-  , symbol
   , whitespace
   , lineEnd
   , gobbleSpaces
@@ -23,45 +22,41 @@ import           Text.Parsec
 import           Text.Parsec.Pos (updatePosString)
 
 -- | Parses any 'Symbol' 'Tok'.
-anySymbol :: Monad m => ParsecT [Tok] s m Tok
-anySymbol = satisfyTok (\t -> case tokType t of
-                                    Symbol _ -> True
-                                    _        -> False)
+anySymbol :: (Monad m, Stream s m Char) => ParsecT s u m Tok
+anySymbol = satisfy (\c -> isSymbol c || isPunctuation c)
 {-# INLINEABLE anySymbol #-}
 
--- | Parses a 'Symbol' with character @c@.
-symbol ::  Monad m => Char -> ParsecT [Tok] s m Tok
-symbol c = satisfyTok (hasType (Symbol c))
-{-# INLINEABLE symbol #-}
-
 -- | Parses one or more whitespace 'Tok's.
-whitespace ::  Monad m => ParsecT [Tok] s m [Tok]
-whitespace = many1 $ satisfyTok (\t -> case tokType t of
-                                         Spaces  -> True
-                                         LineEnd -> True
-                                         _       -> False)
+whitespace ::  (Monad m, Stream s m Char) => ParsecT s u m [Char]
+whitespace = many1 $ satisfy isWhitespaceChar
+  where
+   isWhitespaceChar '\t' = True
+   isWhitespaceChar ' '  = True
+   isWhitespaceChar '\r' = True
+   isWhitespaceChar '\n' = True
+   isWhitespaceChar _    = False
 {-# INLINEABLE whitespace #-}
 
 -- | Parses a 'LineEnd' token.
-lineEnd ::  Monad m => ParsecT [Tok] s m Tok
-lineEnd = satisfyTok (hasType LineEnd)
+lineEnd ::  (Monad m, Stream s m Char) => ParsecT s u m Char
+lineEnd = char '\n' <|> (char '\r' *> optional (char '\n'))
 {-# INLINEABLE lineEnd #-}
 
 -- | Parses exactly @n@ spaces. If tabs are encountered,
 -- they are split into spaces before being consumed; so
 -- a tab may be partially consumed by this parser.
-gobbleSpaces :: Monad m => Int -> ParsecT [Tok] u m Int
+gobbleSpaces :: (Monad m, Stream s m Char) => Int -> ParsecT s u m Int
 gobbleSpaces 0 = return 0
 gobbleSpaces n = try $ gobble' True n
 {-# INLINEABLE gobbleSpaces #-}
 
 -- | Parses up to @n@ spaces.
-gobbleUpToSpaces :: Monad m => Int -> ParsecT [Tok] u m Int
+gobbleUpToSpaces :: (Monad m, Stream s m Char) => Int -> ParsecT s u m Int
 gobbleUpToSpaces 0 = return 0
 gobbleUpToSpaces n = gobble' False n
 {-# INLINEABLE gobbleUpToSpaces #-}
 
-gobble' :: Monad m => Bool -> Int -> ParsecT [Tok] u m Int
+gobble' :: (Monad m, Stream s m Char) => Bool -> Int -> ParsecT s u m Int
 gobble' requireAll numspaces
   | numspaces >= 1 = (do
     Tok Spaces pos _ <- satisfyTok (hasType Spaces)
@@ -83,7 +78,7 @@ gobble' requireAll numspaces
 
 -- | Applies a parser and returns its value (if successful)
 -- plus a list of the raw tokens parsed.
-withRaw :: Monad m => ParsecT [Tok] s m a -> ParsecT [Tok] s m (a, [Tok])
+withRaw :: (Monad m, Stream s m Char) => ParsecT s u m a -> ParsecT s u m (a, [Tok])
 withRaw parser = do
   toks <- getInput
   res <- parser
@@ -93,7 +88,7 @@ withRaw parser = do
 {-# INLINEABLE withRaw #-}
 
 -- | Gobble up to 3 spaces (may be part of a tab).
-nonindentSpaces :: Monad m => ParsecT [Tok] u m ()
+nonindentSpaces :: (Monad m, Stream s m Char) => ParsecT [Tok] u m ()
 nonindentSpaces = void $ gobbleUpToSpaces 3
 {-# INLINEABLE nonindentSpaces #-}
 
@@ -109,12 +104,12 @@ skipManyTill p stop = scan
 {-# INLINEABLE skipManyTill #-}
 
 -- | Efficiently skip 'Tok's satisfying a certain condition.
-skipWhile :: Monad m => (Tok -> Bool) -> ParsecT [Tok] u m ()
+skipWhile :: (Monad m, Stream s m Char) => (Tok -> Bool) -> ParsecT [Tok] u m ()
 skipWhile f = skipMany (satisfyTok f)
 {-# INLINEABLE skipWhile #-}
 
 -- | Parse optional spaces and an endline.
-blankLine :: Monad m => ParsecT [Tok] s m ()
+blankLine :: (Monad m, Stream s m Char) => ParsecT s u m ()
 blankLine = try $ do
   skipWhile (hasType Spaces)
   void lineEnd
@@ -123,7 +118,7 @@ blankLine = try $ do
 -- | Efficiently parse the remaining tokens on a line,
 -- return them plus the source position of the line end
 -- (if there is one).
-restOfLine :: Monad m => ParsecT [Tok] s m ([Tok], SourcePos)
+restOfLine :: (Monad m, Stream s m Char) => ParsecT s u m ([Tok], SourcePos)
 restOfLine = do
   toks <- getInput
   case break (hasType LineEnd) toks of

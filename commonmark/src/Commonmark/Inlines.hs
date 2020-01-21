@@ -132,18 +132,22 @@ parseChunks _ _ _ _ _ []             = return (Right [])
 parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
   runParserT (setPosition (tokPos t) >>
     many (pChunk specmap attrParser ilParsers) <* eof)
-          IPState{ afterPunct = initialPos "",
-                   afterSpace = tokPos t,
-                   backtickSpans = getBacktickSpans (t:ts),
+          IPState{ backtickSpans = getBacktickSpans (t:ts),
                    userState = undefined,
                    formattingDelimChars = Set.fromList $
                      '[' : ']' : suffixchars ++ prefixchars
                                   ++ M.keys specmap,
-                   ipReferenceMap = rm }
+                   ipReferenceMap = rm,
+                   precedingTokTypes = precedingTokTypeMap
+                 }
           "source" (t:ts)
   where specmap = mkFormattingSpecMap specs
         prefixchars = mapMaybe bracketedPrefix bspecs
         suffixchars = mapMaybe bracketedSuffixEnd bspecs
+        precedingTokTypeMap = M.fromList $
+          (tokPos $! t, Spaces) :
+          zipWith (\x y -> (tokPos $! x, tokType $! y))
+            (length ts `seq` ts) (t:ts)
 
 data Chunk a = Chunk
      { chunkType :: ChunkType a
@@ -163,14 +167,13 @@ data ChunkType a =
      deriving Show
 
 data IPState = IPState
-     { afterPunct           :: SourcePos -- pos of next token after punctuation
-     , afterSpace           :: SourcePos  -- pos of next token after space
-     , backtickSpans        :: IntMap.IntMap [SourcePos]
+     { backtickSpans        :: IntMap.IntMap [SourcePos]
                                -- record of lengths of
                                -- backtick spans so we don't scan in vain
      , userState            :: Dynamic
      , formattingDelimChars :: Set.Set Char
      , ipReferenceMap       :: ReferenceMap
+     , precedingTokTypes    :: M.Map SourcePos TokType
      } deriving Show
 
 type InlineParser m = ParsecT [Tok] IPState m
@@ -296,7 +299,7 @@ pChunk :: (IsInline a, Monad m)
 pChunk specmap attrParser ilParsers =
  do pos <- getPosition
     (res, ts) <- withRaw (AddAttributes <$> attrParser)
-                    <|> (\(x,ts) -> (Parsed x,ts)) <$> pInline ilParsers
+                    <|> (\(x,ts) -> (Parsed x,ts)) <$> pInline ilParsers attrParser
     return $! Chunk res pos ts
   <|> pDelimChunk specmap
 
@@ -324,14 +327,20 @@ pDelimChunk specmap = do
              then many $ symbol c
              else return []
   let toks = tok:more
-  newpos <- getPosition
   st <- getState
   next <- option LineEnd (tokType <$> lookAhead anyTok)
-  let precededByWhitespace = afterSpace st == pos
+  let precedingTokType = M.lookup pos (precedingTokTypes st)
+  let precededByWhitespace = case precedingTokType of
+                               Just Spaces        -> True
+                               Just UnicodeSpace  -> True
+                               Just LineEnd       -> True
+                               _                  -> False
   let precededByPunctuation =
        case formattingIgnorePunctuation <$> mbspec of
          Just True -> False
-         _         -> afterPunct st == pos
+         _         -> case precedingTokType of
+                        Just (Symbol _) -> True
+                        _               -> False
   let followedByWhitespace = next == Spaces ||
                              next == LineEnd ||
                              next == UnicodeSpace
@@ -357,7 +366,6 @@ pDelimChunk specmap = do
           (maybe True formattingIntraWord mbspec ||
            not leftFlanking ||
            followedByPunctuation)
-  updateState $ \s -> s{ afterPunct = newpos }
   let toks' = case mbspec of
                     Nothing -> toks
                     -- change tokens to unmatched fallback
@@ -377,23 +385,11 @@ pDelimChunk specmap = do
 
 pInline :: (IsInline a, Monad m)
         => [InlineParser m a]
+        -> InlineParser m Attributes
         -> InlineParser m (a, [Tok])
-pInline ilParsers = do
-  (res, toks) <- withRaw $ choice ilParsers <|> pSymbol
-  case tokType (last toks) of
-       Spaces       -> do
-         newpos <- getPosition
-         updateState $ \st -> st{ afterSpace = newpos }
-       UnicodeSpace -> do
-         newpos <- getPosition
-         updateState $ \st -> st{ afterSpace = newpos }
-       LineEnd      -> do
-         newpos <- getPosition
-         updateState $ \st -> st{ afterSpace = newpos }
-       Symbol _     -> do
-         newpos <- getPosition
-         updateState $ \st -> st{ afterPunct = newpos }
-       _            -> return ()
+pInline ilParsers attrParser = do
+  (res, toks) <- withRaw $ mconcat <$> many1 (do x <- choice ilParsers <|> pSymbol
+                                                 option x $ (\attr -> addAttributes attr x) <$> attrParser)
   return (ranged (rangeFromToks toks) res, toks)
 
 rangeFromToks :: [Tok] -> SourceRange

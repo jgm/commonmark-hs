@@ -113,13 +113,13 @@ gobble' requireAll numspaces
     pos' <- getPosition
     case sourceColumn pos' - sourceColumn pos of
          n | n < numspaces  -> (+ n) <$> gobble' requireAll (numspaces - n)
-           | n == numspaces -> return n
+           | n == numspaces -> return $! n
            | otherwise      -> do
                let newtok = Tok Spaces
                       (incSourceColumn pos numspaces)
                       (T.replicate (n - numspaces) " ")
                getInput >>= setInput . (newtok:)
-               return numspaces)
+               return $! numspaces)
     <|> if requireAll
            then mzero
            else return 0
@@ -134,7 +134,7 @@ withRaw parser = do
   res <- parser
   newpos <- getPosition
   let rawtoks = takeWhile ((< newpos) . tokPos) toks
-  return (res, rawtoks)
+  return $! (res, rawtoks)
 {-# INLINEABLE withRaw #-}
 
 -- | Filters tokens of a certain type.
@@ -188,7 +188,7 @@ restOfLine = do
     (_,[]) -> do
       ts <- many1 anyTok
       pos <- getPosition
-      return (ts, pos)
+      return $! (ts, pos)
     (ts,le@(Tok _ pos _):rest) -> do
       setInput (le:rest)
       lineEnd -- gobble le, so parsec doesn't think nothing consumed

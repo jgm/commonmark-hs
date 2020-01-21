@@ -18,8 +18,7 @@ module Commonmark.Util
 import           Control.Monad   (mzero, void)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
-import           Text.Parsec
-import           Text.Parsec.Pos (updatePosString)
+import           Text.Megaparsec
 
 -- | Parses any 'Symbol' 'Tok'.
 anySymbol :: (Monad m, Stream s m Char) => ParsecT s u m Tok

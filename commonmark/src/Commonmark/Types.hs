@@ -27,8 +27,8 @@ import           Data.Data            (Data)
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 import           Data.Typeable        (Typeable)
-import           Text.Parsec.Pos      (SourcePos, sourceColumn, sourceLine,
-                                       sourceName)
+import           Text.Megaparsec.Pos  (SourcePos (sourceColumn, sourceLine,
+                                       sourceName))
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Semigroup       (Semigroup, (<>))
 #endif

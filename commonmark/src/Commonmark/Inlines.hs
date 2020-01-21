@@ -45,7 +45,6 @@ import           Commonmark.Types
 import           Control.Monad              (guard, mzero)
 import           Data.Char                  (isAscii, isLetter)
 import           Data.Dynamic               (Dynamic)
-import           Data.List                  (foldl')
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map                   as M
 import           Data.Maybe                 (isJust, mapMaybe)
@@ -97,7 +96,7 @@ defaultInlineParsers =
                 ]
 
 unChunks :: IsInline a => [Chunk a] -> a
-unChunks = foldl' mappend mempty . go
+unChunks = mconcat . go
     where
       go []     = []
       go (c:cs) =

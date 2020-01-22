@@ -43,6 +43,7 @@ import           Commonmark.Util
 import           Commonmark.ReferenceMap
 import           Commonmark.Types
 import           Control.Monad              (guard, mzero)
+import           Data.List                  (foldl')
 import           Data.Char                  (isAscii, isLetter)
 import           Data.Dynamic               (Dynamic)
 import qualified Data.IntMap.Strict         as IntMap
@@ -145,17 +146,13 @@ parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
    specmap = mkFormattingSpecMap specs
    prefixchars = mapMaybe bracketedPrefix bspecs
    suffixchars = mapMaybe bracketedSuffixEnd bspecs
-   precedingTokTypeMap = go (t:ts) m'
-   m' = case tokType $! t of
-          Symbol c
-            | c `Set.member` delimcharset
-             -> M.insert (tokPos $! t) LineEnd mempty
-          _  -> mempty
-   go [] m = m
-   go (Tok !ty1 _ _ : rest@(Tok (Symbol c) !pos2 _ : _)) m
-     | c `Set.member` delimcharset
-     = go rest (M.insert pos2 ty1 m)
-   go (_ : rest) m = go rest m
+   precedingTokTypeMap = fst $! foldl' go  (mempty, LineEnd) (t:ts)
+   go (!m, !prevTy) (Tok !ty !pos _) =
+     case ty of
+       Symbol c
+         | c `Set.member` delimcharset ->
+           (M.insert pos prevTy m, ty)
+       _ -> (m, ty)
 
 data Chunk a = Chunk
      { chunkType :: ChunkType a

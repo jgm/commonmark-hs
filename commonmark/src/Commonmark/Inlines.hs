@@ -144,10 +144,14 @@ parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
   where specmap = mkFormattingSpecMap specs
         prefixchars = mapMaybe bracketedPrefix bspecs
         suffixchars = mapMaybe bracketedSuffixEnd bspecs
-        precedingTokTypeMap = M.fromList $
-          (tokPos $! t, Spaces) :
-          zipWith (\x y -> (tokPos $! x, tokType $! y))
-            (length ts `seq` ts) (t:ts)
+        precedingTokTypeMap = go (length ts `seq` (t:ts)) m'
+        m' = case tokType $! t of
+               Symbol _ -> M.insert (tokPos $! t) LineEnd mempty
+               _        -> mempty
+        go [] m = m
+        go (Tok !ty1 _ _ : rest@(Tok (Symbol _) !pos2 _ : _)) m
+          = go rest (M.insert pos2 ty1 m)
+        go (_ : rest) m = go rest m
 
 data Chunk a = Chunk
      { chunkType :: ChunkType a

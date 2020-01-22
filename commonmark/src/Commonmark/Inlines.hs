@@ -72,8 +72,7 @@ mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
   let attrParser = choice attrParsers
   let toks' = dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks
-  res <- parseChunks bracketedSpecs formattingSpecs ilParsers attrParser rm
-         (length toks' `seq` toks')
+  res <- parseChunks bracketedSpecs formattingSpecs ilParsers attrParser rm toks'
   return $!
     case res of
        Left err     -> Left err
@@ -134,26 +133,27 @@ parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
     many (pChunk specmap attrParser ilParsers) <* eof)
           IPState{ backtickSpans = getBacktickSpans (t:ts),
                    userState = undefined,
-                   formattingDelimChars = delimchars,
+                   formattingDelimChars = delimcharset,
                    ipReferenceMap = rm,
                    precedingTokTypes = precedingTokTypeMap
                  }
           "source" (t:ts)
   where
-   delimchars = Set.fromList $ '[' : ']' : suffixchars ++
+   delimcharset = Set.fromList delimchars
+   delimchars = '[' : ']' : suffixchars ++
                   prefixchars ++ M.keys specmap
    specmap = mkFormattingSpecMap specs
    prefixchars = mapMaybe bracketedPrefix bspecs
    suffixchars = mapMaybe bracketedSuffixEnd bspecs
-   precedingTokTypeMap = go (length ts `seq` (t:ts)) m'
+   precedingTokTypeMap = go (t:ts) m'
    m' = case tokType $! t of
           Symbol c
-            | c `Set.member` delimchars
+            | c `Set.member` delimcharset
              -> M.insert (tokPos $! t) LineEnd mempty
           _  -> mempty
    go [] m = m
    go (Tok !ty1 _ _ : rest@(Tok (Symbol c) !pos2 _ : _)) m
-     | c `Set.member` delimchars
+     | c `Set.member` delimcharset
      = go rest (M.insert pos2 ty1 m)
    go (_ : rest) m = go rest m
 

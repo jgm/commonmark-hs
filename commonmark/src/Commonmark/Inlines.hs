@@ -134,24 +134,28 @@ parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
     many (pChunk specmap attrParser ilParsers) <* eof)
           IPState{ backtickSpans = getBacktickSpans (t:ts),
                    userState = undefined,
-                   formattingDelimChars = Set.fromList $
-                     '[' : ']' : suffixchars ++ prefixchars
-                                  ++ M.keys specmap,
+                   formattingDelimChars = delimchars,
                    ipReferenceMap = rm,
                    precedingTokTypes = precedingTokTypeMap
                  }
           "source" (t:ts)
-  where specmap = mkFormattingSpecMap specs
-        prefixchars = mapMaybe bracketedPrefix bspecs
-        suffixchars = mapMaybe bracketedSuffixEnd bspecs
-        precedingTokTypeMap = go (length ts `seq` (t:ts)) m'
-        m' = case tokType $! t of
-               Symbol _ -> M.insert (tokPos $! t) LineEnd mempty
-               _        -> mempty
-        go [] m = m
-        go (Tok !ty1 _ _ : rest@(Tok (Symbol _) !pos2 _ : _)) m
-          = go rest (M.insert pos2 ty1 m)
-        go (_ : rest) m = go rest m
+  where
+   delimchars = Set.fromList $ '[' : ']' : suffixchars ++
+                  prefixchars ++ M.keys specmap
+   specmap = mkFormattingSpecMap specs
+   prefixchars = mapMaybe bracketedPrefix bspecs
+   suffixchars = mapMaybe bracketedSuffixEnd bspecs
+   precedingTokTypeMap = go (length ts `seq` (t:ts)) m'
+   m' = case tokType $! t of
+          Symbol c
+            | c `Set.member` delimchars
+             -> M.insert (tokPos $! t) LineEnd mempty
+          _  -> mempty
+   go [] m = m
+   go (Tok !ty1 _ _ : rest@(Tok (Symbol c) !pos2 _ : _)) m
+     | c `Set.member` delimchars
+     = go rest (M.insert pos2 ty1 m)
+   go (_ : rest) m = go rest m
 
 data Chunk a = Chunk
      { chunkType :: ChunkType a

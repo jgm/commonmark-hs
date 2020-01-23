@@ -192,5 +192,5 @@ restOfLine = do
     (ts,le@(Tok _ pos _):rest) -> do
       setInput (le:rest)
       lineEnd -- gobble le, so parsec doesn't think nothing consumed
-      return (ts ++ [le], pos)
+      return $! (ts ++ [le], pos)
 {-# INLINEABLE restOfLine #-}

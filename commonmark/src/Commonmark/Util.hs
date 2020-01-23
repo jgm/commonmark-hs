@@ -22,6 +22,7 @@ module Commonmark.Util
   , nonindentSpaces
   , skipManyTill
   , skipWhile
+  , tokensWhile1
   )
   where
 import           Control.Monad   (mzero, void)
@@ -178,19 +179,31 @@ blankLine = try $ do
   void lineEnd
 {-# INLINEABLE blankLine #-}
 
+-- | Efficiently parse one or more tokens meeting a
+-- condition.
+tokensWhile1 :: Monad m => (Tok -> Bool) -> ParsecT [Tok] s m [Tok]
+tokensWhile1 f = do
+  t <- satisfyTok f
+  toks <- getInput
+  case span f toks of
+    (ts, rest@(Tok _ pos _ : _)) -> do
+      setInput rest
+      setPosition pos
+      return $! (t:ts)
+    (ts, []) -> do
+      skipWhile f
+      return $! (t:ts)
+
 -- | Efficiently parse the remaining tokens on a line,
 -- return them plus the source position of the line end
 -- (if there is one).
 restOfLine :: Monad m => ParsecT [Tok] s m ([Tok], SourcePos)
-restOfLine = do
-  toks <- getInput
-  case break (hasType LineEnd) toks of
-    (_,[]) -> do
-      ts <- many1 anyTok
-      pos <- getPosition
-      return $! (ts, pos)
-    (ts,le@(Tok _ pos _):rest) -> do
-      setInput (le:rest)
-      lineEnd -- gobble le, so parsec doesn't think nothing consumed
-      return $! (ts ++ [le], pos)
+restOfLine =
+   (do ts <- tokensWhile1 (not . hasType LineEnd)
+       pos <- getPosition
+       le <- option [] $ (:[]) <$> lineEnd
+       return $! (ts ++ le, pos))
+  <|>
+   (do le@(Tok _ pos _) <- lineEnd
+       return $! ([le], pos))
 {-# INLINEABLE restOfLine #-}

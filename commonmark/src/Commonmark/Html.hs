@@ -209,7 +209,7 @@ escapeHtml :: Text -> Builder
 escapeHtml t =
   case T.uncons post of
     Just (c, rest) -> fromText pre <> escapeHtmlChar c <> escapeHtml rest
-    Nothing -> fromText t
+    Nothing        -> fromText pre
  where
   (pre,post)        = T.break needsEscaping t
   needsEscaping '<' = True

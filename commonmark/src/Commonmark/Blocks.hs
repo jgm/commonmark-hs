@@ -82,7 +82,7 @@ mkBlockParser :: (Monad m, IsBlock il bl)
              -> [Tok] -- ^ Tokenized commonmark input
              -> m (Either ParseError bl)  -- ^ Result or error
 mkBlockParser _ _ _ _ [] = return $! Right mempty
-mkBlockParser specs finalParsers ilParser attributeParsers (t:ts) =
+mkBlockParser specs finalParsers ilParser attrParsers (t:ts) =
   runParserT (setPosition (tokPos t) >> processLines specs finalParsers)
           BPState{ referenceMap     = emptyReferenceMap
                  , inlineParser     = ilParser
@@ -92,7 +92,7 @@ mkBlockParser specs finalParsers ilParser attributeParsers (t:ts) =
                  , maybeBlank       = True
                  , counters         = M.empty
                  , failurePositions = M.empty
-                 , parseAttributes  = choice attributeParsers
+                 , attributeParsers = attrParsers
                  , nextAttributes   = mempty
                  }
           "source" (length ts `seq` (t:ts))
@@ -371,7 +371,7 @@ data BPState m il bl = BPState
      , counters         :: M.Map Text Dynamic
      , failurePositions :: M.Map Text SourcePos  -- record known positions
                            -- where parsers fail to avoid repetition
-     , parseAttributes  :: ParsecT [Tok] (BPState m il bl) m Attributes
+     , attributeParsers :: [ParsecT [Tok] (BPState m il bl) m Attributes]
      , nextAttributes   :: Attributes
      }
 
@@ -491,7 +491,7 @@ extractReferenceLinks :: (Monad m, IsBlock il bl)
 extractReferenceLinks node = do
   st <- getState
   res <- lift $ runParserT ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
-                        many1 (linkReferenceDef (parseAttributes st)))
+                        many1 (linkReferenceDef (choice $ attributeParsers st)))
                   <*> getInput) st "" (getBlockText removeIndent node)
   case res of
         Left _ -> return $! (Just node, Nothing)
@@ -529,10 +529,12 @@ attributeSpec :: (Monad m, IsBlock il bl)
 attributeSpec = BlockSpec
      { blockType           = "Attribute"
      , blockStart          = do
+         attrParsers <- attributeParsers <$> getState
+         guard $ not (null attrParsers)
          interruptsParagraph >>= guard . not
+         nonindentSpaces
          pos <- getPosition
-         pAttr <- parseAttributes <$> getState
-         attrs <- pAttr
+         attrs <- choice attrParsers
          skipWhile (hasType Spaces)
          lookAhead (void lineEnd <|> eof)
          addNodeToStack $
@@ -544,9 +546,11 @@ attributeSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = \n -> do
+         attrParsers <- attributeParsers <$> getState
+         guard $ not (null attrParsers)
+         nonindentSpaces
          pos <- getPosition
-         pAttr <- parseAttributes <$> getState
-         attrs <- pAttr
+         attrs <- choice attrParsers
          skipWhile (hasType Spaces)
          lookAhead (void lineEnd <|> eof)
          let oldattrs = fromDyn (blockData (rootLabel n)) mempty :: Attributes
@@ -737,11 +741,11 @@ setextHeadingSpec = BlockSpec
 parseFinalAttributes :: Monad m
                      => Bool -> [Tok] -> BlockParser m il bl ([Tok], Attributes)
 parseFinalAttributes requireWhitespace ts = do
-  pAttr <- parseAttributes <$> getState
+  attrParsers <- attributeParsers <$> getState
   let pAttr' = try $ (if requireWhitespace
                          then () <$ whitespace
                          else optional whitespace)
-                     *> pAttr <* optional whitespace <* eof
+                     *> choice attrParsers <* optional whitespace <* eof
   st <- getState
   res <- lift $ runParserT
        ((,) <$> many (notFollowedBy pAttr' >> anyTok)

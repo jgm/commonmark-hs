@@ -1,6 +1,5 @@
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE IncoherentInstances   #-}
-{-# LANGUAGE TypeSynonymInstances  #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}

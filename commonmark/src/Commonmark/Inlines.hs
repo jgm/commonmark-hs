@@ -417,7 +417,9 @@ rangeFromToks = SourceRange . go
                 [(tokPos x,
                   incSourceColumn (tokPos y) (T.length (tokContents y)))]
              (x:_, y:ys) ->
-                (tokPos x, tokPos y) : go ys
+               case ys of
+                 (Tok _ pos _ : _) | sourceColumn pos == 1 -> go (x:ys)
+                 _ -> (tokPos x, tokPos y) : go ys
 
 pEscapedChar :: (IsInline a, Monad m) => InlineParser m a
 pEscapedChar = do

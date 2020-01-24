@@ -49,9 +49,11 @@ instance Show (Html a) where
   show = TL.unpack . renderHtml
 
 instance Semigroup (Html a) where
-  x <> HtmlNull = x
-  HtmlNull <> x = x
-  x <> y        = HtmlConcat x y
+  x <> HtmlNull                = x
+  HtmlNull <> x                = x
+  HtmlText t1 <> HtmlText t2   = HtmlText (t1 <> t2)
+  HtmlRaw t1 <> HtmlRaw t2     = HtmlRaw (t1 <> t2)
+  x <> y                       = HtmlConcat x y
 
 instance Monoid (Html a) where
   mempty = HtmlNull
@@ -174,6 +176,8 @@ htmlRaw = HtmlRaw
 addAttribute :: Attribute -> Html a -> Html a
 addAttribute attr (HtmlElement eltType tagname attrs mbcontents) =
   HtmlElement eltType tagname (incorporateAttribute attr attrs) mbcontents
+addAttribute attr (HtmlText t) =
+  HtmlElement InlineElement "span" [attr] $ Just (HtmlText t)
 addAttribute _ elt = elt
 
 incorporateAttribute :: Attribute -> [Attribute] -> [Attribute]

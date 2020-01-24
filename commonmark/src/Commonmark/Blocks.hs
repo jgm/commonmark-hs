@@ -405,7 +405,12 @@ addRange :: (Monad m, IsBlock il bl)
          => BlockNode m il bl -> bl -> bl
 addRange (Node b _)
  = ranged (SourceRange
-            (reverse $ zip (blockStartPos b) (blockEndPos b)))
+            (go . reverse $ zip (blockStartPos b) (blockEndPos b)))
+   where
+     go [] = []
+     go ((!startpos1, _):(!startpos2, !endpos2):rest)
+       | sourceColumn startpos2 == 1 = go ((startpos1, endpos2):rest)
+     go (!x:xs) = x : go xs
 
 -- Add a new node to the block stack.  If current tip can contain
 -- it, add it there; otherwise, close the tip and repeat til we get

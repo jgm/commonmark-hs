@@ -15,7 +15,6 @@ module Commonmark.Html
   , renderHtml
   , escapeURI
   , escapeHtml
-  , escapeHtmlChar
   )
 where
 
@@ -24,7 +23,8 @@ import           Commonmark.Entity (lookupEntity)
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
-import           Data.Text.Lazy.Builder (Builder, fromText, toLazyText)
+import           Data.Text.Lazy.Builder (Builder, fromText, toLazyText,
+                                         singleton)
 import           Data.Text.Encoding   (encodeUtf8)
 import qualified Data.ByteString.Char8 as B
 import           Text.Printf          (printf)
@@ -192,11 +192,11 @@ toBuilder :: Html a -> Builder
 toBuilder (HtmlNull) = mempty
 toBuilder (HtmlConcat x y) = toBuilder x <> toBuilder y
 toBuilder (HtmlRaw t) = fromText t
-toBuilder (HtmlText t) = fromText (escapeHtml t)
+toBuilder (HtmlText t) = escapeHtml t
 toBuilder (HtmlElement eltType tagname attrs mbcontents) =
   "<" <> fromText tagname <> mconcat (map toAttr attrs) <> filling <> nl'
   where
-    toAttr (x,y) = " " <> fromText x <> "=\"" <> fromText (escapeHtml y) <> "\""
+    toAttr (x,y) = " " <> fromText x <> "=\"" <> escapeHtml y <> "\""
     nl' = case eltType of
            BlockElement -> "\n"
            _            -> mempty
@@ -205,11 +205,11 @@ toBuilder (HtmlElement eltType tagname attrs mbcontents) =
                  Just cont -> ">" <> toBuilder cont <> "</" <>
                               fromText tagname <> ">"
 
-escapeHtml :: Text -> Text
+escapeHtml :: Text -> Builder
 escapeHtml t =
   case T.uncons post of
-    Just (c, rest) -> pre <> escapeHtmlChar c <> escapeHtml rest
-    Nothing -> t
+    Just (c, rest) -> fromText pre <> escapeHtmlChar c <> escapeHtml rest
+    Nothing -> fromText t
  where
   (pre,post)        = T.break needsEscaping t
   needsEscaping '<' = True
@@ -218,12 +218,12 @@ escapeHtml t =
   needsEscaping '"' = True
   needsEscaping _   = False
 
-escapeHtmlChar :: Char -> Text
+escapeHtmlChar :: Char -> Builder
 escapeHtmlChar '<' = "&lt;"
 escapeHtmlChar '>' = "&gt;"
 escapeHtmlChar '&' = "&amp;"
 escapeHtmlChar '"' = "&quot;"
-escapeHtmlChar c   = T.singleton c
+escapeHtmlChar c   = singleton c
 
 escapeURI :: Text -> Text
 escapeURI = mconcat . map escapeURIChar . B.unpack . encodeUtf8

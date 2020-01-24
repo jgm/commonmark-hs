@@ -19,7 +19,7 @@ import Data.Text (Text)
 emojiSpec :: (Monad m, IsBlock il bl, IsInline il, HasEmoji il)
           => SyntaxSpec m il bl
 emojiSpec = mempty
-  { syntaxInlineParsers = [parseEmoji]
+  { syntaxInlineParsers = [withAttributes parseEmoji]
   }
 
 class HasEmoji a where

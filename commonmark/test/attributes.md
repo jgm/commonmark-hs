@@ -131,7 +131,7 @@ They must immediately follow a code span (with no space).
 ```````````````````````````````` example
 `hi` {#ident .class key=value}
 .
-<p><code>hi</code> </p>
+<p><code>hi</code> {#ident .class key=value}</p>
 ````````````````````````````````
 
 The attributes can wrap:

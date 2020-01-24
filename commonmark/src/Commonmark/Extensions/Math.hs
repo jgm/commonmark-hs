@@ -21,7 +21,7 @@ import Data.Semigroup (Semigroup(..))
 mathSpec :: (Monad m, IsBlock il bl, IsInline il, HasMath il)
          => SyntaxSpec m il bl
 mathSpec = mempty
-  { syntaxInlineParsers = [parseMath]
+  { syntaxInlineParsers = [withAttributes parseMath]
   }
 
 class HasMath a where

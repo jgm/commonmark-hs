@@ -34,6 +34,7 @@ module Commonmark.Inlines
   , pHtml
   , pAutolink
   , pSymbol
+  , withAttributes
   )
 where
 
@@ -88,10 +89,10 @@ defaultInlineParsers =
                 [ pWords
                 , pSpaces
                 , pSoftbreak
-                , pCodeSpan
+                , withAttributes pCodeSpan
                 , pEscapedChar
                 , pEntity
-                , pAutolink
+                , withAttributes pAutolink
                 , pHtml
                 ]
 
@@ -136,7 +137,8 @@ parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
                    userState = undefined,
                    formattingDelimChars = delimcharset,
                    ipReferenceMap = rm,
-                   precedingTokTypes = precedingTokTypeMap
+                   precedingTokTypes = precedingTokTypeMap,
+                   attributeParser = attrParser
                  }
           "source" (t:ts)
   where
@@ -171,7 +173,7 @@ data ChunkType a =
      | AddAttributes Attributes
      deriving Show
 
-data IPState = IPState
+data IPState m = IPState
      { backtickSpans        :: IntMap.IntMap [SourcePos]
                                -- record of lengths of
                                -- backtick spans so we don't scan in vain
@@ -179,9 +181,10 @@ data IPState = IPState
      , formattingDelimChars :: Set.Set Char
      , ipReferenceMap       :: ReferenceMap
      , precedingTokTypes    :: M.Map SourcePos TokType
-     } deriving Show
+     , attributeParser      :: ParsecT [Tok] (IPState m) m Attributes
+     }
 
-type InlineParser m = ParsecT [Tok] IPState m
+type InlineParser m = ParsecT [Tok] (IPState m) m
 
 --- Formatting specs:
 
@@ -304,7 +307,7 @@ pChunk :: (IsInline a, Monad m)
 pChunk specmap attrParser ilParsers =
  do pos <- getPosition
     (res, ts) <- withRaw (AddAttributes <$> attrParser)
-                    <|> (\(x,ts) -> (Parsed x,ts)) <$> pInline ilParsers attrParser
+                    <|> (\(x,ts) -> (Parsed x,ts)) <$> pInline ilParsers
     return $! Chunk res pos ts
   <|> pDelimChunk specmap
 
@@ -388,13 +391,17 @@ pDelimChunk specmap = do
                       , delimLength = length toks'
                       } pos toks'
 
+withAttributes :: (IsInline a, Monad m) => InlineParser m a -> InlineParser m a
+withAttributes p = do
+  x <- p
+  attrParser <- attributeParser <$> getState
+  option x $ (\attr -> addAttributes attr x) <$> attrParser
+
 pInline :: (IsInline a, Monad m)
         => [InlineParser m a]
-        -> InlineParser m Attributes
         -> InlineParser m (a, [Tok])
-pInline ilParsers attrParser = do
-  (res, toks) <- withRaw $ mconcat <$> many1 (do x <- choice ilParsers <|> pSymbol
-                                                 option x $ (\attr -> addAttributes attr x) <$> attrParser)
+pInline ilParsers = do
+  (res, toks) <- withRaw $ mconcat <$> many1 (choice ilParsers <|> pSymbol)
   return (ranged (rangeFromToks toks) res, toks)
 
 rangeFromToks :: [Tok] -> SourceRange
@@ -448,8 +455,7 @@ pCodeSpan =
   pBacktickSpan >>=
   \case
     Left ticks     -> return $! str (untokenize ticks)
-    Right codetoks -> return $! code . normalizeCodeSpan . untokenize
-                             $ codetoks
+    Right codetoks -> return $! code . normalizeCodeSpan . untokenize $ codetoks
 
 normalizeCodeSpan :: Text -> Text
 normalizeCodeSpan = removeSurroundingSpace . T.map nltosp

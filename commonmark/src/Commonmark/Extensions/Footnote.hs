@@ -50,7 +50,7 @@ footnoteSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
              => SyntaxSpec m il bl
 footnoteSpec = mempty
   { syntaxBlockSpecs = [footnoteBlockSpec]
-  , syntaxInlineParsers = [pFootnoteRef]
+  , syntaxInlineParsers = [withAttributes pFootnoteRef]
   , syntaxFinalParsers = [addFootnoteList]
   }
 

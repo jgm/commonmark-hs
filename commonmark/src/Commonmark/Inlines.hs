@@ -129,17 +129,18 @@ parseChunks :: (Monad m, IsInline a)
             -> ReferenceMap
             -> [Tok]
             -> m (Either ParseError [Chunk a])
-parseChunks _ _ _ _ _ []             = return (Right [])
-parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
-  runParserT (setPosition (tokPos t) >>
-    many (pChunk specmap attrParser ilParsers isDelimChar) <* eof)
-          IPState{ backtickSpans = getBacktickSpans (t:ts),
-                   userState = undefined,
-                   ipReferenceMap = rm,
-                   precedingTokTypes = precedingTokTypeMap,
-                   attributeParser = attrParser
-                 }
-          "source" (t:ts)
+parseChunks bspecs specs ilParsers attrParser rm ts =
+  runParserT
+     (do case ts of
+           t:_ -> setPosition (tokPos t)
+           []  -> return ()
+         many (pChunk specmap attrParser ilParsers isDelimChar) <* eof)
+     IPState{ backtickSpans = getBacktickSpans ts,
+              userState = undefined,
+              ipReferenceMap = rm,
+              precedingTokTypes = precedingTokTypeMap,
+              attributeParser = attrParser }
+     "source" ts
   where
    isDelimChar c = c `Set.member` delimcharset
    delimcharset = Set.fromList delimchars
@@ -148,7 +149,7 @@ parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
    specmap = mkFormattingSpecMap specs
    prefixchars = mapMaybe bracketedPrefix bspecs
    suffixchars = mapMaybe bracketedSuffixEnd bspecs
-   precedingTokTypeMap = fst $! foldl' go  (mempty, LineEnd) (t:ts)
+   precedingTokTypeMap = fst $! foldl' go  (mempty, LineEnd) ts
    go (!m, !prevTy) (Tok !ty !pos _) =
      case ty of
        Symbol c | isDelimChar c -> (M.insert pos prevTy m, ty)

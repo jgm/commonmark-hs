@@ -132,16 +132,16 @@ parseChunks :: (Monad m, IsInline a)
 parseChunks _ _ _ _ _ []             = return (Right [])
 parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
   runParserT (setPosition (tokPos t) >>
-    many (pChunk specmap attrParser ilParsers) <* eof)
+    many (pChunk specmap attrParser ilParsers isDelimChar) <* eof)
           IPState{ backtickSpans = getBacktickSpans (t:ts),
                    userState = undefined,
-                   formattingDelimChars = delimcharset,
                    ipReferenceMap = rm,
                    precedingTokTypes = precedingTokTypeMap,
                    attributeParser = attrParser
                  }
           "source" (t:ts)
   where
+   isDelimChar c = c `Set.member` delimcharset
    delimcharset = Set.fromList delimchars
    delimchars = '[' : ']' : suffixchars ++
                   prefixchars ++ M.keys specmap
@@ -151,10 +151,8 @@ parseChunks bspecs specs ilParsers attrParser rm (t:ts) =
    precedingTokTypeMap = fst $! foldl' go  (mempty, LineEnd) (t:ts)
    go (!m, !prevTy) (Tok !ty !pos _) =
      case ty of
-       Symbol c
-         | c `Set.member` delimcharset ->
-           (M.insert pos prevTy m, ty)
-       _ -> (m, ty)
+       Symbol c | isDelimChar c -> (M.insert pos prevTy m, ty)
+       _                        -> (m, ty)
 
 data Chunk a = Chunk
      { chunkType :: ChunkType a
@@ -178,7 +176,6 @@ data IPState m = IPState
                                -- record of lengths of
                                -- backtick spans so we don't scan in vain
      , userState            :: Dynamic
-     , formattingDelimChars :: Set.Set Char
      , ipReferenceMap       :: ReferenceMap
      , precedingTokTypes    :: M.Map SourcePos TokType
      , attributeParser      :: ParsecT [Tok] (IPState m) m Attributes
@@ -303,33 +300,34 @@ pChunk :: (IsInline a, Monad m)
        => FormattingSpecMap a
        -> InlineParser m Attributes
        -> [InlineParser m a]
+       -> (Char -> Bool)
        -> InlineParser m (Chunk a)
-pChunk specmap attrParser ilParsers =
+pChunk specmap attrParser ilParsers isDelimChar =
  do pos <- getPosition
     (res, ts) <- withRaw (AddAttributes <$> attrParser)
-                    <|> (\(x,ts) -> (Parsed x,ts)) <$> pInline ilParsers
+                    <|> (\(x,ts) -> (Parsed x,ts)) <$>
+                           pInline ilParsers isDelimChar
     return $! Chunk res pos ts
-  <|> pDelimChunk specmap
+  <|> pDelimChunk specmap isDelimChar
 
-pDelimTok :: Monad m => InlineParser m Tok
-pDelimTok = do
-  delimChars <- formattingDelimChars <$> getState
+pDelimTok :: Monad m => (Char -> Bool) -> InlineParser m Tok
+pDelimTok isDelimChar = do
   satisfyTok (\case
-               Tok (Symbol c) _ _ -> Set.member c delimChars
-               _ -> False)
+               Tok (Symbol c) _ _ -> isDelimChar c
+               _                  -> False)
 
-pNonDelimTok :: Monad m => InlineParser m Tok
-pNonDelimTok = do
-  delimChars <- formattingDelimChars <$> getState
+pNonDelimTok :: Monad m => (Char -> Bool) -> InlineParser m Tok
+pNonDelimTok isDelimChar =
   satisfyTok (\case
-               Tok (Symbol c) _ _ -> Set.notMember c delimChars
+               Tok (Symbol c) _ _ -> not (isDelimChar c)
                _ -> True)
 
 pDelimChunk :: (IsInline a, Monad m)
             => FormattingSpecMap a
+            -> (Char -> Bool)
             -> InlineParser m (Chunk a)
-pDelimChunk specmap = do
-  tok@(Tok (Symbol c) pos _) <- pDelimTok
+pDelimChunk specmap isDelimChar = do
+  tok@(Tok (Symbol c) pos _) <- pDelimTok isDelimChar
   let mbspec = M.lookup c specmap
   more <- if isJust mbspec
              then many $ symbol c
@@ -399,9 +397,11 @@ withAttributes p = do
 
 pInline :: (IsInline a, Monad m)
         => [InlineParser m a]
+        -> (Char -> Bool)
         -> InlineParser m (a, [Tok])
-pInline ilParsers = do
-  xs <- many1 (do (res, toks) <- withRaw $ choice ilParsers <|> pSymbol
+pInline ilParsers isDelimChar = do
+  xs <- many1 (do (res, toks) <- withRaw
+                                  (choice ilParsers <|> pSymbol isDelimChar)
                   return (ranged (rangeFromToks toks) res, toks))
   let (ys, ts) = unzip xs
   return $! (mconcat ys, mconcat ts)
@@ -552,8 +552,10 @@ pWords = do
   t <- satisfyTok (hasType WordChars)
   return $! str (tokContents t)
 
-pSymbol :: (IsInline a, Monad m) => InlineParser m a
-pSymbol = str . tokContents <$> pNonDelimTok
+pSymbol :: (IsInline a, Monad m)
+        => (Char -> Bool)  -- ^ Test for delimiter character
+        -> InlineParser m a
+pSymbol isDelimChar = str . tokContents <$> pNonDelimTok isDelimChar
 
 data DState a = DState
      { leftCursor     :: Cursor (Chunk a)

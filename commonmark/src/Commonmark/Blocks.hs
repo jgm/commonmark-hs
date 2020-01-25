@@ -73,17 +73,19 @@ import qualified Data.Text.Read            as TR
 import           Data.Tree
 import           Text.Parsec
 
-mkBlockParser :: (Monad m, IsBlock il bl)
-             => [BlockSpec m il bl] -- ^ Defines block syntax
-             -> [BlockParser m il bl bl] -- ^ Parsers to run at end
-             -> (ReferenceMap -> [Tok]
-                  -> m (Either ParseError il)) -- ^ Inline parser
-             -> [BlockParser m il bl Attributes] -- ^ attribute parsers
-             -> [Tok] -- ^ Tokenized commonmark input
-             -> m (Either ParseError bl)  -- ^ Result or error
-mkBlockParser _ _ _ _ [] = return $! Right mempty
-mkBlockParser specs finalParsers ilParser attrParsers (t:ts) =
-  runParserT (setPosition (tokPos t) >> processLines specs finalParsers)
+mkBlockParser
+  :: (Monad m, IsBlock il bl)
+  => [BlockSpec m il bl] -- ^ Defines block syntax
+  -> [BlockParser m il bl bl] -- ^ Parsers to run at end
+  -> (ReferenceMap -> [Tok] -> m (Either ParseError il)) -- ^ Inline parser
+  -> [BlockParser m il bl Attributes] -- ^ attribute parsers
+  -> [Tok] -- ^ Tokenized commonmark input
+  -> m (Either ParseError bl)  -- ^ Result or error
+mkBlockParser specs finalParsers ilParser attrParsers ts =
+  runParserT (do case ts of
+                   (t:_) -> setPosition (tokPos t)
+                   []    -> return ()
+                 processLines specs finalParsers)
           BPState{ referenceMap     = emptyReferenceMap
                  , inlineParser     = ilParser
                  , nodeStack        = [Node (defBlockData docSpec) []]
@@ -95,7 +97,7 @@ mkBlockParser specs finalParsers ilParser attrParsers (t:ts) =
                  , attributeParsers = attrParsers
                  , nextAttributes   = mempty
                  }
-          "source" (length ts `seq` (t:ts))
+          "source" (length ts `seq` ts)
           -- we evaluate length ts to make sure the list is
           -- fully evaluated; this helps performance.  note that
           -- we can't use deepseq because there's no instance for SourcePos.

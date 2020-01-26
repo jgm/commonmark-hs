@@ -401,11 +401,16 @@ pInline :: (IsInline a, Monad m)
         -> (Char -> Bool)
         -> InlineParser m (a, [Tok])
 pInline ilParsers isDelimChar = do
-  xs <- many1 (do (res, toks) <- withRaw
-                                  (choice ilParsers <|> pSymbol isDelimChar)
-                  return (ranged (rangeFromToks toks) res, toks))
-  let (ys, ts) = unzip xs
-  return $! (mconcat ys, mconcat ts)
+  (xs, ts) <- withRaw $ many1
+               (do startpos <- getPosition
+                   (res, toks) <- withRaw
+                                   (choice ilParsers <|> pSymbol isDelimChar)
+                   endpos <- getPosition
+                   let range = if sourceLine startpos == sourceLine endpos
+                                  then SourceRange [(startpos, endpos)]
+                                  else rangeFromToks toks
+                   return (ranged range res))
+  return $! (mconcat xs, ts)
 
 rangeFromToks :: [Tok] -> SourceRange
 rangeFromToks = SourceRange . go

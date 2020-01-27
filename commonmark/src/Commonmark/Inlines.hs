@@ -108,17 +108,14 @@ unChunks = foldl' mappend mempty . go
                _ -> (id, cs) in
         case chunkType c of
           AddAttributes _ -> go rest
-          d@Delim{} ->
-            f (ranged range (str (untokenize ts))) : go rest
-              where ts = chunkToks c
-                    range =
-                      case ts of
-                       []    -> mempty
-                       (_:_) -> SourceRange
-                                  [(chunkPos c,
-                                    incSourceColumn
-                                    (chunkPos c) (delimLength d))]
-          Parsed ils          -> f ils : go rest
+          d@Delim{} -> x : go rest
+              where !x = f (ranged range (str t))
+                    t = untokenize (chunkToks c)
+                    range = SourceRange
+                             [(chunkPos c,
+                               incSourceColumn (chunkPos c) (T.length t))]
+          Parsed ils -> x : go rest
+              where !x = f ils
 
 
 parseChunks :: (Monad m, IsInline a)

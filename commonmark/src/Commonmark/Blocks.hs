@@ -329,12 +329,12 @@ defaultFinalizer :: Monad m
                  => BlockNode m il bl
                  -> BlockNode m il bl
                  -> BlockParser m il bl (BlockNode m il bl)
-defaultFinalizer child parent = do
+defaultFinalizer !child !parent = do
   -- ensure that 'counters' carries information about all
   -- the block identifiers used, so that auto_identifiers works properly.
   case lookup "id" (blockAttributes (rootLabel child)) of
     Nothing -> return ()
-    Just ident -> updateState $ \st ->
+    Just !ident -> updateState $ \st ->
       st{ counters = M.insert ("identifier:" <> ident)
           (toDyn (0 :: Int)) (counters st) }
   return $! parent{ subForest = child : subForest parent }

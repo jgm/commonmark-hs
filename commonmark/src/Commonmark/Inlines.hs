@@ -545,10 +545,8 @@ pSpaces = do
   Tok Spaces pos t <- satisfyTok (hasType Spaces)
   (do Tok LineEnd pos' _ <- satisfyTok (hasType LineEnd)
       case sourceColumn pos' - sourceColumn pos of
-           n | n >= 2 ->
-             return lineBreak
-           _ ->
-             return softBreak)
+           n | n >= 2 -> return lineBreak
+           _          -> return softBreak)
    <|> return (str t)
 
 pSoftbreak :: (IsInline a, Monad m) => InlineParser m a

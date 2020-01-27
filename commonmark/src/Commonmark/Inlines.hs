@@ -325,8 +325,8 @@ pDelimChunk :: (IsInline a, Monad m)
             -> (Char -> Bool)
             -> InlineParser m (Chunk a)
 pDelimChunk specmap isDelimChar = do
-  tok@(Tok (Symbol c) pos _) <- pDelimTok isDelimChar
-  let mbspec = M.lookup c specmap
+  tok@(Tok (Symbol !c) pos _) <- pDelimTok isDelimChar
+  let !mbspec = M.lookup c specmap
   more <- if isJust mbspec
              then many $ symbol c
              else return []
@@ -360,12 +360,12 @@ pDelimChunk specmap isDelimChar = do
          (not precededByPunctuation ||
           followedByWhitespace ||
           followedByPunctuation)
-  let canOpen =
+  let !canOpen =
          leftFlanking &&
           (maybe True formattingIntraWord mbspec ||
            not rightFlanking ||
            precededByPunctuation)
-  let canClose =
+  let !canClose =
          rightFlanking &&
           (maybe True formattingIntraWord mbspec ||
            not leftFlanking ||
@@ -380,12 +380,13 @@ pDelimChunk specmap isDelimChar = do
                                T.map (\_ -> formattingWhenUnmatched spec)
                                   (tokContents t) }) toks
                     _ -> toks
+  let !len = length toks'
   return $! Chunk Delim{ delimType = c
-                      , delimCanOpen = canOpen
-                      , delimCanClose = canClose
-                      , delimSpec = mbspec
-                      , delimLength = length toks'
-                      } pos toks'
+                       , delimCanOpen = canOpen
+                       , delimCanClose = canClose
+                       , delimSpec = mbspec
+                       , delimLength = len
+                       } pos toks'
 
 withAttributes :: (IsInline a, Monad m) => InlineParser m a -> InlineParser m a
 withAttributes p = do
@@ -442,7 +443,7 @@ pEntity :: (IsInline a, Monad m) => InlineParser m a
 pEntity = try $ do
   symbol '&'
   ent <- numEntity <|> charEntity
-  return (entity ("&" <> untokenize ent))
+  return $! (entity ("&" <> untokenize ent))
 
 pBacktickSpan :: Monad m
               => InlineParser m (Either [Tok] [Tok])
@@ -504,7 +505,7 @@ pUri = try $ do
             _          -> True
   ts <- many $ satisfyTok isURITok
   let uri = s <> ":" <> untokenize ts
-  return (uri, uri)
+  return $! (uri, uri)
 
 pScheme :: Monad m => InlineParser m Text
 pScheme = do
@@ -516,7 +517,7 @@ pScheme = do
   let s = untokenize (t:ts)
   let len = T.length s
   guard $ len >= 2 && len <= 32
-  return s
+  return $! s
 
 pEmail :: Monad m => InlineParser m (Text, Text)
 pEmail = do
@@ -534,11 +535,11 @@ pEmail = do
         x <- satisfyWord (T.all isAscii)
         xs <- many $ (symbol '-' <* notFollowedBy eof <* notFollowedBy (symbol '.'))
                   <|> satisfyWord (T.all isAscii)
-        return (x:xs)
+        return $! (x:xs)
   d <- domainPart
   ds <- many (symbol '.' >> domainPart)
   let addr = untokenize name <> "@" <> T.intercalate "." (map untokenize (d:ds))
-  return ("mailto:" <> addr, addr)
+  return $! ("mailto:" <> addr, addr)
 
 pSpaces :: (IsInline a, Monad m) => InlineParser m a
 pSpaces = do

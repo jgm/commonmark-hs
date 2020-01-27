@@ -364,7 +364,7 @@ defBlockData spec = BlockData
 type BlockNode m il bl = Tree (BlockData m il bl)
 
 data BPState m il bl = BPState
-     { referenceMap     :: ReferenceMap
+     { referenceMap     :: !ReferenceMap
      , inlineParser     :: ReferenceMap -> [Tok] -> m (Either ParseError il)
      , nodeStack        :: [BlockNode m il bl]   -- reverse order, head is tip
      , blockMatched     :: !Bool
@@ -374,21 +374,21 @@ data BPState m il bl = BPState
      , failurePositions :: M.Map Text SourcePos  -- record known positions
                            -- where parsers fail to avoid repetition
      , attributeParsers :: [ParsecT [Tok] (BPState m il bl) m Attributes]
-     , nextAttributes   :: Attributes
+     , nextAttributes   :: !Attributes
      }
 
 type BlockParser m il bl = ParsecT [Tok] (BPState m il bl) m
 
 data ListData = ListData
-     { listType    :: ListType
-     , listSpacing :: ListSpacing
+     { listType    :: !ListType
+     , listSpacing :: !ListSpacing
      } deriving (Show, Eq)
 
 data ListItemData = ListItemData
-     { listItemType         :: ListType
-     , listItemIndent       :: Int
-     , listItemBlanksInside :: Bool
-     , listItemBlanksAtEnd  :: Bool
+     { listItemType         :: !ListType
+     , listItemIndent       :: !Int
+     , listItemBlanksInside :: !Bool
+     , listItemBlanksAtEnd  :: !Bool
      } deriving (Show, Eq)
 
 runInlineParser :: Monad m

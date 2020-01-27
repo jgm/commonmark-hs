@@ -108,7 +108,7 @@ unChunks = foldl' mappend mempty . go
                _ -> (id, cs) in
         case chunkType c of
           AddAttributes _ -> go rest
-          d@Delim{} -> x : go rest
+          Delim{} -> x : go rest
               where !x = f (ranged range (str t))
                     t = untokenize (chunkToks c)
                     range = SourceRange
@@ -427,12 +427,16 @@ rangeFromToks = SourceRange . go
 pEscapedChar :: (IsInline a, Monad m) => InlineParser m a
 pEscapedChar = do
   symbol '\\'
-  (do Tok (Symbol c) _ _ <- satisfyTok asciiSymbol
-      return $! escapedChar c)
-   <|>
-   (lineBreak <$ lineEnd)
-   <|>
-   return (str "\\")
+  option (str "\\") $
+    do tok <- satisfyTok
+                (\case
+                  Tok (Symbol c) _ _ -> isAscii c
+                  Tok LineEnd _ _    -> True
+                  _                  -> False)
+       case tok of
+          Tok (Symbol c) _ _ -> return $! escapedChar c
+          Tok LineEnd    _ _ -> return $! lineBreak
+          _                  -> fail "Should not happen"
 
 pEntity :: (IsInline a, Monad m) => InlineParser m a
 pEntity = try $ do

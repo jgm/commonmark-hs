@@ -553,7 +553,9 @@ pSoftbreak :: (IsInline a, Monad m) => InlineParser m a
 pSoftbreak = softBreak <$ satisfyTok (hasType LineEnd)
 
 pWords :: (IsInline a, Monad m) => InlineParser m a
-pWords = str . tokContents <$> satisfyTok (hasType WordChars)
+pWords = do
+  t <- satisfyTok (hasType WordChars)
+  return $! str (tokContents t)
 
 pSymbol :: (IsInline a, Monad m)
         => (Char -> Bool)  -- ^ Test for delimiter character

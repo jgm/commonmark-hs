@@ -340,13 +340,13 @@ defaultFinalizer child parent = do
   return $! parent{ subForest = child : subForest parent }
 
 data BlockData m il bl = BlockData
-     { blockSpec     :: BlockSpec m il bl
-     , blockLines    :: [[Tok]]  -- in reverse order
-     , blockStartPos :: [SourcePos]  -- in reverse order
-     , blockEndPos   :: [SourcePos]  -- reverse order
-     , blockData     :: Dynamic
-     , blockBlanks   :: [Int]  -- non-content blank lines in block
-     , blockAttributes :: Attributes
+     { blockSpec       :: BlockSpec m il bl
+     , blockLines      :: [[Tok]]  -- in reverse order
+     , blockStartPos   :: [SourcePos]  -- in reverse order
+     , blockEndPos     :: [SourcePos]  -- reverse order
+     , blockData       :: !Dynamic
+     , blockBlanks     :: [Int]  -- non-content blank lines in block
+     , blockAttributes :: !Attributes
      }
   deriving Show
 

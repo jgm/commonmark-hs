@@ -46,7 +46,7 @@ import           Commonmark.Types
 import           Control.Monad              (guard, mzero)
 import           Data.List                  (foldl')
 import           Data.Char                  (isAscii, isLetter)
-import           Data.Dynamic               (Dynamic)
+import           Data.Dynamic               (Dynamic, toDyn)
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map                   as M
 import           Data.Maybe                 (isJust, mapMaybe)
@@ -133,7 +133,7 @@ parseChunks bspecs specs ilParsers attrParser rm ts =
            []  -> return ()
          many (pChunk specmap attrParser ilParsers isDelimChar) <* eof)
      IPState{ backtickSpans = getBacktickSpans ts,
-              userState = undefined,
+              userState = toDyn (),
               ipReferenceMap = rm,
               precedingTokTypes = precedingTokTypeMap,
               attributeParser = attrParser }
@@ -173,8 +173,8 @@ data IPState m = IPState
      { backtickSpans        :: IntMap.IntMap [SourcePos]
                                -- record of lengths of
                                -- backtick spans so we don't scan in vain
-     , userState            :: Dynamic
-     , ipReferenceMap       :: ReferenceMap
+     , userState            :: !Dynamic
+     , ipReferenceMap       :: !ReferenceMap
      , precedingTokTypes    :: M.Map SourcePos TokType
      , attributeParser      :: ParsecT [Tok] (IPState m) m Attributes
      }

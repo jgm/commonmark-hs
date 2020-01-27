@@ -108,7 +108,7 @@ unChunks = foldl' mappend mempty . go
                _ -> (id, cs) in
         case chunkType c of
           AddAttributes _ -> go rest
-          Delim{} ->
+          d@Delim{} ->
             f (ranged range (str (untokenize ts))) : go rest
               where ts = chunkToks c
                     range =
@@ -117,7 +117,7 @@ unChunks = foldl' mappend mempty . go
                        (_:_) -> SourceRange
                                   [(chunkPos c,
                                     incSourceColumn
-                                      (tokPos (last ts)) 1)]
+                                    (chunkPos c) (delimLength d))]
           Parsed ils          -> f ils : go rest
 
 

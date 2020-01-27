@@ -545,12 +545,14 @@ pSpaces = do
   Tok Spaces pos t <- satisfyTok (hasType Spaces)
   (do Tok LineEnd pos' _ <- satisfyTok (hasType LineEnd)
       case sourceColumn pos' - sourceColumn pos of
-           n | n >= 2 -> return lineBreak
-           _          -> return softBreak)
-   <|> return (str t)
+           n | n >= 2 -> return $! lineBreak
+           _          -> return $! softBreak)
+   <|> (return $! str t)
 
 pSoftbreak :: (IsInline a, Monad m) => InlineParser m a
-pSoftbreak = softBreak <$ satisfyTok (hasType LineEnd)
+pSoftbreak = do
+  _ <- satisfyTok (hasType LineEnd)
+  return $! softBreak
 
 pWords :: (IsInline a, Monad m) => InlineParser m a
 pWords = do
@@ -560,7 +562,9 @@ pWords = do
 pSymbol :: (IsInline a, Monad m)
         => (Char -> Bool)  -- ^ Test for delimiter character
         -> InlineParser m a
-pSymbol isDelimChar = str . tokContents <$> pNonDelimTok isDelimChar
+pSymbol isDelimChar = do
+  t <- pNonDelimTok isDelimChar
+  return $! str (tokContents t)
 
 data DState a = DState
      { leftCursor     :: Cursor (Chunk a)

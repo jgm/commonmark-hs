@@ -23,7 +23,7 @@ haddock:
 	stack haddock
 
 prof:
-	stack install --profile
+	stack install --profile --ghc-options="-fno-prof-auto"
 	# commonmark +RTS -pj -RTS ../pandoc/MANUAL.txt >/dev/null
 	# cat commonmark.prof | ghc-prof-aeson-flamegraph | flamegraph.pl > prof.svg
 	# open -a Safari prof.svg

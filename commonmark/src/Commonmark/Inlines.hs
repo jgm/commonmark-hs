@@ -75,7 +75,8 @@ mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   let (positionList, ts) = unzip toks
   let positions = V.fromList positionList
   let attrParser = choice attrParsers
-  res <- parseChunks bracketedSpecs formattingSpecs ilParsers attrParser
+  res <- {-# SCC parseChunks #-} parseChunks
+           bracketedSpecs formattingSpecs ilParsers attrParser
            rm positions (T.stripEnd $! T.concat ts)
   return $!
     case res of
@@ -99,7 +100,7 @@ defaultInlineParsers =
                 ]
 
 unChunks :: IsInline a => [Chunk a] -> a
-unChunks = foldl' mappend mempty . go
+unChunks = {-# SCC unChunks #-} foldl' mappend mempty . go
     where
       go []     = []
       go (c:cs) =
@@ -307,11 +308,12 @@ pChunk :: (IsInline a, Monad m)
        -> InlineParser m (Chunk a)
 pChunk specmap attrParser ilParsers isDelimChar =
  do pos <- getPosition
-    (res, t) <- withRaw (AddAttributes <$> attrParser)
+    (res, t) <- {-# SCC attrParser #-} withRaw (AddAttributes <$> attrParser)
                  <|>
-                (\(x,t) -> (Parsed x,t)) <$> pInline ilParsers isDelimChar
+                {-# SCC pInline #-} (\(x,t) -> (Parsed x,t)) <$>
+                   pInline ilParsers isDelimChar
     return $! Chunk res pos t
-  <|> pDelimChunk specmap isDelimChar
+  <|> {-# SCC pDelimChunk #-} pDelimChunk specmap isDelimChar
 
 pDelimChunk :: (IsInline a, Monad m)
             => FormattingSpecMap a
@@ -690,6 +692,7 @@ processEm st =
        _ -> processEm
             st{ rightCursor = moveRight right
               , leftCursor  = moveRight left }
+{-# SCC processEm #-}
 
 -- This only applies to emph delims, not []:
 delimsMatch :: IsInline a
@@ -873,7 +876,7 @@ processBs bracketedSpecs st =
 
        (_, _) -> processBs bracketedSpecs
                 st{ rightCursor = moveRight right }
-
+{-# SCC processBs #-}
 
 
 -- This just changes a single quote Delim that occurs

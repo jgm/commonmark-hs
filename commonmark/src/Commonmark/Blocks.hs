@@ -110,6 +110,7 @@ processLines specs finalParsers = do
   tree':_ <- nodeStack <$> getState
   body <- blockConstructor (blockSpec (rootLabel tree')) tree'
   return $! body <> endContent
+{-# SCC processLines #-}
 
 reverseSubforests :: Tree a -> Tree a
 reverseSubforests (Node x cs) = Node x $ map reverseSubforests $ reverse cs
@@ -123,7 +124,7 @@ processLine specs = do
                  , maybeLazy = False
                  , maybeBlank = True
                  , failurePositions = M.empty }
-  (matched, unmatched) <- foldrM checkContinue ([],[]) (nodeStack st')
+  (matched, unmatched) <-  foldrM checkContinue ([],[]) (nodeStack st')
 
   -- if not everything matched, and last unmatched is paragraph,
   -- then we may have a lazy paragraph continuation
@@ -144,7 +145,7 @@ processLine specs = do
 
   isblank <- option False $ True <$ (do getState >>= guard . maybeBlank
                                         lookAhead blankLine)
-  unless isblank $
+  {-# SCC block_starts #-} unless isblank $
     (do skipMany1 (doBlockStarts specs)
         optional (try (blockStart paraSpec)))
       <|>
@@ -161,7 +162,7 @@ processLine specs = do
   (cur:rest) <- nodeStack <$> getState
   -- add line contents
   startTextPos <- getPosition
-  (toks, endpos) <- restOfLine
+  (toks, endpos) <- {-# SCC restOfLine #-} restOfLine
   let curdata = rootLabel cur
   updateState $ \st -> st{
       nodeStack = map (addEndPos endpos) $
@@ -210,6 +211,7 @@ doBlockStarts specs = do
                   M.insert (blockType spec)
                   pos (failurePositions st) }
         go initPos otherSpecs) <|> go initPos otherSpecs
+  {-# SCC go #-}
 
 checkContinue :: Monad m
               => BlockNode m il bl
@@ -219,6 +221,7 @@ checkContinue nd (matched, unmatched) = do
   ismatched <- blockMatched <$> getState
   if ismatched
      then
+       {-# SCC blockContinues #-}
        (do (startpos, Node bdata children) <- blockContinue (bspec nd) nd
            matched' <- blockMatched <$> getState
            -- if blockContinue set blockMatched to False, it's
@@ -402,6 +405,7 @@ runInlineParser tls = do
        Right ils -> return $! ils
        Left err  -> mkPT (\_ -> return (Empty (return (Error err))))
                     -- pass up ParseError
+{-# SCC runInlineParser #-}
 
 addRange :: (Monad m, IsBlock il bl)
          => BlockNode m il bl -> bl -> bl

@@ -72,6 +72,7 @@ import qualified Data.Text                 as T
 import qualified Data.Text.Read            as TR
 import           Data.Tree
 import           Text.Parsec
+import qualified Data.Vector               as V
 
 mkBlockParser
   :: (Monad m, IsBlock il bl)
@@ -97,7 +98,7 @@ mkBlockParser specs finalParsers ilParser attrParsers ts =
                  , attributeParsers = attrParsers
                  , nextAttributes   = mempty
                  }
-          "source" (length ts `seq` ts)
+          "source" (toToks $ length ts `seq` ts)
           -- we evaluate length ts to make sure the list is
           -- fully evaluated; this helps performance.  note that
           -- we can't use deepseq because there's no instance for SourcePos.
@@ -373,11 +374,11 @@ data BPState m il bl = BPState
      , counters         :: M.Map Text Dynamic
      , failurePositions :: M.Map Text SourcePos  -- record known positions
                            -- where parsers fail to avoid repetition
-     , attributeParsers :: [ParsecT [Tok] (BPState m il bl) m Attributes]
+     , attributeParsers :: [ParsecT Toks (BPState m il bl) m Attributes]
      , nextAttributes   :: !Attributes
      }
 
-type BlockParser m il bl = ParsecT [Tok] (BPState m il bl) m
+type BlockParser m il bl = ParsecT Toks (BPState m il bl) m
 
 data ListData = ListData
      { listType    :: !ListType
@@ -497,25 +498,25 @@ extractReferenceLinks :: (Monad m, IsBlock il bl)
                                               Maybe (BlockNode m il bl))
 extractReferenceLinks node = do
   st <- getState
-  res <- lift $ runParserT ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
+  res <- lift $ runParserT ((\a b c -> (a,b,c)) <$>
+                       ((lookAhead anyTok >>= setPosition . tokPos) >>
                         many1 (linkReferenceDef (choice $ attributeParsers st)))
-                  <*> getInput) st "" (getBlockText removeIndent node)
+                  <*> getPosition <*> getInput) st ""
+                      (toToks $ getBlockText removeIndent node)
   case res of
         Left _ -> return $! (Just node, Nothing)
-        Right (linkdefs, toks') -> do
+        Right (linkdefs, refpos, Toks n v) -> do
           mapM_
             (\((_,lab),linkinfo) ->
              updateState $ \s -> s{
               referenceMap = insertReference lab linkinfo
                 (referenceMap s) }) linkdefs
-          let isRefPos = case toks' of
-                           (t:_) -> (< tokPos t)
-                           _     -> const False
-          let node' = if null toks'
+          let isRefPos = (< refpos)
+          let node' = if n == V.length v
                          then Nothing
                          else Just node{ rootLabel =
                               (rootLabel node){
-                                blockLines = [toks'],
+                                blockLines = [V.toList $ V.drop n v],
                                 blockStartPos = dropWhile isRefPos
                                    (blockStartPos (rootLabel node)),
                                 blockEndPos = dropWhile isRefPos
@@ -617,8 +618,8 @@ plainSpec = paraSpec{
 
 
 linkReferenceDef :: Monad m
-                 => ParsecT [Tok] s m Attributes
-                 -> ParsecT [Tok] s m ((SourceRange, Text), LinkInfo)
+                 => ParsecT Toks s m Attributes
+                 -> ParsecT Toks s m ((SourceRange, Text), LinkInfo)
 linkReferenceDef attrParser = try $ do
   startpos <- getPosition
   lab <- pLinkLabel
@@ -756,7 +757,7 @@ parseFinalAttributes requireWhitespace ts = do
   st <- getState
   res <- lift $ runParserT
        ((,) <$> many (notFollowedBy pAttr' >> anyTok)
-            <*> option [] pAttr') st "heading contents" ts
+            <*> option [] pAttr') st "heading contents" (toToks ts)
   case res of
     Left _         -> mzero
     Right (xs, ys) -> return $! (xs, ys)

@@ -16,6 +16,7 @@ import Data.Text (Text)
 #if !MIN_VERSION_base(4,11,0)
 import Data.Monoid
 #endif
+import qualified Data.Vector as V
 
 autolinkSpec :: (Monad m, IsBlock il bl, IsInline il)
              => SyntaxSpec m il bl
@@ -49,14 +50,15 @@ validDomain = do
 
 linkSuffix :: Monad m => InlineParser m ()
 linkSuffix = try $ do
-  toks <- getInput
+  Toks n v <- getInput
   let possibleSuffixTok (Tok (Symbol c) _ _) = c /= '<'
       possibleSuffixTok (Tok WordChars _ _) = True
       possibleSuffixTok _ = False
   let isDroppable (Tok (Symbol c) _ _) =
          c `elem` ['?','!','.',',',':','*','_','~']
       isDroppable _ = False
-  let chunk' = dropWhileEnd isDroppable $ takeWhile possibleSuffixTok toks
+  let chunk' = dropWhileEnd isDroppable $ V.toList $
+                 V.takeWhile possibleSuffixTok $ V.drop n v
   let chunk'' = case reverse chunk' of
                      (Tok (Symbol ')') _ _ : xs)
                        | length [t | t@(Tok (Symbol '(') _ _) <- chunk'] <

@@ -1,10 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE BangPatterns #-}
 
 module Commonmark.Tokens
-  ( Tok(..)
+  ( Toks(..)  -- TODO export functions rather than constructor?
+  , toToks
+  , Tok(..)
   , TokType(..)
   , tokenize
   , untokenize
@@ -15,6 +19,22 @@ import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Data.Data       (Data, Typeable)
 import           Text.Parsec.Pos
+import           Text.Parsec     (Stream(..))
+import qualified Data.Vector     as V
+
+data Toks = Toks !Int (V.Vector Tok)
+  deriving (Show)
+
+toToks :: [Tok] -> Toks
+toToks ts = Toks 0 v
+  where v   = V.fromList ts
+
+instance Monad m => Stream Toks m Tok where
+  uncons (Toks n v)
+    | V.length v <= n = return Nothing
+    | otherwise       = do
+        c <- V.indexM v n
+        return $ Just (c, Toks (n+1) v)
 
 data Tok = Tok { tokType     :: !TokType
                , tokPos      :: !SourcePos

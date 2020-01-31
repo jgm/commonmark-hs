@@ -66,6 +66,7 @@ library
   build-depends:
       base >=4.7 && <5
     , text
+    , vector
     , bytestring
     , containers
     , transformers

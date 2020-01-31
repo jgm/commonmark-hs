@@ -19,7 +19,7 @@ import           Text.Parsec       hiding (State)
 
 -- A tag name consists of an ASCII letter followed by zero or more ASCII
 -- letters, digits, or hyphens (-).
-htmlTagName :: Monad m => ParsecT [Tok] s m [Tok]
+htmlTagName :: Monad m => ParsecT Toks s m [Tok]
 htmlTagName = try $ do
   let isTagText t' = T.all isAscii t'
   let startsWithLetter t' = not (T.null t') && isLetter (T.head t')
@@ -30,7 +30,7 @@ htmlTagName = try $ do
 -- An attribute name consists of an ASCII letter, _, or :, followed by
 -- zero or more ASCII letters, digits, _, ., :, or -. (Note: This is
 -- the XML specification restricted to ASCII. HTML5 is laxer.)
-htmlAttributeName :: Monad m => ParsecT [Tok] s m [Tok]
+htmlAttributeName :: Monad m => ParsecT Toks s m [Tok]
 htmlAttributeName = try $ do
   let isTagText t' = T.all isAscii t'
   let startsWithLetter t' = not (T.null t') && isLetter (T.head t')
@@ -46,7 +46,7 @@ htmlAttributeName = try $ do
 
 -- An attribute value specification consists of optional whitespace,
 -- a = character, optional whitespace, and an attribute value.
-htmlAttributeValueSpec :: Monad m => ParsecT [Tok] s m [Tok]
+htmlAttributeValueSpec :: Monad m => ParsecT Toks s m [Tok]
 htmlAttributeValueSpec = try $ do
   sps1 <- option [] whitespace
   eq <- symbol '='
@@ -56,7 +56,7 @@ htmlAttributeValueSpec = try $ do
 
 -- An attribute value consists of an unquoted attribute value,
 -- a single-quoted attribute value, or a double-quoted attribute value.
-htmlAttributeValue :: Monad m => ParsecT [Tok] s m [Tok]
+htmlAttributeValue :: Monad m => ParsecT Toks s m [Tok]
 htmlAttributeValue =
   htmlUnquotedAttributeValue <|>
   htmlSingleQuotedAttributeValue <|>
@@ -64,7 +64,7 @@ htmlAttributeValue =
 
 -- An attribute consists of whitespace, an attribute name, and an optional
 -- attribute value specification.
-htmlAttribute :: Monad m => ParsecT [Tok] s m [Tok]
+htmlAttribute :: Monad m => ParsecT Toks s m [Tok]
 htmlAttribute = try $ do
   sps <- whitespace
   n <- htmlAttributeName
@@ -73,14 +73,14 @@ htmlAttribute = try $ do
 
 -- An unquoted attribute value is a nonempty string of characters not
 -- including spaces, ", ', =, <, >, or `.
-htmlUnquotedAttributeValue :: Monad m => ParsecT [Tok] s m [Tok]
+htmlUnquotedAttributeValue :: Monad m => ParsecT Toks s m [Tok]
 htmlUnquotedAttributeValue =
   many1 $ noneOfToks [Spaces, LineEnd, Symbol '<', Symbol '>',
                       Symbol '=', Symbol '`', Symbol '\'', Symbol '"']
 
 -- A single-quoted attribute value consists of ', zero or more characters
 -- not including ', and a final '.
-htmlSingleQuotedAttributeValue :: Monad m => ParsecT [Tok] s m [Tok]
+htmlSingleQuotedAttributeValue :: Monad m => ParsecT Toks s m [Tok]
 htmlSingleQuotedAttributeValue = try $ do
   op <- symbol '\''
   contents <- many (satisfyTok (not . hasType (Symbol '\'')))
@@ -89,7 +89,7 @@ htmlSingleQuotedAttributeValue = try $ do
 
 -- A double-quoted attribute value consists of ", zero or more characters
 -- not including ", and a final ".
-htmlDoubleQuotedAttributeValue :: Monad m => ParsecT [Tok] s m [Tok]
+htmlDoubleQuotedAttributeValue :: Monad m => ParsecT Toks s m [Tok]
 htmlDoubleQuotedAttributeValue = try $ do
   op <- symbol '"'
   contents <- many (satisfyTok (not . hasType (Symbol '"')))
@@ -100,7 +100,7 @@ htmlDoubleQuotedAttributeValue = try $ do
 -- attributes, optional whitespace, an optional @/@ character, and a
 -- @>@ character.  This parses assumes that the opening @<@ has already
 -- been parsed.
-htmlOpenTag :: Monad m => ParsecT [Tok] s m [Tok]
+htmlOpenTag :: Monad m => ParsecT Toks s m [Tok]
 htmlOpenTag = try $ do
   -- assume < has already been parsed
   n <- htmlTagName
@@ -113,7 +113,7 @@ htmlOpenTag = try $ do
 -- | A closing tag consists of the string @</@, a tag name, optional
 -- whitespace, and the character @>@.  This parser assumes that the
 -- opening @<@ has already been parsed.
-htmlClosingTag :: Monad m => ParsecT [Tok] s m [Tok]
+htmlClosingTag :: Monad m => ParsecT Toks s m [Tok]
 htmlClosingTag = try $ do
   -- assume < has already been parsed
   op <- symbol '/'
@@ -125,7 +125,7 @@ htmlClosingTag = try $ do
 -- An HTML comment consists of <!-- + text + -->, where text does not
 -- start with > or ->, does not end with -, and does not contain --.
 -- (See the HTML5 spec.)
-htmlComment :: Monad m => ParsecT [Tok] s m [Tok]
+htmlComment :: Monad m => ParsecT Toks s m [Tok]
 htmlComment = try $ do
   -- assume < has already been parsed
   op <- sequence [ symbol '!'
@@ -143,7 +143,7 @@ htmlComment = try $ do
 
 -- A processing instruction consists of the string <?, a string of
 -- characters not including the string ?>, and the string ?>.
-htmlProcessingInstruction :: Monad m => ParsecT [Tok] s m [Tok]
+htmlProcessingInstruction :: Monad m => ParsecT Toks s m [Tok]
 htmlProcessingInstruction = try $ do
   -- assume < has already been parsed
   let questionmark = symbol '?'
@@ -158,7 +158,7 @@ htmlProcessingInstruction = try $ do
 -- A declaration consists of the string <!, a name consisting of one or
 -- more uppercase ASCII letters, whitespace, a string of characters not
 -- including the character >, and the character >.
-htmlDeclaration :: Monad m => ParsecT [Tok] s m [Tok]
+htmlDeclaration :: Monad m => ParsecT Toks s m [Tok]
 htmlDeclaration = try $ do
   -- assume < has already been parsed
   op <- symbol '!'
@@ -171,7 +171,7 @@ htmlDeclaration = try $ do
 
 -- A CDATA section consists of the string <![CDATA[, a string of characters
 -- not including the string ]]>, and the string ]]>.
-htmlCDATASection :: Monad m => ParsecT [Tok] s m [Tok]
+htmlCDATASection :: Monad m => ParsecT Toks s m [Tok]
 htmlCDATASection = try $ do
   -- assume < has already been parsed
   op <- sequence [ symbol '!'
@@ -190,6 +190,6 @@ htmlCDATASection = try $ do
 -- An HTML tag consists of an open tag, a closing tag, an HTML comment,
 -- a processing instruction, a declaration, or a CDATA section.
 -- Assumes @<@ has already been parsed.
-htmlTag :: Monad m => ParsecT [Tok] s m [Tok]
+htmlTag :: Monad m => ParsecT Toks s m [Tok]
 htmlTag = htmlOpenTag <|> htmlClosingTag <|> htmlComment <|>
           htmlProcessingInstruction <|> htmlDeclaration <|> htmlCDATASection

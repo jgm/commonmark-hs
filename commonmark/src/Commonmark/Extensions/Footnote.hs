@@ -94,7 +94,7 @@ footnoteBlockSpec = BlockSpec
                runParserT
                  (blockConstructor (blockSpec root) (Node root children))
                  st{ referenceMap = refmap }
-                 "source" []
+                 "source" (Toks 0 mempty)
          updateState $ \s -> s{
              referenceMap = insertReference lab'
                               (FootnoteDef num lab' mkNoteContents)
@@ -103,7 +103,7 @@ footnoteBlockSpec = BlockSpec
          return $! parent
      }
 
-pFootnoteLabel :: Monad m => ParsecT [Tok] u m Text
+pFootnoteLabel :: Monad m => ParsecT Toks u m Text
 pFootnoteLabel = try $ do
   lab <- pLinkLabel
   case T.uncons lab of

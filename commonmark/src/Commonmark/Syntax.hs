@@ -7,7 +7,7 @@ module Commonmark.Syntax
 where
 
 import Text.Parsec (ParsecT)
-import Commonmark.Tokens (Tok)
+import Commonmark.Tokens (Toks)
 import Commonmark.Types
 import Commonmark.Blocks
 import Commonmark.Inlines
@@ -30,7 +30,7 @@ data SyntaxSpec m il bl = SyntaxSpec
      , syntaxFinalParsers    :: [BlockParser m il bl bl]
         -- ^ Run at the end of document, e.g. to collect footnotes
      , syntaxAttributeParsers
-             :: forall u . [ParsecT [Tok] u m Attributes]
+             :: forall u . [ParsecT Toks u m Attributes]
        -- ^ Parse attributes
      }
 

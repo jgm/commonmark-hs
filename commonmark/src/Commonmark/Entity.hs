@@ -2314,14 +2314,14 @@ htmlEntities =
     ,("zwnj;", "\x200C")
     ]
 
-charEntity :: Monad m => ParsecT [Tok] s m [Tok]
+charEntity :: Monad m => ParsecT Toks s m [Tok]
 charEntity = do
   wc@(Tok WordChars _ ts) <- satisfyTok (hasType WordChars)
   semi <- symbol ';'
   guard $ isJust $ lookupEntity (ts <> ";")
   return [wc, semi]
 
-numEntity :: Monad m => ParsecT [Tok] s m [Tok]
+numEntity :: Monad m => ParsecT Toks s m [Tok]
 numEntity = do
   octo <- symbol '#'
   wc@(Tok WordChars _ t) <- satisfyTok (hasType WordChars)
@@ -2340,10 +2340,10 @@ numEntity = do
 
 unEntity :: [Tok] -> Text
 unEntity ts = untokenize $
-  case parse (many (pEntity' <|> anyTok)) "" ts of
+  case parse (many (pEntity' <|> anyTok)) "" (toToks ts) of
         Left _    -> ts
         Right ts' -> ts'
-  where pEntity' :: ParsecT [Tok] () Identity Tok
+  where pEntity' :: ParsecT Toks () Identity Tok
         pEntity' = try $ do
           pos <- getPosition
           symbol '&'

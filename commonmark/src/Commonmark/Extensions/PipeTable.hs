@@ -76,7 +76,7 @@ instance (HasPipeTable i b, Monoid b)
     (pipeTable aligns <$> sequence headerCells <*> mapM sequence rows)
      <* addName "pipeTable"
 
-pCells :: Monad m => ParsecT [Tok] s m [[Tok]]
+pCells :: Monad m => ParsecT Toks s m [[Tok]]
 pCells = try $ do
   hasPipe <- option False $ True <$ symbol '|'
   pipedCells <- many (try $ pCell <* symbol '|')
@@ -87,7 +87,7 @@ pCells = try $ do
   lookAhead blankLine
   return $! cells
 
-pCell :: Monad m => ParsecT [Tok] s m [Tok]
+pCell :: Monad m => ParsecT Toks s m [Tok]
 pCell = mconcat <$> many1
   ( try
       (do tok' <- symbol '\\'
@@ -100,7 +100,7 @@ pCell = mconcat <$> many1
           return $! [tok])
   ) <|> ([] <$ lookAhead (symbol '|'))
 
-pDividers :: Monad m => ParsecT [Tok] s m [ColAlignment]
+pDividers :: Monad m => ParsecT Toks s m [ColAlignment]
 pDividers = try $ do
   hasPipe <- option False $ True <$ symbol '|'
   pipedAligns <- many (try $ pDivider <* symbol '|')
@@ -112,7 +112,7 @@ pDividers = try $ do
   return $! aligns
 
 
-pDivider :: Monad m => ParsecT [Tok] s m ColAlignment
+pDivider :: Monad m => ParsecT Toks s m ColAlignment
 pDivider = try $ do
   skipMany $ satisfyTok (hasType Spaces)
   align <- choice

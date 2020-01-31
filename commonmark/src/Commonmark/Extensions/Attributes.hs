@@ -214,7 +214,7 @@ attributesSpec = mempty
   { syntaxAttributeParsers = [pAttributes]
   }
 
-pAttributes :: Monad m => ParsecT [Tok] u m Attributes
+pAttributes :: Monad m => ParsecT Toks u m Attributes
 pAttributes = mconcat <$> many1 pattr
   where
     pattr = try $ do
@@ -227,7 +227,7 @@ pAttributes = mconcat <$> many1 pattr
       symbol '}'
       return $! (a:as)
 
-pRawAttribute :: Monad m => ParsecT [Tok] u m Format
+pRawAttribute :: Monad m => ParsecT Toks u m Format
 pRawAttribute = try $ do
   symbol '{'
   optional whitespace
@@ -237,7 +237,7 @@ pRawAttribute = try $ do
   symbol '}'
   return $! Format t
 
-pIdentifier :: Monad m => ParsecT [Tok] u m Attribute
+pIdentifier :: Monad m => ParsecT Toks u m Attribute
 pIdentifier = try $ do
   symbol '#'
   xs <- many1 $
@@ -246,7 +246,7 @@ pIdentifier = try $ do
                         || hasType (Symbol ':') c || hasType (Symbol '.') c)
   return $! ("id", unEntity xs)
 
-pClass :: Monad m => ParsecT [Tok] u m Attribute
+pClass :: Monad m => ParsecT Toks u m Attribute
 pClass = do
   symbol '.'
   xs <- many1 $
@@ -254,7 +254,7 @@ pClass = do
     <|> satisfyTok (\c -> hasType (Symbol '-') c || hasType (Symbol '_') c)
   return $! ("class", unEntity xs)
 
-pKeyValue :: Monad m => ParsecT [Tok] u m Attribute
+pKeyValue :: Monad m => ParsecT Toks u m Attribute
 pKeyValue = do
   name <- htmlAttributeName
   symbol '='

@@ -191,7 +191,7 @@ incorporateAttribute (k, v) as =
                           filter (\(x, _) -> x /= k) as
 
 renderHtml :: Html a -> TL.Text
-renderHtml = {-# SCC renderHtml #-} toLazyText . toBuilder
+renderHtml = toLazyText . toBuilder
 
 toBuilder :: Html a -> Builder
 toBuilder (HtmlNull) = mempty

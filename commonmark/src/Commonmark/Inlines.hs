@@ -74,7 +74,7 @@ mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
   let attrParser = choice attrParsers
   let toks' = dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks
-  res <- {-# SCC parseChunks #-} parseChunks bracketedSpecs formattingSpecs ilParsers attrParser rm toks'
+  res <- parseChunks bracketedSpecs formattingSpecs ilParsers attrParser rm toks'
   return $!
     case res of
        Left err     -> Left err
@@ -97,7 +97,7 @@ defaultInlineParsers =
                 ]
 
 unChunks :: IsInline a => [Chunk a] -> a
-unChunks = {-# SCC unChunks #-} foldl' mappend mempty . go
+unChunks = foldl' mappend mempty . go
     where
       go []     = []
       go (c:cs) =
@@ -146,7 +146,7 @@ parseChunks bspecs specs ilParsers attrParser rm ts =
    specmap = mkFormattingSpecMap specs
    prefixchars = mapMaybe bracketedPrefix bspecs
    suffixchars = mapMaybe bracketedSuffixEnd bspecs
-   precedingTokTypeMap = {-# SCC precedingTokTypeMap #-}fst $! foldl' go  (mempty, LineEnd) ts
+   precedingTokTypeMap = fst $! foldl' go  (mempty, LineEnd) ts
    go (!m, !prevTy) (Tok !ty !pos _) =
      case ty of
        Symbol c | isDelimChar c -> (M.insert pos prevTy m, ty)
@@ -302,11 +302,11 @@ pChunk :: (IsInline a, Monad m)
        -> InlineParser m (Chunk a)
 pChunk specmap attrParser ilParsers isDelimChar =
  do pos <- getPosition
-    (res, ts) <- {-# SCC attrParser #-} withRaw (AddAttributes <$> attrParser)
-                 <|> {-# SCC pInline #-} (\(x,ts) -> (Parsed x,ts)) <$>
+    (res, ts) <- withRaw (AddAttributes <$> attrParser)
+                    <|> (\(x,ts) -> (Parsed x,ts)) <$>
                            pInline ilParsers isDelimChar
     return $! Chunk res pos ts
-  <|> {-# SCC pDelimChunk #-} pDelimChunk specmap isDelimChar
+  <|> pDelimChunk specmap isDelimChar
 
 pDelimTok :: Monad m => (Char -> Bool) -> InlineParser m Tok
 pDelimTok isDelimChar = do
@@ -689,7 +689,6 @@ processEm st =
        _ -> processEm
             st{ rightCursor = moveRight right
               , leftCursor  = moveRight left }
-{-# SCC processEm #-}
 
 -- This only applies to emph delims, not []:
 delimsMatch :: IsInline a
@@ -864,7 +863,7 @@ processBs bracketedSpecs st =
 
        (_, _) -> processBs bracketedSpecs
                 st{ rightCursor = moveRight right }
-{-# SCC processBs #-}
+
 
 
 -- This just changes a single quote Delim that occurs

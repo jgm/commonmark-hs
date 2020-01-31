@@ -8,7 +8,3 @@ packages:
 - commonmark
 - commonmark-cli
 - commonmark-pandoc
-# These next two lines are needed to use
-# stack build --profile --ghc-options="-fno-prof-auto"
-apply-ghc-options: everything
-rebuild-ghc-options: true

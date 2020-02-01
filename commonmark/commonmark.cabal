@@ -81,7 +81,6 @@ library
       Commonmark.Html
       Commonmark.Syntax
       Commonmark.ReferenceMap
-      Commonmark.Tokens
       Commonmark.Inlines
       Commonmark.Blocks
       Commonmark.Util

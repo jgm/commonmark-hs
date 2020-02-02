@@ -3,6 +3,7 @@
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Commonmark.Inlines
@@ -71,7 +72,8 @@ mkInlineParser :: (Monad m, IsInline a)
                -> [((SourcePos, SourcePos), Text)]
                -> m (Either ParseError a)
 mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
-  let (positions, ts) = unzip toks
+  let (positionList, ts) = unzip toks
+  let positions = V.fromList positionList
   let iswhite c = c == ' ' || c == '\t' || c == '\r' || c == '\n'
   let attrParser = choice attrParsers
   res <- parseChunks bracketedSpecs formattingSpecs ilParsers attrParser
@@ -82,8 +84,8 @@ mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
        Right chunks ->
          (Right .
           unChunks .
-          processEmphasis .
-          processBrackets bracketedSpecs rm) chunks
+          processEmphasis positions .
+          processBrackets bracketedSpecs positions rm) chunks
 
 defaultInlineParsers :: (Monad m, IsInline a) => [InlineParser m a]
 defaultInlineParsers =
@@ -125,20 +127,20 @@ parseChunks :: (Monad m, IsInline a)
             -> [InlineParser m a]
             -> InlineParser m Attributes
             -> ReferenceMap
-            -> [(SourcePos, SourcePos)]
+            -> V.Vector (SourcePos, SourcePos)
             -> Text
             -> m (Either ParseError [Chunk a])
 parseChunks bspecs specs ilParsers attrParser rm positions t =
   runParserT
-     (do case positions of
-           (p,_):_ -> setPosition p
-           []      -> return ()
+     (do case positions V.!? 0 of
+           Just (p,_) -> setPosition p
+           _          -> return ()
          -- build maps of preceding characters and backtick spans
          lookAhead pBuildMaps
          many (pChunk specmap attrParser ilParsers isDelimChar) <* eof)
      IPState{ backtickSpans = mempty,
               userState = toDyn (),
-              linePositions = V.fromList positions,
+              linePositions = positions,
               ipReferenceMap = rm,
               precedingChars = mempty,
               attributeParser = attrParser }
@@ -384,32 +386,34 @@ pInline ilParsers isDelimChar = do
                    (res, toks) <- withRaw
                                    (choice ilParsers <|> pSymbol isDelimChar)
                    endpos <- getPosition
-                   range <- rangeFromStartEnd startpos endpos
+                   positions <- linePositions <$> getState
+                   let range = rangeFromStartEnd positions startpos endpos
                    return (ranged range res))
   return $! (mconcat xs, ts)
 
-rangeFromStartEnd :: Monad m
-                  => SourcePos -> SourcePos -> InlineParser m SourceRange
-rangeFromStartEnd startpos endpos = do
-  let startline = sourceLine startpos
-  let endline = sourceLine endpos
-  positions <- linePositions <$> getState
-  let realPos lnum = case positions V.!? lnum of
-                       Just (start, end) ->
-                         let scol = if lnum == startline
-                                       then sourceColumn startpos +
-                                            sourceColumn start
-                                       else sourceColumn start
-                             ecol = if lnum == endline
-                                       then sourceColumn endpos +
-                                            sourceColumn start
-                                       else sourceColumn end
-                             slin = sourceLine start
-                             elin = sourceLine end
-                             sn = sourceName startpos
-                         in  (newPos sn slin scol, newPos sn elin ecol)
-  let realPositions = map realPos [startline..endline]
-  return $! SourceRange realPositions
+rangeFromStartEnd :: V.Vector (SourcePos, SourcePos)
+                  -> SourcePos
+                  -> SourcePos
+                  -> SourceRange
+rangeFromStartEnd positions startpos endpos = SourceRange realPositions
+ where
+  startline = sourceLine startpos
+  endline = sourceLine endpos
+  realPos lnum = case positions V.!? lnum of
+                   Just (start, end) ->
+                     let scol = if lnum == startline
+                                   then sourceColumn startpos +
+                                        sourceColumn start
+                                   else sourceColumn start
+                         ecol = if lnum == endline
+                                   then sourceColumn endpos +
+                                        sourceColumn start
+                                   else sourceColumn end
+                         slin = sourceLine start
+                         elin = sourceLine end
+                         sn = sourceName startpos
+                     in  (newPos sn slin scol, newPos sn elin ecol)
+  realPositions = map realPos [startline..endline]
 
 pEscapedChar :: (IsInline a, Monad m) => InlineParser m a
 pEscapedChar = do
@@ -544,15 +548,19 @@ pSymbol isDelimChar = do
   return $! str (T.singleton c)
 
 data DState a = DState
-     { leftCursor     :: Cursor (Chunk a)
-     , rightCursor    :: Cursor (Chunk a)
-     , refmap         :: ReferenceMap
-     , stackBottoms   :: M.Map Text SourcePos
-     , absoluteBottom :: SourcePos
+     { leftCursor     :: !(Cursor (Chunk a))
+     , rightCursor    :: !(Cursor (Chunk a))
+     , refmap         :: !ReferenceMap
+     , stackBottoms   :: !(M.Map Text SourcePos)
+     , absoluteBottom :: !SourcePos
+     , dLinePositions :: !(V.Vector (SourcePos, SourcePos))
      }
 
-processEmphasis :: IsInline a => [Chunk a] -> [Chunk a]
-processEmphasis xs =
+processEmphasis :: IsInline a
+                => V.Vector (SourcePos, SourcePos)
+                -> [Chunk a]
+                -> [Chunk a]
+processEmphasis positions xs =
   case break (\case
                (Chunk Delim{} _ _) -> True
                _ -> False) xs of
@@ -563,7 +571,8 @@ processEmphasis xs =
                                , rightCursor = startcursor
                                , refmap = emptyReferenceMap
                                , stackBottoms = mempty
-                               , absoluteBottom = chunkPos z }
+                               , absoluteBottom = chunkPos z
+                               , dLinePositions = positions }
 
 {- for debugging:
 prettyCursors :: (IsInline a) => Cursor (Chunk a) -> Cursor (Chunk a) -> String
@@ -584,6 +593,7 @@ processEm st =
   let left = leftCursor st
       right = rightCursor st
       bottoms = stackBottoms st
+      positions = dLinePositions st
   in case -- trace (prettyCursors left right)
           (center left, center right) of
        (_, Nothing) -> reverse $
@@ -592,12 +602,12 @@ processEm st =
                             Just c  -> c : befores (rightCursor st)
 
        (Nothing, Just (Chunk Delim{ delimType = c
-                                  , delimCanClose = True } pos ts)) ->
+                                  , delimCanClose = True } pos t)) ->
            processEm
            st{ leftCursor   = right
              , rightCursor  = moveRight right
              , stackBottoms = M.insert
-                   (T.pack (c : show (length ts `mod` 3))) pos
+                   (T.pack (c : show (T.length t `mod` 3))) pos
                    $ stackBottoms st
              }
 
@@ -609,13 +619,13 @@ processEm st =
        (Just chunk, Just closedelim@(Chunk Delim{ delimType = c,
                                                   delimCanClose = True,
                                                   delimSpec = Just spec}
-                                           closePos ts))
+                                           closePos t))
          | delimsMatch chunk closedelim ->
-           let closelen = length ts
+           let closelen = T.length t
                opendelim = chunk
                contents = takeWhile (\ch -> chunkPos ch /= closePos)
                           (afters left)
-               openlen = length (chunkText opendelim)
+               openlen = T.length (chunkText opendelim)
                fallbackConstructor x = str (T.singleton c) <> x <>
                                        str (T.singleton c)
                (constructor, numtoks) =
@@ -625,19 +635,26 @@ processEm st =
                         (Just c1, _)     -> (c1, 1)
                         _                -> (fallbackConstructor, 1)
                (openrest, opentoks) =
-                 splitAt (openlen - numtoks) (chunkText opendelim)
+                 T.splitAt (openlen - numtoks) (chunkText opendelim)
                (closetoks, closerest) =
-                 splitAt numtoks (chunkText closedelim)
-               addnewopen = if null openrest
+                 T.splitAt numtoks (chunkText closedelim)
+               addnewopen = if T.null openrest
                                then id
                                else (opendelim{ chunkText = openrest } :)
-               addnewclose = if null closerest
+               addnewclose = if T.null closerest
                                 then id
                                 else (closedelim{ chunkText = closerest } :)
-               emphtoks = opentoks ++ concatMap chunkText contents ++ closetoks
+               emphtoks = opentoks <> T.concat (map chunkText contents) <>
+                          closetoks
+               emphStartPos = incSourceColumn (chunkPos opendelim)
+                                 (T.length openrest)
+               emphEndPos = incSourceColumn (chunkPos closedelim)
+                                 (T.length closetoks)
                newelt = Chunk
                          (Parsed $
-                           ranged (rangeFromStartEnd emphtoks undefined) $
+                           ranged
+                             (rangeFromStartEnd positions
+                                emphStartPos emphEndPos) $
                              constructor $ unChunks contents)
                          (chunkPos chunk)
                          emphtoks
@@ -650,12 +667,12 @@ processEm st =
                 }
 
          | Just (chunkPos chunk) <=
-             M.lookup (T.pack (c: show (length ts `mod` 3))) bottoms ->
+             M.lookup (T.pack (c: show (T.length t `mod` 3))) bottoms ->
                   processEm
                   st{ leftCursor   = right
                     , rightCursor  = moveRight right
                     , stackBottoms =  M.insert
-                        (T.pack (c : show (length ts `mod` 3)))
+                        (T.pack (c : show (T.length t `mod` 3)))
                         (chunkPos closedelim)
                         $ stackBottoms st
                     }
@@ -681,8 +698,12 @@ delimsMatch (Chunk open@Delim{} _ opents) (Chunk close@Delim{} _ closets) =
 delimsMatch _ _ = False
 
 processBrackets :: IsInline a
-                => [BracketedSpec a] -> ReferenceMap -> [Chunk a] -> [Chunk a]
-processBrackets bracketedSpecs rm xs =
+                => [BracketedSpec a]
+                -> V.Vector (SourcePos, SourcePos)
+                -> ReferenceMap
+                -> [Chunk a]
+                -> [Chunk a]
+processBrackets bracketedSpecs positions rm xs =
   case break (\case
                (Chunk Delim{ delimType = '[' } _ _) -> True
                _ -> False) xs of
@@ -695,6 +716,7 @@ processBrackets bracketedSpecs rm xs =
                        , refmap = rm
                        , stackBottoms = mempty
                        , absoluteBottom = chunkPos z
+                       , dLinePositions = positions
                        }
 
 data Cursor a = Cursor
@@ -725,6 +747,7 @@ processBs bracketedSpecs st =
       right = rightCursor st
       bottoms = stackBottoms st
       bottom = absoluteBottom st
+      positions = dLinePositions st
   -- trace (prettyCursors left right) $ return $! ()
   in case (center left, center right) of
        (_, Nothing) -> reverse $
@@ -757,12 +780,12 @@ processBs bracketedSpecs st =
               key = if any isBracket chunksinside
                        then ""
                        else
-                         case untokenize (concatMap chunkText chunksinside) of
+                         case T.concat (map chunkText chunksinside) of
                               ks | T.length ks <= 999 -> ks
                               _  -> ""
               prefixChar = case befores left of
-                                 Chunk Delim{delimType = c} _ [_] : _
-                                    -> Just c
+                                 Chunk Delim{delimType = c} _ x : _
+                                   | not (T.null x) -> Just c
                                  _  -> Nothing
               rm = refmap st
 
@@ -798,12 +821,13 @@ processBs bracketedSpecs st =
                          openerPos = case openers of
                                           (x:_) -> chunkPos x
                                           _     -> chunkPos opener
-                         elttoks = concatMap chunkText
-                                     (openers ++ chunksinside ++ [closer])
-                                      ++ desttoks
-                         elt = ranged (rangeFromStartEnd elttoks undefined)
-                                  $ constructor $ unChunks $
-                                       processEmphasis chunksinside
+                         elttoks = T.concat (map chunkText
+                                     (openers ++ chunksinside ++ [closer]))
+                                      <> desttoks
+                         elt = ranged (rangeFromStartEnd positions
+                                         openerPos newpos)
+                                  $ constructor $ unChunks
+                                  $ processEmphasis positions chunksinside
                          eltchunk = Chunk (Parsed elt) openerPos elttoks
                          afterchunks = dropWhile ((< newpos) . chunkPos)
                                          (afters right)
@@ -872,7 +896,7 @@ pInlineLink = try $ do
                     , linkAttributes = mempty }
 
 pLinkDestination :: Monad m => ParsecT Text s m Text
-pLinkDestination = pAngleDest <|> pNormalDest 0
+pLinkDestination = T.pack <$> (pAngleDest <|> pNormalDest 0)
   where
     pAngleDest = do
       _ <- char '<'
@@ -901,7 +925,7 @@ pLinkDestination = pAngleDest <|> pNormalDest 0
                           _    -> True)
           case c of
             '\\' -> do
-              c' <- option c $ satisfy asciiSymbol
+              c' <- option c $ satisfy isAsciiSymbol
               (c':) <$> pNormalDest' numparens
             '('  -> (c:) <$> pNormalDest' (numparens + 1)
             ')'  -> (c:) <$> pNormalDest' (numparens - 1)
@@ -922,12 +946,12 @@ pLinkTitle = inbetween '"' '"' <|> inbetween '\'' '\'' <|> inbetween '(' ')'
 
 inbetween :: Monad m => Char -> Char -> ParsecT Text s m Text
 inbetween op cl =
-  try $ between (symbol op) (symbol cl)
+  try $ T.pack <$> between (char op) (char cl)
      (many (pEscaped <|> satisfy (\c -> c /= op && c /= cl)))
 
 pLinkLabel :: Monad m => ParsecT Text s m Text
 pLinkLabel = try $ do
-  lab <- try $ inbetween (char '[') (char ']')
+  lab <- try $ between (char '[') (char ']')
             (snd <$> withRaw (many
               (pEscaped <|> satisfy (\c -> c /= ']' && c /= '['))))
   guard $ T.length lab <= 999

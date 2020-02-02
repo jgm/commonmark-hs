@@ -67,6 +67,7 @@ library
       base >=4.7 && <5
     , text
     , bytestring
+    , vector
     , containers
     , transformers
     , parsec

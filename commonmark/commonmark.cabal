@@ -85,20 +85,20 @@ library
       Commonmark.Blocks
       Commonmark.Util
       Commonmark.SourceMap
-      Commonmark.Extensions.Smart
-      Commonmark.Extensions.Strikethrough
-      Commonmark.Extensions.Superscript
-      Commonmark.Extensions.Subscript
-      Commonmark.Extensions.PipeTable
-      Commonmark.Extensions.Math
-      Commonmark.Extensions.Emoji
-      Commonmark.Extensions.Autolink
-      Commonmark.Extensions.Footnote
-      Commonmark.Extensions.DefinitionList
-      Commonmark.Extensions.Attributes
-      Commonmark.Extensions.AutoIdentifiers
-      Commonmark.Extensions.FancyList
-      Commonmark.Extensions.ImplicitHeadingReferences
+      -- Commonmark.Extensions.Smart
+      -- Commonmark.Extensions.Strikethrough
+      -- Commonmark.Extensions.Superscript
+      -- Commonmark.Extensions.Subscript
+      -- Commonmark.Extensions.PipeTable
+      -- Commonmark.Extensions.Math
+      -- Commonmark.Extensions.Emoji
+      -- Commonmark.Extensions.Autolink
+      -- Commonmark.Extensions.Footnote
+      -- Commonmark.Extensions.DefinitionList
+      -- Commonmark.Extensions.Attributes
+      -- Commonmark.Extensions.AutoIdentifiers
+      -- Commonmark.Extensions.FancyList
+      -- Commonmark.Extensions.ImplicitHeadingReferences
   other-modules:
       Commonmark.Tag
       Commonmark.Entity

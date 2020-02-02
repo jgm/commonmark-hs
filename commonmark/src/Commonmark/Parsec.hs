@@ -5,6 +5,7 @@ module Commonmark.Parsec
   ( -- Re-exports
     ParsecT
   , runParserT
+  , runParser
   , parse
   , (<|>)
   , (<?>)

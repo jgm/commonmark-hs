@@ -39,8 +39,7 @@ module Commonmark.Inlines
 where
 
 import           Commonmark.Tag             (htmlTag)
-import           Commonmark.Tokens
-import           Commonmark.Util
+import           Commonmark.Parsec
 import           Commonmark.ReferenceMap
 import           Commonmark.Types
 import           Control.Monad              (guard, mzero)
@@ -57,8 +56,6 @@ import           Data.Monoid                ((<>))
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import           Commonmark.Entity          (unEntity, charEntity, numEntity)
-import           Text.Parsec                hiding (State, space)
-import           Text.Parsec.Pos
 
 -- import Debug.Trace
 

@@ -14,9 +14,7 @@ where
 import Data.Char (chr)
 import Data.Functor.Identity (Identity)
 import qualified Data.Map as Map
-import Commonmark.Util
-import Commonmark.Tokens
-import Text.Parsec
+import Commonmark.Parsec
 import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.Text.Read as TR

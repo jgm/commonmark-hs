@@ -7,12 +7,10 @@ module Commonmark.Tag
   , htmlAttributeValue
   , htmlDoubleQuotedAttributeValue )
 where
-import           Commonmark.Tokens
-import           Commonmark.Util
+import           Commonmark.Parsec
 import           Control.Monad     (liftM2)
 import           Data.Char         (isAscii, isLetter)
 import qualified Data.Text         as T
-import           Text.Parsec       hiding (State)
 
 (.&&.) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
 (.&&.) = liftM2 (&&)

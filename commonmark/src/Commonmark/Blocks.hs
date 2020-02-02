@@ -49,12 +49,11 @@ module Commonmark.Blocks
 where
 
 import           Commonmark.Tag
-import           Commonmark.Util
+import           Commonmark.Parsec
 import           Commonmark.ReferenceMap
 import           Commonmark.Inlines        (pEscaped, pLinkDestination,
                                             pLinkLabel, pLinkTitle)
 import           Commonmark.Entity         (unEntity)
-import           Commonmark.Tokens
 import           Commonmark.Types
 import           Control.Monad             (foldM, guard, mzero, void, unless,
                                             when)
@@ -71,7 +70,6 @@ import qualified Data.Map                  as M
 import qualified Data.Text                 as T
 import qualified Data.Text.Read            as TR
 import           Data.Tree
-import           Text.Parsec
 
 mkBlockParser
   :: (Monad m, IsBlock il bl)

@@ -83,7 +83,7 @@ library
       Commonmark.ReferenceMap
       Commonmark.Inlines
       Commonmark.Blocks
-      Commonmark.Util
+      Commonmark.Parsec
       Commonmark.SourceMap
       -- Commonmark.Extensions.Smart
       -- Commonmark.Extensions.Strikethrough

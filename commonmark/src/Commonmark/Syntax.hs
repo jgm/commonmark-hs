@@ -6,8 +6,7 @@ module Commonmark.Syntax
   )
 where
 
-import Text.Parsec (ParsecT)
-import Commonmark.Tokens (Tok)
+import Commonmark.Parsec (ParsecT)
 import Commonmark.Types
 import Commonmark.Blocks
 import Commonmark.Inlines

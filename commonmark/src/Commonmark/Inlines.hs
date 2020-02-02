@@ -42,9 +42,11 @@ import           Commonmark.Tag             (htmlTag)
 import           Commonmark.Parsec
 import           Commonmark.ReferenceMap
 import           Commonmark.Types
-import           Control.Monad              (guard, mzero)
+import           Control.Monad              (guard, mzero, when)
 import           Data.List                  (foldl')
-import           Data.Char                  (isAscii, isLetter)
+import           Data.Char                  (isAscii, isLetter, isSpace,
+                                             isSymbol, isPunctuation,
+                                             isAlphaNum)
 import           Data.Dynamic               (Dynamic, toDyn)
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map                   as M
@@ -55,6 +57,7 @@ import           Data.Monoid                ((<>))
 #endif
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
+import qualified Data.Vector                as V
 import           Commonmark.Entity          (unEntity, charEntity, numEntity)
 
 -- import Debug.Trace
@@ -65,14 +68,14 @@ mkInlineParser :: (Monad m, IsInline a)
                -> [InlineParser m a]
                -> [InlineParser m Attributes]
                -> ReferenceMap
-               -> [(SourcePos, Text)]
+               -> [((SourcePos, SourcePos), Text)]
                -> m (Either ParseError a)
 mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
-  let (startps, ts) = unzip toks
+  let (positions, ts) = unzip toks
   let iswhite c = c == ' ' || c == '\t' || c == '\r' || c == '\n'
   let attrParser = choice attrParsers
   res <- parseChunks bracketedSpecs formattingSpecs ilParsers attrParser
-           rm startps ts
+           rm positions (mconcat ts)
   return $!
     case res of
        Left err     -> Left err
@@ -122,24 +125,24 @@ parseChunks :: (Monad m, IsInline a)
             -> [InlineParser m a]
             -> InlineParser m Attributes
             -> ReferenceMap
-            -> [SourcePos]
+            -> [(SourcePos, SourcePos)]
             -> Text
             -> m (Either ParseError [Chunk a])
-parseChunks bspecs specs ilParsers attrParser rm startps ts =
+parseChunks bspecs specs ilParsers attrParser rm positions t =
   runParserT
-     (do case startps of
-           p:_ -> setPosition p
-           []  -> return ()
+     (do case positions of
+           (p,_):_ -> setPosition p
+           []      -> return ()
          -- build maps of preceding characters and backtick spans
          lookAhead pBuildMaps
          many (pChunk specmap attrParser ilParsers isDelimChar) <* eof)
      IPState{ backtickSpans = mempty,
               userState = toDyn (),
+              linePositions = V.fromList positions,
               ipReferenceMap = rm,
               precedingChars = mempty,
-              adjustPos = adjustPos,
               attributeParser = attrParser }
-     "source" ts
+     "source" t
   where
    pBuildMaps = skipMany $ do
       c <- anyChar
@@ -149,14 +152,15 @@ parseChunks bspecs specs ilParsers attrParser rm startps ts =
          updateState $ \st ->
            st{ backtickSpans = IntMap.alter
                 (\x -> case x of
-                        Nothing -> Just [pos]
-                        Just ps -> Just (pos:ps)) len $
+                        Nothing -> Just [tickstart]
+                        Just ps -> Just (tickstart:ps)) len $
                 backtickSpans st }
       optional $ lookAhead $ do
         d <- anyChar
         when (isDelimChar d) $ do
            pos <- getPosition
-           updateState $ \st -> st{ precedingChars = M.insert pos c }
+           updateState $ \st -> st{ precedingChars = M.insert pos c $
+                                     precedingChars st }
    isDelimChar c = c `Set.member` delimcharset
    delimcharset = Set.fromList delimchars
    delimchars = '[' : ']' : suffixchars ++
@@ -164,14 +168,6 @@ parseChunks bspecs specs ilParsers attrParser rm startps ts =
    specmap = mkFormattingSpecMap specs
    prefixchars = mapMaybe bracketedPrefix bspecs
    suffixchars = mapMaybe bracketedSuffixEnd bspecs
-   startPosMap = IntMap.fromList $!
-                   map (\pos -> (sourceLine pos, sourceColumn pos - 1))
-                   (tail startps)
-                   -- tail because we don't need adjustments on first line
-   adjustPos :: SourcePos -> SourcePos
-   adjustPos !pos = case IntMap.lookup (sourceLine $! pos) startPosMap of
-                     Just !offset -> incSourceColumn pos offset
-                     Nothing      -> pos
 
 data Chunk a = Chunk
      { chunkType :: !(ChunkType a)
@@ -195,9 +191,10 @@ data IPState m = IPState
                                -- record of lengths of
                                -- backtick spans so we don't scan in vain
      , userState            :: !Dynamic
+     , linePositions        :: !(V.Vector (SourcePos, SourcePos))
      , ipReferenceMap       :: !ReferenceMap
      , precedingChars       :: !(M.Map SourcePos Char)
-     , adjustPos            :: SourcePos -> SourcePos
+     , positions            :: [(SourcePos, SourcePos)]
      , attributeParser      :: ParsecT Text (IPState m) m Attributes
      }
 
@@ -304,10 +301,9 @@ pChunk :: (IsInline a, Monad m)
        -> InlineParser m (Chunk a)
 pChunk specmap attrParser ilParsers isDelimChar =
  do pos <- getPosition
-    (res, t) <- withRaw $
-                (AddAttributes <$> attrParser)
+    (res, t) <- withRaw (AddAttributes <$> attrParser)
                  <|>
-                 (\(x,t) -> (Parsed x,t)) <$> pInline ilParsers isDelimChar
+                (\(x,t) -> (Parsed x,t)) <$> pInline ilParsers isDelimChar
     return $! Chunk res pos t
   <|> pDelimChunk specmap isDelimChar
 
@@ -330,7 +326,8 @@ pDelimChunk specmap isDelimChar = do
   let precededByPunctuation =
        case formattingIgnorePunctuation <$> mbspec of
          Just True -> False
-         _         -> isSymbol precedingChar || isPunctuation precedingChar
+         _         -> maybe False (\c -> isSymbol c || isPunctuation c)
+                        precedingChar
   let followedByWhitespace = isSpace next
   let followedByPunctuation =
        case formattingIgnorePunctuation <$> mbspec of
@@ -361,9 +358,9 @@ pDelimChunk specmap isDelimChar = do
                     -- this is mainly for quotes
                     Just spec
                       | formattingWhenUnmatched spec /= c ->
-                         map (T.map (\_ -> formattingWhenUnmatched spec)) toks
+                         T.map (\_ -> formattingWhenUnmatched spec) toks
                     _ -> toks
-  let !len = length toks'
+  let !len = T.length toks'
   return $! Chunk Delim{ delimType = c
                        , delimCanOpen = canOpen
                        , delimCanClose = canClose
@@ -387,27 +384,32 @@ pInline ilParsers isDelimChar = do
                    (res, toks) <- withRaw
                                    (choice ilParsers <|> pSymbol isDelimChar)
                    endpos <- getPosition
-                   adjust <- adjustPos <$> getState
-                   let range = if sourceLine startpos == sourceLine endpos
-                                  then SourceRange [(adjust startpos, adjust endpos)]
-                                  else rangeFromChars startpos adjustPos toks
+                   range <- rangeFromStartEnd startpos endpos
                    return (ranged range res))
   return $! (mconcat xs, ts)
 
-rangeFromChars :: (SourcePos -> SourcePos) -> SourcePos -> Text -> SourceRange
-rangeFromChars startpos adjust = SourceRange . go
- where go ts =
-        case break (hasType LineEnd) ts of
-             ([], [])     -> []
-             ([], _:ys)   -> go ys
-             (x:xs, [])   ->
-                let y = last (x:xs) in
-                [(tokPos x,
-                  incSourceColumn (tokPos y) (T.length (tokContents y)))]
-             (x:_, y:ys) ->
-               case ys of
-                 (Char _ pos _ : _) | sourceColumn pos == 1 -> go (x:ys)
-                 _ -> (tokPos x, tokPos y) : go ys
+rangeFromStartEnd :: Monad m
+                  => SourcePos -> SourcePos -> InlineParser m SourceRange
+rangeFromStartEnd startpos endpos = do
+  let startline = sourceLine startpos
+  let endline = sourceLine endpos
+  positions <- linePositions <$> getState
+  let realPos lnum = case positions V.!? lnum of
+                       Just (start, end) ->
+                         let scol = if lnum == startline
+                                       then sourceColumn startpos +
+                                            sourceColumn start
+                                       else sourceColumn start
+                             ecol = if lnum == endline
+                                       then sourceColumn endpos +
+                                            sourceColumn start
+                                       else sourceColumn end
+                             slin = sourceLine start
+                             elin = sourceLine end
+                             sn = sourceName startpos
+                         in  (newPos sn slin scol, newPos sn elin ecol)
+  let realPositions = map realPos [startline..endline]
+  return $! SourceRange realPositions
 
 pEscapedChar :: (IsInline a, Monad m) => InlineParser m a
 pEscapedChar = do
@@ -426,8 +428,28 @@ pCodeSpan :: (IsInline a, Monad m) => InlineParser m a
 pCodeSpan =
   pBacktickSpan >>=
   \case
-    Left ticks     -> return $! str (untokenize ticks)
-    Right codetoks -> return $! code . normalizeCodeSpan . untokenize $ codetoks
+    Left ticks     -> return $! str ticks
+    Right codetoks -> return $! code . normalizeCodeSpan $ codetoks
+
+pBacktickSpan :: Monad m
+              => InlineParser m (Either Text Text)
+pBacktickSpan = do
+  t <- textWhile1 (== '`')
+  pos' <- getPosition
+  let numticks = T.length t
+  st' <- getState
+  case dropWhile (<= pos') <$> IntMap.lookup numticks (backtickSpans st') of
+     Just (pos'':ps) -> do
+          codetoks <- many $ do
+            pos <- getPosition
+            guard $ pos < pos''
+            anyChar
+          backticks <- textWhile1 (== '`')
+          guard $ T.length backticks == numticks
+          updateState $ \st ->
+            st{ backtickSpans = IntMap.insert numticks ps (backtickSpans st) }
+          return $! Right $ T.pack codetoks
+     _ -> return $! Left t
 
 normalizeCodeSpan :: Text -> Text
 normalizeCodeSpan = removeSurroundingSpace . T.map nltosp
@@ -457,8 +479,7 @@ pUri :: Monad m => InlineParser m (Text, Text)
 pUri = try $ do
   s <- pScheme
   _ <- char ':'
-  let isURIChar c    = not (isSpace c) &&
-                       c  /= '<' && c /= '>' &&
+  let isURIChar c = not (isSpace c) && c  /= '<' && c /= '>'
   t <- textWhile1 isURIChar
   let uri = s <> ":" <> t
   return $! (uri, uri)
@@ -481,7 +502,7 @@ pEmail = do
          c == '{' || c == '|' || c == '}' || c == '~' || c == '-' ||
          c == ']'
       isEmailSymbolChar _ = False
-  lookAhead $ satisfy (isAscii c && isAlphaNum c)
+  lookAhead $ satisfy (\c -> isAscii c && isAlphaNum c)
   name <- textWhile1 (\c -> (isAscii c && isAlphaNum c) ||
                             isEmailSymbolChar c)
   _ <- char '@'
@@ -616,7 +637,7 @@ processEm st =
                emphtoks = opentoks ++ concatMap chunkText contents ++ closetoks
                newelt = Chunk
                          (Parsed $
-                           ranged (rangeFromChars emphtoks) $
+                           ranged (rangeFromStartEnd emphtoks undefined) $
                              constructor $ unChunks contents)
                          (chunkPos chunk)
                          emphtoks
@@ -780,7 +801,7 @@ processBs bracketedSpecs st =
                          elttoks = concatMap chunkText
                                      (openers ++ chunksinside ++ [closer])
                                       ++ desttoks
-                         elt = ranged (rangeFromChars elttoks)
+                         elt = ranged (rangeFromStartEnd elttoks undefined)
                                   $ constructor $ unChunks $
                                        processEmphasis chunksinside
                          eltchunk = Chunk (Parsed elt) openerPos elttoks
@@ -891,10 +912,10 @@ pLinkDestination = pAngleDest <|> pNormalDest 0
 pEscaped :: Monad m => ParsecT Text s m Char
 pEscaped = do
   bs <- char '\\'
-  option bs $ satisfy asciiSymbol <|> char '\r' <|> char '\n'
+  option bs $ satisfy isAsciiSymbol <|> char '\r' <|> char '\n'
 
-asciiSymbol :: Char -> Bool
-asciiSymbol c = isAscii c && (isSymbol c || isPunctuation c)
+isAsciiSymbol :: Char -> Bool
+isAsciiSymbol c = isAscii c && (isSymbol c || isPunctuation c)
 
 pLinkTitle :: Monad m => ParsecT Text s m Text
 pLinkTitle = inbetween '"' '"' <|> inbetween '\'' '\'' <|> inbetween '(' ')'
@@ -906,9 +927,9 @@ inbetween op cl =
 
 pLinkLabel :: Monad m => ParsecT Text s m Text
 pLinkLabel = try $ do
-  lab <- try (between (char '[') (char ']')
+  lab <- try $ inbetween (char '[') (char ']')
             (snd <$> withRaw (many
-              (pEscaped <|> satisfy (\c -> c /= ']' && c /= '[']))))
+              (pEscaped <|> satisfy (\c -> c /= ']' && c /= '['))))
   guard $ T.length lab <= 999
   return lab
 

@@ -11,7 +11,8 @@ module Commonmark.Entity
   )
 where
 
-import Data.Char (chr)
+import Data.Char (chr, isAlphaNum, isDigit, isHexDigit)
+import Data.Maybe (isNothing)
 import Data.Functor.Identity (Identity)
 import qualified Data.Map as Map
 import Commonmark.Parsec
@@ -19,7 +20,6 @@ import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.Text.Read as TR
 import Control.Monad (guard, mzero)
-import Data.Char (isDigit, isHexDigit)
 import Data.Maybe (isJust)
 #if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup (Semigroup(..))
@@ -2312,40 +2312,34 @@ htmlEntities =
     ,("zwnj;", "\x200C")
     ]
 
-charEntity :: Monad m => ParsecT [Tok] s m [Tok]
+charEntity :: Monad m => ParsecT Text s m Text
 charEntity = do
-  wc@(Tok WordChars _ ts) <- satisfyTok (hasType WordChars)
-  semi <- symbol ';'
-  guard $ isJust $ lookupEntity (ts <> ";")
-  return [wc, semi]
+  ts <- textWhile1 isAlphaNum
+  _ <- char ';'
+  let res = ts <> ";"
+  guard $ isJust $ lookupEntity res
+  return $! res
 
-numEntity :: Monad m => ParsecT [Tok] s m [Tok]
+numEntity :: Monad m => ParsecT Text s m Text
 numEntity = do
-  octo <- symbol '#'
-  wc@(Tok WordChars _ t) <- satisfyTok (hasType WordChars)
-  guard $
-    case T.uncons t of
-         Just (x, rest)
-          | x == 'x' || x == 'X' ->
-            T.all isHexDigit rest &&
-            not (T.null rest) &&
-            T.length rest <= 6
-          | otherwise -> T.all isDigit t &&
-            T.length t <= 7
-         _ -> False
-  semi <- symbol ';'
-  return [octo, wc, semi]
+  _ <- char '#'
+  hex <- option Nothing $ Just <$> (char 'x' <|> char 'X')
+  t <- case hex of
+         Just _  -> textWhile1 isHexDigit
+         Nothing -> textWhile1 isDigit
+  guard $ T.length t <= 6 || (T.length t <= 7 && isNothing hex)
+  _ <- char ';'
+  return $! "#" <> maybe "" T.singleton hex <> t <> ";"
 
-unEntity :: [Tok] -> Text
-unEntity ts = untokenize $
-  case parse (many (pEntity' <|> anyTok)) "" ts of
-        Left _    -> ts
-        Right ts' -> ts'
-  where pEntity' :: ParsecT [Tok] () Identity Tok
+unEntity :: Text -> Text
+unEntity t =
+  case parse (many (pEntity' <|> textWhile1 (/= '&') <|> string "&")) "" t of
+        Left _    -> t
+        Right ts' -> mconcat ts'
+  where pEntity' :: ParsecT Text () Identity Text
         pEntity' = try $ do
-          pos <- getPosition
-          symbol '&'
-          ent <- untokenize <$> (numEntity <|> charEntity)
+          char '&'
+          ent <- numEntity <|> charEntity
           case lookupEntity ent of
-                Just s  -> return $ Tok WordChars pos s
+                Just s  -> return s
                 Nothing -> mzero

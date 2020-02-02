@@ -5,6 +5,7 @@ module Commonmark.Parsec
   ( -- Re-exports
     ParsecT
   , runParserT
+  , parse
   , (<|>)
   , (<?>)
   , try
@@ -13,6 +14,7 @@ module Commonmark.Parsec
   , modifyState
   , getPosition
   , setPosition
+  , many
   , module Text.Parsec.Pos
   , module Text.Parsec.Combinator
   , module Text.Parsec.Error

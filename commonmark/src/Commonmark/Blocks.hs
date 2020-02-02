@@ -75,9 +75,9 @@ mkBlockParser
   :: (Monad m, IsBlock il bl)
   => [BlockSpec m il bl] -- ^ Defines block syntax
   -> [BlockParser m il bl bl] -- ^ Parsers to run at end
-  -> (ReferenceMap -> [Tok] -> m (Either ParseError il)) -- ^ Inline parser
+  -> (ReferenceMap -> Text -> m (Either ParseError il)) -- ^ Inline parser
   -> [BlockParser m il bl Attributes] -- ^ attribute parsers
-  -> [Tok] -- ^ Tokenized commonmark input
+  -> Text -- ^ Tokenized commonmark input
   -> m (Either ParseError bl)  -- ^ Result or error
 mkBlockParser specs finalParsers ilParser attrParsers ts =
   runParserT (do case ts of
@@ -163,13 +163,15 @@ processLine specs = do
 
   (cur:rest) <- nodeStack <$> getState
   -- add line contents
+  startTextPos <- getPosition
   (toks, endpos) <- restOfLine
   let curdata = rootLabel cur
   updateState $ \st -> st{
       nodeStack = map (addEndPos endpos) $
         cur{ rootLabel =
                if blockContainsLines (bspec cur)
-                  then curdata{ blockLines = toks : blockLines curdata }
+                  then curdata{ blockLines = ((startTextPos, endpos), toks)
+                                               : blockLines curdata }
                   else
                     if isblank
                        then curdata{ blockBlanks = sourceLine endpos :
@@ -264,12 +266,12 @@ showNodeStack = do
 
 data BlockStartResult =
     BlockStartMatch
-  | BlockStartNoMatchBefore SourcePos
+  | BlockStartNoMatchBefore !SourcePos
   deriving (Show, Eq)
 
 -- | Defines a block-level element type.
 data BlockSpec m il bl = BlockSpec
-     { blockType           :: Text  -- ^ Descriptive name of block type
+     { blockType           :: !Text  -- ^ Descriptive name of block type
      , blockStart          :: BlockParser m il bl BlockStartResult
                            -- ^ Parses beginning
                            -- of block.  The parser should verify any
@@ -286,9 +288,9 @@ data BlockSpec m il bl = BlockSpec
      , blockCanContain     :: BlockSpec m il bl -> Bool -- ^ Returns True if
                            -- this kind of block can contain the specified
                            -- block type.
-     , blockContainsLines  :: Bool -- ^ True if this kind of block
+     , blockContainsLines  :: !Bool -- ^ True if this kind of block
                            -- can contain text lines.
-     , blockParagraph      :: Bool -- ^ True if this kind of block
+     , blockParagraph      :: !Bool -- ^ True if this kind of block
                            -- is paragraph.
      , blockContinue       :: BlockNode m il bl
                            -> BlockParser m il bl (SourcePos, BlockNode m il bl)
@@ -337,9 +339,12 @@ defaultFinalizer !child !parent = do
           (toDyn (0 :: Int)) (counters st) }
   return $! parent{ subForest = child : subForest parent }
 
+data TextLine = TextLine !SourcePos !SourcePos !Text
+
 data BlockData m il bl = BlockData
      { blockSpec       :: BlockSpec m il bl
-     , blockLines      :: [[Tok]]  -- in reverse order
+     , blockLines      :: [((SourcePos, SourcePos), Text)]
+                                       -- in reverse order
      , blockStartPos   :: [SourcePos]  -- in reverse order
      , blockEndPos     :: [SourcePos]  -- reverse order
      , blockData       :: !Dynamic
@@ -363,7 +368,9 @@ type BlockNode m il bl = Tree (BlockData m il bl)
 
 data BPState m il bl = BPState
      { referenceMap     :: !ReferenceMap
-     , inlineParser     :: ReferenceMap -> [Tok] -> m (Either ParseError il)
+     , inlineParser     :: ReferenceMap ->
+                           [((SourcePos, SourcePos), Text)] ->
+                           m (Either ParseError il)
      , nodeStack        :: [BlockNode m il bl]   -- reverse order, head is tip
      , blockMatched     :: !Bool
      , maybeLazy        :: !Bool
@@ -371,11 +378,11 @@ data BPState m il bl = BPState
      , counters         :: M.Map Text Dynamic
      , failurePositions :: M.Map Text SourcePos  -- record known positions
                            -- where parsers fail to avoid repetition
-     , attributeParsers :: [ParsecT [Tok] (BPState m il bl) m Attributes]
+     , attributeParsers :: [ParsecT Text (BPState m il bl) m Attributes]
      , nextAttributes   :: !Attributes
      }
 
-type BlockParser m il bl = ParsecT [Tok] (BPState m il bl) m
+type BlockParser m il bl = ParsecT Text (BPState m il bl) m
 
 data ListData = ListData
      { listType    :: !ListType
@@ -390,12 +397,12 @@ data ListItemData = ListItemData
      } deriving (Show, Eq)
 
 runInlineParser :: Monad m
-                => [Tok]
+                => [((SourcePos, SourcePos), Text)]
                 -> BlockParser m il bl il
-runInlineParser toks = do
+runInlineParser tls = do
   refmap <- referenceMap <$> getState
   ilParser <- inlineParser <$> getState
-  res <- lift $ ilParser refmap toks
+  res <- lift $ ilParser refmap tls
   case res of
        Right ils -> return $! ils
        Left err  -> mkPT (\_ -> return (Empty (return (Error err))))
@@ -509,7 +516,7 @@ extractReferenceLinks node = do
           let isRefPos = case toks' of
                            (t:_) -> (< tokPos t)
                            _     -> const False
-          let node' = if null toks'
+          let node' = if T.null toks'
                          then Nothing
                          else Just node{ rootLabel =
                               (rootLabel node){
@@ -592,7 +599,7 @@ paraSpec = BlockSpec
              return $! (pos, n)
      , blockConstructor    = \node ->
          (addRange node . paragraph)
-             <$> runInlineParser (getBlockText removeIndent node)
+             <$> runInlineParser (reverse . blockLines . rootLabel $ node)
      , blockFinalize       = \child parent -> do
          (mbchild, mbrefdefs) <- extractReferenceLinks child
          case (mbchild, mbrefdefs) of
@@ -615,8 +622,8 @@ plainSpec = paraSpec{
 
 
 linkReferenceDef :: Monad m
-                 => ParsecT [Tok] s m Attributes
-                 -> ParsecT [Tok] s m ((SourceRange, Text), LinkInfo)
+                 => ParsecT Text s m Attributes
+                 -> ParsecT Text s m ((SourceRange, Text), LinkInfo)
 linkReferenceDef attrParser = try $ do
   startpos <- getPosition
   lab <- pLinkLabel
@@ -651,20 +658,20 @@ atxHeadingSpec = BlockSpec
              void spaceTok
                 <|> void (lookAhead lineEnd)
                 <|> lookAhead eof
-             raw <- many (satisfyTok (not . hasType LineEnd))
+             raw <- many (satisfy (\c -> c /= '\r' && c /= '\n'))
              -- trim off closing ###
              let removeClosingHash (_ :: Int) [] = []
-                 removeClosingHash 0 (Tok Spaces _ _ : xs) =
+                 removeClosingHash 0 (' ':xs) =
                    removeClosingHash 0 xs
-                 removeClosingHash _ (Tok (Symbol '#') _ _ :
-                                      Tok (Symbol '\\') _ _ : _) =
-                   reverse raw
-                 removeClosingHash _ (Tok (Symbol '#') _ _ : xs) =
+                 removeClosingHash 0 ('\t':xs) =
+                   removeClosingHash 0 xs
+                 removeClosingHash _ ('#':'\\':xs) =
+                   '#':'\\':xs
+                 removeClosingHash _ ('#':xs) =
                    removeClosingHash 1 xs
-                 removeClosingHash 1 (Tok Spaces _ _ : xs) = xs
-                 removeClosingHash 1 (x:_)
-                  | tokType x /= Symbol '#' = reverse raw
-                 removeClosingHash _ xs = xs
+                 removeClosingHash 1 (' ':xs) = xs
+                 removeClosingHash 1 ('\t':xs) = xs
+                 removeClosingHash _ (_:xs) = xs
              let raw' = reverse . removeClosingHash 0 . reverse $ raw
              addNodeToStack $ Node (defBlockData atxHeadingSpec){
                             blockLines = [raw'],
@@ -677,7 +684,7 @@ atxHeadingSpec = BlockSpec
      , blockContinue       = const mzero
      , blockConstructor    = \node -> do
          let level = fromDyn (blockData (rootLabel node)) 1
-         ils <- runInlineParser (getBlockText removeIndent node)
+         ils <- runInlineParser (reverse . blockLines . rootLabel $ node)
          return $! (addRange node . heading level) ils
      , blockFinalize       = \node@(Node cdata children) parent -> do
          let oldAttr = blockAttributes cdata
@@ -731,7 +738,7 @@ setextHeadingSpec = BlockSpec
      , blockContinue       = const mzero
      , blockConstructor    = \node -> do
          let level = fromDyn (blockData (rootLabel node)) 1
-         ils <- runInlineParser (getBlockText removeIndent node)
+         ils <- runInlineParser (reverse . blockLines . rootLabel $ node)
          return $! (addRange node . heading level) ils
      , blockFinalize       = \node@(Node cdata children) parent -> do
          let oldAttr = blockAttributes cdata
@@ -744,7 +751,7 @@ setextHeadingSpec = BlockSpec
      }
 
 parseFinalAttributes :: Monad m
-                     => Bool -> [Tok] -> BlockParser m il bl ([Tok], Attributes)
+                     => Bool -> Text -> BlockParser m il bl (Text, Attributes)
 parseFinalAttributes requireWhitespace ts = do
   attrParsers <- attributeParsers <$> getState
   let pAttr' = try $ (if requireWhitespace
@@ -883,14 +890,15 @@ itemStart parseListMarker = do
 
 bulletListMarker :: Monad m => BlockParser m il bl ListType
 bulletListMarker = do
-  Tok (Symbol c) _ _ <- symbol '-' <|> symbol '*' <|> symbol '+'
+  c <- char '-' <|> char '*' <|> char '+'
   return $! BulletList c
 
 orderedListMarker :: Monad m => BlockParser m il bl ListType
-orderedListMarker = do
-  Tok WordChars _ ds <- satisfyWord (\t -> T.all isDigit t && T.length t < 10)
+orderedListMarker = try $ do
+  ds <- textWhile1 isDigit
+  guard $ T.length ds < 10
   (start :: Int) <- either fail (return . fst) (TR.decimal ds)
-  delimtype <- Period <$ symbol '.' <|> OneParen <$ symbol ')'
+  delimtype <- Period <$ char '.' <|> OneParen <$ char ')'
   return $! OrderedList start Decimal delimtype
 
 listSpec :: (Monad m, IsBlock il bl) => BlockSpec m il bl
@@ -946,9 +954,7 @@ thematicBreakSpec = BlockSpec
      , blockStart          = do
             nonindentSpaces
             pos <- getPosition
-            Tok (Symbol c) _ _ <- symbol '-'
-                              <|> symbol '_'
-                              <|> symbol '*'
+            c <- char '-' <|> char '_' <|> char '*'
             skipWhile (hasType Spaces)
             let tbchar = symbol c <* skipWhile (hasType Spaces)
             count 2 tbchar
@@ -1000,11 +1006,9 @@ indentedCodeSpec = BlockSpec
          defaultFinalizer (Node cdata' children) parent
      }
 
-isblankLine :: [Tok] -> Bool
-isblankLine []                    = True
-isblankLine [Tok LineEnd _ _]     = True
-isblankLine (Tok Spaces _ _ : xs) = isblankLine xs
-isblankLine _                     = False
+isblankLine :: Text -> Bool
+isblankLine =
+  T.all (\c -> c == '\r' || c == '\n' || c == ' ' || c == '\t')
 
 fencedCodeSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
@@ -1191,11 +1195,11 @@ endCond n = fail $ "Unknown HTML block type " ++ show n
 
 --------------------------------
 
-getBlockText :: ([Tok] -> [Tok]) -> BlockNode m il bl -> [Tok]
+getBlockText :: (Text -> Text) -> BlockNode m il bl -> Text
 getBlockText transform =
-  concatMap transform . reverse . blockLines . rootLabel
+  concatMap transform . reverse . map snd . blockLines . rootLabel
 
-removeIndent :: [Tok] -> [Tok]
+removeIndent :: Text -> Text
 removeIndent = dropWhile (hasType Spaces)
 
 removeConsecutive :: [Int] -> [Int]

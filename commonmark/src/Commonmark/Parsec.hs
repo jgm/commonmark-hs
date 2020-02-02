@@ -8,9 +8,16 @@ module Commonmark.Parsec
   , Parsec
   , runParser
   , parse
+  , mkPT
+  , Consumed(..)
+  , Reply(..)
   , (<|>)
   , (<?>)
   , try
+  , getParserState
+  , setParserState
+  , getInput
+  , setInput
   , getState
   , putState
   , updateState

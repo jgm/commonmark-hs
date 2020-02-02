@@ -126,38 +126,38 @@ errExit err = do
 
 extensions :: (Monad m, Typeable m,
                Typeable bl, Typeable il,
-               IsBlock il bl, IsInline il,
-               HasPipeTable il bl,
-               HasMath il,
-               HasEmoji il,
-               HasSpan il,
-               ToPlainText il,
-               HasStrikethrough il,
-               HasSuperscript il,
-               HasSubscript il,
-               HasDefinitionList il bl,
-               HasDiv bl,
-               HasFootnote il bl)
+               IsBlock il bl, IsInline il)
+--               ,HasPipeTable il bl,
+--               HasMath il,
+--               HasEmoji il,
+--               HasSpan il,
+--               ToPlainText il,
+--               HasStrikethrough il,
+--               HasSuperscript il,
+--               HasSubscript il,
+--               HasDefinitionList il bl,
+--               HasDiv bl,
+--               HasFootnote il bl)
            => [(String, SyntaxSpec m il bl)]
-extensions =
-  [ ("autolinks", autolinkSpec)
-  ,("pipe_tables", pipeTableSpec)
-  ,("strikethrough", strikethroughSpec)
-  ,("superscript", superscriptSpec)
-  ,("subscript", subscriptSpec)
-  ,("smart", smartPunctuationSpec)
-  ,("math", mathSpec)
-  ,("emoji", emojiSpec)
-  ,("footnotes", footnoteSpec)
-  ,("definition_lists", definitionListSpec)
-  ,("fancy_lists", fancyListSpec)
-  ,("attributes", attributesSpec)
-  ,("raw_attribute", rawAttributeSpec)
-  ,("bracketed_spans", bracketedSpanSpec)
-  ,("fenced_divs", fencedDivSpec)
-  ,("auto_identifiers", autoIdentifiersSpec)
-  ,("implicit_heading_references", implicitHeadingReferencesSpec)
-  ]
+extensions = []
+  -- [ ("autolinks", autolinkSpec)
+  -- ,("pipe_tables", pipeTableSpec)
+  -- ,("strikethrough", strikethroughSpec)
+  -- ,("superscript", superscriptSpec)
+  -- ,("subscript", subscriptSpec)
+  -- ,("smart", smartPunctuationSpec)
+  -- ,("math", mathSpec)
+  -- ,("emoji", emojiSpec)
+  -- ,("footnotes", footnoteSpec)
+  -- ,("definition_lists", definitionListSpec)
+  -- ,("fancy_lists", fancyListSpec)
+  -- ,("attributes", attributesSpec)
+  -- ,("raw_attribute", rawAttributeSpec)
+  -- ,("bracketed_spans", bracketedSpanSpec)
+  -- ,("fenced_divs", fencedDivSpec)
+  -- ,("auto_identifiers", autoIdentifiersSpec)
+  -- ,("implicit_heading_references", implicitHeadingReferencesSpec)
+  -- ]
 
 extensionList :: [String]
 extensionList = map fst
@@ -170,16 +170,16 @@ listExtensions =
 
 specFromExtensionNames ::
  (Monad m, Typeable m, Typeable bl, Typeable il,
-  IsBlock il bl, IsInline il,
-  HasPipeTable il bl, HasMath il, HasEmoji il,
-  HasSpan il,
-  ToPlainText il,
-  HasStrikethrough il,
-  HasSuperscript il,
-  HasSubscript il,
-  HasDefinitionList il bl,
-  HasDiv bl,
-  HasFootnote il bl)
+  IsBlock il bl, IsInline il)
+--  ,HasPipeTable il bl, HasMath il, HasEmoji il,
+--  HasSpan il,
+--  ToPlainText il,
+--  HasStrikethrough il,
+--  HasSuperscript il,
+--  HasSubscript il,
+--  HasDefinitionList il bl,
+--  HasDiv bl,
+--  HasFootnote il bl)
   => [String] -> IO (SyntaxSpec m il bl)
 specFromExtensionNames extnames = do
  let extFromName name =

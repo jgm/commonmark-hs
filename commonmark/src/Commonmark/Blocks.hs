@@ -628,7 +628,7 @@ linkReferenceDef attrParser = try $ do
   startpos <- getPosition
   lab <- pLinkLabel
   guard $ not $ T.all isSpace lab
-  symbol ':'
+  char ':'
   optional whitespace
   dest <- pLinkDestination
   (title, attrs) <- option (mempty, mempty) $ try $ do
@@ -652,7 +652,7 @@ atxHeadingSpec = BlockSpec
      , blockStart          = do
              nonindentSpaces
              pos <- getPosition
-             hashes <- many1 (symbol '#')
+             hashes <- many1 (char '#')
              let level = length hashes
              guard $ level <= 6
              void spaceTok
@@ -705,8 +705,8 @@ setextHeadingSpec = BlockSpec
              guard $ blockParagraph (bspec cur)
              nonindentSpaces
              pos <- getPosition
-             level <- (2 :: Int) <$ skipMany1 (symbol '-')
-                  <|> (1 :: Int) <$ skipMany1 (symbol '=')
+             level <- (2 :: Int) <$ skipMany1 (char '-')
+                  <|> (1 :: Int) <$ skipMany1 (char '=')
              skipWhile (hasType Spaces)
              lookAhead (eof <|> void lineEnd)
              -- process any reference links, make sure there's some
@@ -772,7 +772,7 @@ blockQuoteSpec = BlockSpec
      , blockStart          = do
              nonindentSpaces
              pos <- getPosition
-             _ <- symbol '>'
+             _ <- char '>'
              _ <- option 0 (gobbleSpaces 1)
              addNodeToStack $
                 Node (defBlockData blockQuoteSpec){
@@ -784,7 +784,7 @@ blockQuoteSpec = BlockSpec
      , blockContinue       = \n -> try $ do
              nonindentSpaces
              pos <- getPosition
-             _ <- symbol '>'
+             _ <- char '>'
              _ <- gobbleUpToSpaces 1
              return $! (pos, n)
      , blockConstructor    = \node ->
@@ -1019,12 +1019,12 @@ fencedCodeSpec = BlockSpec
              nonindentSpaces
              pos <- getPosition
              let indentspaces = sourceColumn pos - sourceColumn prepos
-             (c, ticks) <-  (('`',) <$> many1 (symbol '`'))
-                        <|> (('~',) <$> many1 (symbol '~'))
+             (c, ticks) <-  (('`',) <$> many1 (char '`'))
+                        <|> (('~',) <$> many1 (char '~'))
              let fencelength = length ticks
              guard $ fencelength >= 3
              skipWhile (hasType Spaces)
-             let infoTok = noneOfToks (LineEnd : [Symbol '`' | c == '`'])
+             let infoTok = noneOfToks (LineEnd : [char '`' | c == '`'])
              info <- T.strip . unEntity <$> many (pEscaped <|> infoTok)
              lookAhead $ void lineEnd <|> eof
 
@@ -1080,7 +1080,7 @@ rawHtmlSpec = BlockSpec
          pos <- getPosition
          (rawHtmlType, toks) <- withRaw $
            do nonindentSpaces
-              symbol '<'
+              char '<'
               ty <- choice $ map (\n -> n <$ startCond n) [1..7]
               -- some blocks can end on same line
               finished <- option False $ do
@@ -1131,25 +1131,25 @@ startCond :: Monad m => Int -> BlockParser m il bl ()
 startCond 1 = void $ try $ do
   satisfyWord (isOneOfCI ["script","pre","style"])
   spaceTok
-     <|> symbol '>'
+     <|> char '>'
      <|> lookAhead lineEnd
 startCond 2 = void $ try $ do
-  symbol '!'
-  symbol '-'
-  symbol '-'
-startCond 3 = void $ symbol '?'
+  char '!'
+  char '-'
+  char '-'
+startCond 3 = void $ char '?'
 startCond 4 = void $ try $ do
-  symbol '!'
+  char '!'
   satisfyWord (\t -> case T.uncons t of
                           Just (c, _) -> isAsciiUpper c
                           _           -> False)
 startCond 5 = void $ try $ do
-  symbol '!'
-  symbol '['
+  char '!'
+  char '['
   satisfyWord (== "CDATA")
-  symbol '['
+  char '['
 startCond 6 = void $ try $ do
-  optional (symbol '/')
+  optional (char '/')
   satisfyWord (isOneOfCI ["address", "article", "aside", "base",
     "basefont", "blockquote", "body", "caption", "center", "col",
     "colgroup", "dd", "details", "dialog", "dir", "div", "dl",
@@ -1161,8 +1161,8 @@ startCond 6 = void $ try $ do
     "td", "tfoot", "th", "thead", "title", "tr", "track", "ul"])
   spaceTok
     <|> lookAhead lineEnd
-    <|> symbol '>'
-    <|> (symbol '/' >> symbol '>')
+    <|> char '>'
+    <|> (char '/' >> symbol '>')
 startCond 7 = void $ try $ do
   toks <- htmlOpenTag <|> htmlClosingTag
   guard $ not $ any (hasType LineEnd) toks
@@ -1173,21 +1173,21 @@ startCond n = fail $ "Unknown HTML block type " ++ show n
 endCond :: Monad m => Int -> BlockParser m il bl ()
 endCond 1 = try $ do
   let closer = try $ do
-        symbol '<'
-        symbol '/'
+        char '<'
+        char '/'
         satisfyWord (isOneOfCI ["script","pre","style"])
-        symbol '>'
+        char '>'
   skipManyTill (satisfyTok (not . hasType LineEnd)) closer
 endCond 2 = try $ do
-  let closer = try $ symbol '-' >> symbol '-' >> symbol '>'
+  let closer = try $ char '-' >> symbol '-' >> symbol '>'
   skipManyTill (satisfyTok (not . hasType LineEnd)) closer
 endCond 3 = try $ do
-  let closer = try $ symbol '?' >> symbol '>'
+  let closer = try $ char '?' >> symbol '>'
   skipManyTill (satisfyTok (not . hasType LineEnd)) closer
 endCond 4 = try $
-  skipManyTill (satisfyTok (not . hasType LineEnd)) (symbol '>')
+  skipManyTill (satisfyTok (not . hasType LineEnd)) (char '>')
 endCond 5 = try $ do
-  let closer = try $ symbol ']' >> symbol ']' >> symbol '>'
+  let closer = try $ char ']' >> symbol ']' >> symbol '>'
   skipManyTill (satisfyTok (not . hasType LineEnd)) closer
 endCond 6 = void blankLine
 endCond 7 = void blankLine

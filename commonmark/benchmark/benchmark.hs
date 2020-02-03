@@ -16,9 +16,7 @@ main :: IO ()
 main = do
   sample <- T.replicate 10 <$> TIO.readFile "benchmark/sample.md"
   defaultMainWith defaultConfig
-    [ bgroup "tokenize"
-      [ benchTokenize ("sample.md", sample) ]
-    , bgroup "parse sample.md"
+    [ bgroup "parse sample.md"
       [ benchCommonmark defaultSyntaxSpec ("commonmark default", sample)
 --      , benchCommonmark (smartPunctuationSpec <> defaultSyntaxSpec)
 --          ("commonmark +smart", sample)
@@ -97,9 +95,5 @@ benchCommonmark :: SyntaxSpec Identity (Html ()) (Html ())
 benchCommonmark spec (name, contents) =
   bench name $
     nf (either (error . show) renderHtml
-        . runIdentity . parseCommonmarkWith spec . tokenize name)
+        . runIdentity . parseCommonmarkWith spec name)
     contents
-
-benchTokenize :: (String, Text) -> Benchmark
-benchTokenize (name, contents) =
-  bench ("tokenize " ++ name) $ nf (length . tokenize name) contents

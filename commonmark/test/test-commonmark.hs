@@ -15,7 +15,6 @@ import           System.IO             (hSetEncoding, utf8, openFile,
 import qualified Data.Text.Lazy        as TL
 import           Test.Tasty
 import           Test.Tasty.HUnit
-import           Test.Tasty.QuickCheck
 import           Text.Parsec
 import           Text.Parsec.Pos
 #if !MIN_VERSION_base(4,11,0)
@@ -52,9 +51,7 @@ main = do
              -- , ("test/implicit_heading_references.md",
              --     autoIdentifiersSpec <> attributesSpec <> implicitHeadingReferencesSpec)
              ]
-  defaultMain $ testGroup "Tests"
-     (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip
-      : tests)
+  defaultMain $ testGroup "Tests" tests
 
 getSpecTestTree :: FilePath
                 -> SyntaxSpec Identity (Html ()) (Html ())
@@ -65,7 +62,7 @@ getSpecTestTree fp syntaxspec = do
                           spectests
   let spectestsecs = [(section (head xs), xs) | xs <- spectestgroups]
   let parser = runIdentity . parseCommonmarkWith
-                   (syntaxspec <> defaultSyntaxSpec)
+                   (syntaxspec <> defaultSyntaxSpec) ""
   return $ testGroup fp $
     map (\(secname, tests) ->
            testGroup (T.unpack secname) $
@@ -90,7 +87,7 @@ data SpecTest = SpecTest
      , html       :: Text }
   deriving (Show)
 
-toSpecTest :: ([Tok] -> Either ParseError (Html ()))
+toSpecTest :: (Text -> Either ParseError (Html ()))
            -> SpecTest -> TestTree
 toSpecTest parser st =
   testCase name (actual @?= expected)
@@ -100,7 +97,7 @@ toSpecTest parser st =
           expected = normalizeHtml $ html st
           actual = normalizeHtml .  TL.toStrict . renderHtml .
                    fromRight mempty $
-                     (parser (tokenize "" (markdown st))
+                     (parser (markdown st)
                       :: Either ParseError (Html ()))
 
 normalizeHtml :: Text -> Text
@@ -110,10 +107,6 @@ normalizeHtml = T.replace "\n</li>" "</li>" .
 fromRight :: b -> Either a b ->  b
 fromRight fallback (Left _) = fallback
 fromRight _ (Right x)       = x
-
-tokenize_roundtrip :: String -> Bool
-tokenize_roundtrip s = untokenize (tokenize "source" t) == t
-  where t = T.pack s
 
 --- parser for spec test cases
 

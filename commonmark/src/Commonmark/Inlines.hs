@@ -89,14 +89,14 @@ mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
 
 defaultInlineParsers :: (Monad m, IsInline a) => [InlineParser m a]
 defaultInlineParsers =
-                [ pWords
-                , pSpaces
-                , pSoftbreak
-                , withAttributes pCodeSpan
-                , pEscapedChar
-                , pEntity
-                , withAttributes pAutolink
-                , pHtml
+                [ {-# SCC pWords #-} pWords
+                , {-# SCC pSpaces #-} pSpaces
+                , {-# SCC pSoftbreak #-} pSoftbreak
+                , {-# SCC pCodeSpan #-} withAttributes pCodeSpan
+                , {-# SCC pEscapedChar #-} pEscapedChar
+                , {-# SCC pEntity #-} pEntity
+                , {-# SCC pAutolink #-} withAttributes pAutolink
+                , {-# SCC pHtml #-} pHtml
                 ]
 
 unChunks :: IsInline a => [Chunk a] -> a
@@ -152,7 +152,7 @@ parseChunks bspecs specs ilParsers attrParser rm positions t =
               attributeParser = attrParser }
      "source" t
   where
-   pBuildMaps = skipMany $ do
+   pBuildMaps = {-# SCC pBuildMaps #-} skipMany $ do
       spos <- getPosition
       c <- anyChar
       when (c == '`') $ do

@@ -162,8 +162,8 @@ processLine specs = do
 
   (cur:rest) <- nodeStack <$> getState
   -- add line contents
-  startTextPos <- getPosition
-  (toks, endpos) <- {-# SCC restOfLine #-} restOfLine
+  !startTextPos <- getPosition
+  (!toks, !endpos) <- {-# SCC restOfLine #-} restOfLine
   let curdata = rootLabel cur
   updateState $ \st -> st{
       nodeStack = map (addEndPos endpos) $

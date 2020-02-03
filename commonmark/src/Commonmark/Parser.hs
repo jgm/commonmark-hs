@@ -9,16 +9,15 @@ module Commonmark.Parser
 
 import           Commonmark.Blocks
 import           Commonmark.Inlines
-import           Commonmark.Tokens
 import           Commonmark.Types
 import           Commonmark.Syntax (SyntaxSpec(..), defaultSyntaxSpec)
 import           Text.Parsec.Error (ParseError)
 import           Data.Functor.Identity   (runIdentity)
+import           Data.Text (Text)
 
--- | Parse a tokenized commonmark document using the core syntax
--- elements.  Use 'tokenize' to convert 'Text' into ['Tok'].
--- If you want to add syntax extensions or run the parser in a monad,
--- use 'parseCommonmarkWith'.  Simple usage example:
+-- | Parse a commonmark document using the core syntax
+-- elements.  If you want to add syntax extensions or run the parser in
+-- a monad, use 'parseCommonmarkWith'.  Simple usage example:
 --
 -- @
 -- {-# LANGUAGE ScopedTypeVariables #-}
@@ -28,20 +27,22 @@ import           Data.Functor.Identity   (runIdentity)
 --
 -- main = do
 --   inp <- TIO.getContents
---   case parseCommonmark (tokenize "stdin" inp) of
+--   case parseCommonmark "stdin" inp of
 --        Left e     -> error (show e)
 --        Right (html :: Html ()) -> TLIO.putStr (renderHtml html)
 -- @
 parseCommonmark :: IsBlock il bl
-                => [Tok] -- ^ Tokenized commonmark input
+                => String   -- ^ Name of input file or source
+                -> Text      -- ^ Commonmark input
                 -> Either ParseError bl  -- ^ Result or error
-parseCommonmark = runIdentity . parseCommonmarkWith defaultSyntaxSpec
+parseCommonmark sourcename =
+  runIdentity . parseCommonmarkWith defaultSyntaxSpec sourcename
 
--- | Parse a tokenized commonmark document using specified
--- syntax elements.
+-- | Parse a commonmark document using specified syntax elements.
 parseCommonmarkWith :: (Monad m, IsBlock il bl, IsInline il)
                     => SyntaxSpec m il bl -- ^ Defines syntax
-                    -> [Tok] -- ^ Tokenized commonmark input
+                    -> String  -- ^ Name of input file or source
+                    -> Text    -- ^ Tokenized commonmark input
                     -> m (Either ParseError bl)  -- ^ Result or error
 parseCommonmarkWith syntax =
     mkBlockParser (syntaxBlockSpecs syntax)

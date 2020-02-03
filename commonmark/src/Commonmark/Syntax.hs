@@ -13,6 +13,7 @@ import Commonmark.Inlines
 #if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup
 #endif
+import Data.Text (Text)
 
 -- | A 'SyntaxSpec' defines a basic collection of syntax
 -- elements or an extension.  'SyntaxSpec's can be composed
@@ -29,7 +30,7 @@ data SyntaxSpec m il bl = SyntaxSpec
      , syntaxFinalParsers    :: [BlockParser m il bl bl]
         -- ^ Run at the end of document, e.g. to collect footnotes
      , syntaxAttributeParsers
-             :: forall u . [ParsecT [Tok] u m Attributes]
+             :: forall u . [ParsecT Text u m Attributes]
        -- ^ Parse attributes
      }
 

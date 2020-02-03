@@ -118,7 +118,7 @@ htmlComment :: Monad m => ParsecT Text s m Text
 htmlComment = try $ do
   -- assume < has already been parsed
   _ <- string "!--"
-  notFollowedBy $ string "->"
+  notFollowedBy $ char '>' <|> ('>' <$ string "->")
   contents <- many $ satisfy (/= '-')
                  <|> try (char '-' <* notFollowedBy (char '-'))
   _ <- string "-->"

@@ -419,7 +419,7 @@ pEscapedChar = do
   char '\\'
   option (str "\\") $
     (escapedChar <$> satisfy isAsciiSymbol)
-     <|> (lineBreak <$ (lineEnd <* skipWhile isSpaceChar))
+     <|> (lineBreak <$ (lineEnd <* optional whitespace))
 
 pEntity :: (IsInline a, Monad m) => InlineParser m a
 pEntity = try $ do
@@ -526,7 +526,7 @@ pSpaces :: (IsInline a, Monad m) => InlineParser m a
 pSpaces = do
   t <- textWhile1 isSpaceChar
   (do lineEnd
-      skipWhile isSpaceChar
+      optional whitespace
       (mempty <$ eof) <|>
         if T.length t > 1
            then return $! lineBreak
@@ -536,6 +536,7 @@ pSpaces = do
 pSoftbreak :: (IsInline a, Monad m) => InlineParser m a
 pSoftbreak = do
   _ <- lineEnd
+  optional whitespace
   (mempty <$ eof) <|> return softBreak
 
 pWords :: (IsInline a, Monad m) => InlineParser m a

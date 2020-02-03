@@ -336,8 +336,6 @@ defaultFinalizer !child !parent = do
           (toDyn (0 :: Int)) (counters st) }
   return $! parent{ subForest = child : subForest parent }
 
-data TextLine = TextLine !SourcePos !SourcePos !Text
-
 data BlockData m il bl = BlockData
      { blockSpec       :: BlockSpec m il bl
      , blockLines      :: [((SourcePos, SourcePos), Text)]
@@ -1043,8 +1041,8 @@ fencedCodeSpec = BlockSpec
              let fencelength = length ticks
              guard $ fencelength >= 3
              skipWhile isSpaceChar
-             let infoTok = satisfy (\c -> not (isLineEndChar c) &&
-                                            c /= '`' && c /= '~')
+             let infoTok = satisfy (\d -> not (isLineEndChar d) &&
+                                            d /= '`' && d /= '~')
              info <- T.strip . unEntity . T.pack <$> many (pEscaped <|> infoTok)
              lookAhead $ void lineEnd <|> eof
 

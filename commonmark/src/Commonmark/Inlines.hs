@@ -74,7 +74,6 @@ mkInlineParser :: (Monad m, IsInline a)
 mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   let (positionList, ts) = unzip toks
   let positions = V.fromList positionList
-  let iswhite c = c == ' ' || c == '\t' || c == '\r' || c == '\n'
   let attrParser = choice attrParsers
   res <- parseChunks bracketedSpecs formattingSpecs ilParsers attrParser
            rm positions (mconcat ts)
@@ -196,7 +195,6 @@ data IPState m = IPState
      , linePositions        :: !(V.Vector (SourcePos, SourcePos))
      , ipReferenceMap       :: !ReferenceMap
      , precedingChars       :: !(M.Map SourcePos Char)
-     , positions            :: [(SourcePos, SourcePos)]
      , attributeParser      :: ParsecT Text (IPState m) m Attributes
      }
 
@@ -328,7 +326,7 @@ pDelimChunk specmap isDelimChar = do
   let precededByPunctuation =
        case formattingIgnorePunctuation <$> mbspec of
          Just True -> False
-         _         -> maybe False (\c -> isSymbol c || isPunctuation c)
+         _         -> maybe False (\d -> isSymbol d || isPunctuation d)
                         precedingChar
   let followedByWhitespace = isSpace next
   let followedByPunctuation =
@@ -383,8 +381,7 @@ pInline :: (IsInline a, Monad m)
 pInline ilParsers isDelimChar = do
   (xs, ts) <- withRaw $ many1
                (do startpos <- getPosition
-                   (res, toks) <- withRaw
-                                   (choice ilParsers <|> pSymbol isDelimChar)
+                   res <- choice ilParsers <|> pSymbol isDelimChar
                    endpos <- getPosition
                    positions <- linePositions <$> getState
                    let range = rangeFromStartEnd positions startpos endpos
@@ -400,6 +397,8 @@ rangeFromStartEnd positions startpos endpos = SourceRange realPositions
   startline = sourceLine startpos
   endline = sourceLine endpos
   realPos lnum = case positions V.!? lnum of
+                   Nothing -> error $ "Could not find position for line " ++
+                                    show lnum
                    Just (start, end) ->
                      let scol = if lnum == startline
                                    then sourceColumn startpos +
@@ -505,7 +504,6 @@ pEmail = do
          c == '=' || c == '?' || c == '^' || c == '_' || c == '`' ||
          c == '{' || c == '|' || c == '}' || c == '~' || c == '-' ||
          c == ']'
-      isEmailSymbolChar _ = False
   lookAhead $ satisfy (\c -> isAscii c && isAlphaNum c)
   name <- textWhile1 (\c -> (isAscii c && isAlphaNum c) ||
                             isEmailSymbolChar c)

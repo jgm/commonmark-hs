@@ -396,7 +396,7 @@ rangeFromStartEnd positions startpos endpos = SourceRange realPositions
  where
   startline = sourceLine startpos
   endline = sourceLine endpos
-  realPos lnum = case positions V.!? lnum of
+  realPos lnum = case positions V.!? (lnum - 1) of
                    Nothing -> error $ "Could not find position for line " ++
                                     show lnum
                    Just (start, end) ->
@@ -801,7 +801,8 @@ processBs bracketedSpecs st =
 
           in case parse
                  (withRaw
-                   (do (spec, constructor) <- choice $
+                   (do setPosition (incSourceColumn closePos 1)
+                       (spec, constructor) <- choice $
                            map (\s -> (s,) <$> bracketedSuffix s rm key)
                            specs
                        pos <- getPosition

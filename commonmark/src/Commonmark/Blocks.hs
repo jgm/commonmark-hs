@@ -529,8 +529,8 @@ extractReferenceLinks node = do
              updateState $ \s -> s{
               referenceMap = insertReference lab linkinfo
                 (referenceMap s) }) linkdefs
-          let toks' = takeWhile (\((sp,_),_) -> sp > pos) $
-                         blockLines (rootLabel node)
+          let toks' = takeWhile (\((sp,_),_) -> sp > pos)
+                         (blockLines (rootLabel node))
           let node' = if null toks'
                          then Nothing
                          else Just node{ rootLabel =
@@ -544,8 +544,12 @@ extractReferenceLinks node = do
                            }
           let refnode = node{ rootLabel =
                  (rootLabel node){
-                     blockLines = dropWhile (\((sp,_),_) -> sp <= pos)
+                     blockLines = dropWhile (\((sp,_),_) -> sp > pos)
                        (blockLines (rootLabel node))
+                   , blockStartPos = dropWhile (> pos)
+                        (blockStartPos (rootLabel node))
+                   , blockEndPos = dropWhile (> pos)
+                        (blockEndPos (rootLabel node))
                    , blockData = toDyn linkdefs
                    , blockSpec = refLinkDefSpec
                  }}
@@ -741,7 +745,7 @@ setextHeadingSpec = BlockSpec
                               blockSpec  = setextHeadingSpec,
                               blockData = toDyn level,
                               blockStartPos =
-                                   blockStartPos (rootLabel cur') ++ [pos] }
+                                   pos : blockStartPos (rootLabel cur') }
                                     []
                  return BlockStartMatch
      , blockCanContain     = const False

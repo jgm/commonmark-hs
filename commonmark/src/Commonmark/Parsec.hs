@@ -94,9 +94,7 @@ string t = do
   inp <- getInput
   if t `T.isPrefixOf` inp
      then do
-       setInput $ T.drop (T.length t) inp
-       pos <- getPosition
-       setPosition $ updatePosWithText t pos
+       _ <- count (T.length t) anyChar
        return $! t
      else mzero
 {-# INLINEABLE string #-}

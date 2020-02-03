@@ -949,9 +949,11 @@ pLinkTitle :: Monad m => ParsecT Text s m Text
 pLinkTitle = inbetween '"' '"' <|> inbetween '\'' '\'' <|> inbetween '(' ')'
 
 inbetween :: Monad m => Char -> Char -> ParsecT Text s m Text
-inbetween op cl =
-  try $ T.pack <$> between (char op) (char cl)
-     (many (pEscaped <|> satisfy (\c -> c /= op && c /= cl)))
+inbetween op cl = try $ do
+  _ <- char op
+  xs <- many (pEscaped <|> satisfy (\c -> c /= op && c /= cl))
+  _ <- char cl
+  return $ T.pack xs
 
 pLinkLabel :: Monad m => ParsecT Text s m Text
 pLinkLabel = try $ do

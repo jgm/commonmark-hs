@@ -524,8 +524,9 @@ pEmail = do
 
 pSpaces :: (IsInline a, Monad m) => InlineParser m a
 pSpaces = do
-  t <- textWhile1 (\c -> c == ' ' || c == '\t')
+  t <- textWhile1 isSpaceChar
   (do lineEnd
+      skipWhile isSpaceChar
       (mempty <$ eof) <|>
         if T.length t > 1
            then return $! lineBreak
@@ -966,3 +967,8 @@ pReferenceLink rm key = do
                 then key
                 else lab
   maybe mzero return $! lookupReference key' rm
+
+isSpaceChar :: Char -> Bool
+isSpaceChar '\t' = True
+isSpaceChar ' '  = True
+isSpaceChar _    = False

@@ -29,6 +29,7 @@ module Commonmark.Parsec
   , module Text.Parsec.Combinator
   , module Text.Parsec.Error
   -- Modified and new functions
+  , spaces
   , anyChar
   , satisfy
   , char

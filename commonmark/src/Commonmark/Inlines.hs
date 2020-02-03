@@ -419,7 +419,7 @@ pEscapedChar = do
   char '\\'
   option (str "\\") $
     (escapedChar <$> satisfy isAsciiSymbol)
-     <|> (lineBreak <$ lineEnd)
+     <|> (lineBreak <$ (lineEnd <* skipWhile isSpaceChar))
 
 pEntity :: (IsInline a, Monad m) => InlineParser m a
 pEntity = try $ do

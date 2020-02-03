@@ -760,8 +760,8 @@ setextHeadingSpec = BlockSpec
          (newtoks, attr) <- parseFinalAttributes True toks
                         <|> (return $! (toks, mempty))
          let newlns = case blockLines cdata of
-                        (((sp,ep),_):zs) -> ((sp,ep),newtoks):zs
-                        []               -> []
+                        (_:((sp,ep),_):zs) -> ((sp,ep),newtoks):zs
+                        xs                 -> xs
          defaultFinalizer (Node cdata{ blockAttributes = oldAttr <> attr
                                      , blockLines = newlns }
                                 children) parent

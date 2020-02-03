@@ -5,10 +5,10 @@ module Main where
 
 import           Commonmark
 import           Commonmark.Html
-import           Commonmark.Pandoc
+-- import           Commonmark.Pandoc
 import           Data.Aeson                 (encode)
 import qualified Data.ByteString.Lazy       as BL
-import qualified Text.Pandoc.Builder        as B
+-- import qualified Text.Pandoc.Builder        as B
 import           Control.Monad
 import           Control.Monad.Identity
 import           Data.Typeable
@@ -73,15 +73,15 @@ main = catch (do
     putStrLn $ prg ++ " " ++ showVersion version
     exitSuccess
   toks <- if null files
-            then tokenize "stdin" <$> TIO.getContents
-            else mconcat <$> mapM (\f -> tokenize f <$> TIO.readFile f) files
+            then TIO.getContents
+            else mconcat <$> mapM (\f -> TIO.readFile f) files
   when (Tokenize `elem` opts) $ do
     print toks
     exitSuccess
   if Highlight `elem` opts then do
       spec <- specFromExtensionNames [x | Extension x <- opts]
       case runWithSourceMap <$>
-              runIdentity (parseCommonmarkWith spec toks) of
+              runIdentity (parseCommonmarkWith spec "test" toks) of
            Left e -> errExit e
            Right ((_ :: Html ()), sm) -> do
              TLIO.putStr $ toLazyText $
@@ -97,21 +97,22 @@ main = catch (do
   else
     if SourcePos `elem` opts then do
        spec <- specFromExtensionNames [x | Extension x <- opts]
-       case runIdentity (parseCommonmarkWith spec toks) of
+       case runIdentity (parseCommonmarkWith spec "test" toks) of
             Left e -> errExit e
             Right (r :: Html SourceRange)
                    -> TLIO.putStr . renderHtml $ r
     else
       if PandocJSON `elem` opts then do
-        spec <- specFromExtensionNames [x | Extension x <- opts]
-        case runIdentity (parseCommonmarkWith spec toks) of
-             Left e -> errExit e
-             Right (r :: Cm () B.Blocks) -> do
-               BL.putStr . encode $ B.doc $ unCm r
-               BL.putStr "\n"
+        error "Disabled"
+        -- spec <- specFromExtensionNames [x | Extension x <- opts]
+        -- case runIdentity (parseCommonmarkWith spec toks) of
+        --      Left e -> errExit e
+        --      Right (r :: Cm () B.Blocks) -> do
+        --        BL.putStr . encode $ B.doc $ unCm r
+        --        BL.putStr "\n"
       else do
         spec <- specFromExtensionNames [x | Extension x <- opts]
-        case runIdentity (parseCommonmarkWith spec toks) of
+        case runIdentity (parseCommonmarkWith spec "test" toks) of
              Left e -> errExit e
              Right (r :: Html ()) -> TLIO.putStr . renderHtml $ r)
    (\(e :: AsyncException) -> do
@@ -194,21 +195,21 @@ specFromExtensionNames extnames = do
             else mconcat <$> mapM extFromName extnames
  return $ exts <> defaultSyntaxSpec
 
-highlightWith :: SourceMap -> [Tok] -> Builder
-highlightWith sm ts = "<pre>" <>  mconcat (map (renderTok sm) ts) <> "</pre>"
+highlightWith :: SourceMap -> T.Text -> Builder
+highlightWith sm ts = undefined -- "<pre>" <>  mconcat (map (renderTok sm) ts) <> "</pre>"
 
-renderTok :: SourceMap -> Tok -> Builder
-renderTok (SourceMap sm) (Tok _ pos t) =
-  case M.lookup pos sm of
-       Nothing -> fromText t
-       Just (starts, ends) ->
-         foldMap toEnd ends <> foldMap toStart starts <> fromText t
-    where toStart x = "<span class=\"" <> fromText x <> "\"" <>
-                          (if x /= "str"
-                              then "title=\"" <> fromText x <> "\""
-                              else "") <>
-                          ">"
-          toEnd   _ = "</span>"
+-- renderTok :: SourceMap -> Tok -> Builder
+-- renderTok (SourceMap sm) (Tok _ pos t) =
+--   case M.lookup pos sm of
+--        Nothing -> fromText t
+--        Just (starts, ends) ->
+--          foldMap toEnd ends <> foldMap toStart starts <> fromText t
+--     where toStart x = "<span class=\"" <> fromText x <> "\"" <>
+--                           (if x /= "str"
+--                               then "title=\"" <> fromText x <> "\""
+--                               else "") <>
+--                           ">"
+--           toEnd   _ = "</span>"
 
 styles :: Builder
 styles = "<style>\n" <> fromText (T.unlines

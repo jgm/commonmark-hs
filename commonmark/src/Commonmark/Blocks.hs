@@ -71,6 +71,7 @@ import qualified Data.Map                  as M
 import qualified Data.Text                 as T
 import qualified Data.Text.Read            as TR
 import           Data.Tree
+import Debug.Trace
 
 mkBlockParser
   :: (Monad m, IsBlock il bl)
@@ -853,8 +854,8 @@ listItemSpec parseListMarker = BlockSpec
              -- a marker followed by two blanks is just an empty item:
              guard $ null (blockBlanks ndata) ||
                      not (null children)
-             pos <- getPosition
              gobbleSpaces (listItemIndent lidata) <|> 0 <$ lookAhead blankLine
+             pos <- getPosition
              return $! (pos, node)
      , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = \(Node cdata children) parent -> do

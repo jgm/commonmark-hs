@@ -55,6 +55,7 @@ import           Text.Parsec hiding (anyChar, char, string, satisfy)
 import           Text.Parsec.Pos
 import           Text.Parsec.Combinator
 import           Text.Parsec.Error
+import Debug.Trace
 
 -- | Parses a single Char satisfying a predicate. We define
 -- this here instead of using parsec's default because parsec
@@ -69,7 +70,7 @@ satisfy f = tokenPrim (:[]) updatePos matcher
 updatePosWithChar :: SourcePos -> Char -> SourcePos
 updatePosWithChar !spos '\t' = incSourceColumn spos
                                   (4 - (sourceColumn spos - 1) `mod` 4)
-updatePosWithChar !spos '\n' = incSourceLine spos 1
+updatePosWithChar !spos '\n' = setSourceColumn (incSourceLine spos 1) 1
 updatePosWithChar !spos _    = incSourceColumn spos 1
 {-# INLINEABLE updatePosWithChar #-}
 

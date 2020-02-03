@@ -526,12 +526,16 @@ pSpaces :: (IsInline a, Monad m) => InlineParser m a
 pSpaces = do
   t <- textWhile1 (\c -> c == ' ' || c == '\t')
   (do lineEnd
-      if T.length t > 1
-         then return $! lineBreak
-         else return $! softBreak) <|> (return $! str t)
+      (mempty <$ eof) <|>
+        if T.length t > 1
+           then return $! lineBreak
+           else return $! softBreak)
+   <|> (return $! str t)
 
 pSoftbreak :: (IsInline a, Monad m) => InlineParser m a
-pSoftbreak = softBreak <$ lineEnd
+pSoftbreak = do
+  _ <- lineEnd
+  (mempty <$ eof) <|> return softBreak
 
 pWords :: (IsInline a, Monad m) => InlineParser m a
 pWords = do

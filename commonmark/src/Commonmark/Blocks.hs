@@ -704,8 +704,11 @@ atxHeadingSpec = BlockSpec
          let toks = getBlockText removeIndent node
          (newtoks, attr) <- parseFinalAttributes True toks
                         <|> (return $! (toks, mempty))
+         let newlns = case blockLines cdata of
+                        (((sp,ep),_):zs) -> ((sp,ep),newtoks):zs
+                        []               -> []
          defaultFinalizer (Node cdata{ blockAttributes = oldAttr <> attr
-                                     , blockLines = [newtoks] }
+                                     , blockLines = newlns }
                                 children) parent
      }
 
@@ -758,8 +761,11 @@ setextHeadingSpec = BlockSpec
          let toks = getBlockText removeIndent node
          (newtoks, attr) <- parseFinalAttributes True toks
                         <|> (return $! (toks, mempty))
+         let newlns = case blockLines cdata of
+                        (((sp,ep),_):zs) -> ((sp,ep),newtoks):zs
+                        []               -> []
          defaultFinalizer (Node cdata{ blockAttributes = oldAttr <> attr
-                                     , blockLines = [newtoks] }
+                                     , blockLines = newlns }
                                 children) parent
      }
 
@@ -1107,9 +1113,10 @@ rawHtmlSpec = BlockSpec
               skipWhile (not . isLineEndChar)
               -- we use 0 as a code to indicate that the block is closed
               return $! if finished then 0 else ty
+         epos <- getPosition
          addNodeToStack $ Node (defBlockData rawHtmlSpec){
                       blockData = toDyn rawHtmlType,
-                      blockLines = [toks],
+                      blockLines = [((pos,epos),toks)],
                       blockStartPos = [pos] } []
          return BlockStartMatch
      , blockCanContain     = const False

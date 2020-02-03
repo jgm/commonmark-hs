@@ -682,7 +682,7 @@ atxHeadingSpec = BlockSpec
                    removeClosingHash 1 xs
                  removeClosingHash 1 (' ':xs) = xs
                  removeClosingHash 1 ('\t':xs) = xs
-                 removeClosingHash _ (_:xs) = xs
+                 removeClosingHash _ xs = xs
              let raw' = T.pack $ reverse . removeClosingHash 0 . reverse $ raw
              addNodeToStack $ Node (defBlockData atxHeadingSpec){
                             blockLines = [((pos, endpos), raw')],

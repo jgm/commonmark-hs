@@ -135,7 +135,11 @@ parseChunks bspecs specs ilParsers attrParser rm positions t =
            Just (p,_) -> setPosition p
            _          -> return ()
          -- build maps of preceding characters and backtick spans
-         lookAhead pBuildMaps
+         inp <- getInput
+         pos <- getPosition
+         pBuildMaps
+         setInput inp
+         setPosition pos
          many (pChunk specmap attrParser ilParsers isDelimChar) <* eof)
      IPState{ backtickSpans = mempty,
               userState = toDyn (),
@@ -156,12 +160,13 @@ parseChunks bspecs specs ilParsers attrParser rm positions t =
                         Nothing -> Just [tickstart]
                         Just ps -> Just (tickstart:ps)) len $
                 backtickSpans st }
-      optional $ lookAhead $ do
-        pos <- getPosition
-        d <- anyChar
-        when (isDelimChar d) $
-           updateState $ \st -> st{ precedingChars = M.insert pos c $
+      res <- option Nothing $ Just <$> lookAhead
+                     ((,) <$> getPosition <*> anyChar)
+      case res of
+        Just (pos, d) | isDelimChar d->
+         updateState $ \st -> st{ precedingChars = M.insert pos c $
                                      precedingChars st }
+        _ -> return ()
    isDelimChar c = c `Set.member` delimcharset
    delimcharset = Set.fromList delimchars
    delimchars = '[' : ']' : suffixchars ++
@@ -322,7 +327,7 @@ pDelimChunk specmap isDelimChar = do
   st <- getState
   next <- option '\n' (lookAhead anyChar)
   let precedingChar = M.lookup pos (precedingChars st)
-  let precededByWhitespace = maybe False isSpace precedingChar
+  let precededByWhitespace = maybe True isSpace precedingChar
   let precededByPunctuation =
        case formattingIgnorePunctuation <$> mbspec of
          Just True -> False

@@ -1040,7 +1040,7 @@ fencedCodeSpec = BlockSpec
              guard $ fencelength >= 3
              skipWhile isSpaceChar
              let infoTok = satisfy (\d -> not (isLineEndChar d) &&
-                                            d /= '`' && d /= '~')
+                                     (c == '~' || (d /= '`' && d /= '~')))
              info <- T.strip . unEntity . T.pack <$> many (pEscaped <|> infoTok)
              lookAhead $ void lineEnd <|> eof
 

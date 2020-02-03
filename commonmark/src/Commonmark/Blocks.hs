@@ -529,26 +529,26 @@ extractReferenceLinks node = do
              updateState $ \s -> s{
               referenceMap = insertReference lab linkinfo
                 (referenceMap s) }) linkdefs
-          let toks' = takeWhile (\((sp,_),_) -> sp > pos)
+          let toks' = takeWhile (\((sp,_),_) -> sp >= pos)
                          (blockLines (rootLabel node))
           let node' = if null toks'
                          then Nothing
                          else Just node{ rootLabel =
                               (rootLabel node){
                                 blockLines = toks',
-                                blockStartPos = takeWhile (> pos)
+                                blockStartPos = takeWhile (>= pos)
                                    (blockStartPos (rootLabel node)),
-                                blockEndPos = takeWhile (> pos)
+                                blockEndPos = takeWhile (>= pos)
                                    (blockEndPos (rootLabel node))
                                 }
                            }
           let refnode = node{ rootLabel =
                  (rootLabel node){
-                     blockLines = dropWhile (\((sp,_),_) -> sp > pos)
+                     blockLines = dropWhile (\((sp,_),_) -> sp >= pos)
                        (blockLines (rootLabel node))
-                   , blockStartPos = dropWhile (> pos)
+                   , blockStartPos = dropWhile (>= pos)
                         (blockStartPos (rootLabel node))
-                   , blockEndPos = dropWhile (> pos)
+                   , blockEndPos = dropWhile (>= pos)
                         (blockEndPos (rootLabel node))
                    , blockData = toDyn linkdefs
                    , blockSpec = refLinkDefSpec

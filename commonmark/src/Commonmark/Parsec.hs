@@ -29,7 +29,6 @@ module Commonmark.Parsec
   , module Text.Parsec.Combinator
   , module Text.Parsec.Error
   -- Modified and new functions
-  , spaces
   , anyChar
   , satisfy
   , char
@@ -160,7 +159,8 @@ gobble' requireAll numspaces
                     char '\t'
                     pos' <- getPosition
                     case sourceColumn pos' - sourceColumn pos of
-                         n | n < numspaces  -> (+ n) <$> gobble' requireAll (numspaces - n)
+                         n | n < numspaces  ->
+                               (+ n) <$> gobble' requireAll (numspaces - n)
                            | n == numspaces -> return $! n
                            | otherwise      -> do
                                let newtok = T.replicate (n - numspaces) " "

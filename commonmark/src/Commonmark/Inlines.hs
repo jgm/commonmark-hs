@@ -688,8 +688,8 @@ processEm st =
 -- This only applies to emph delims, not []:
 delimsMatch :: IsInline a
             => Chunk a -> Chunk a -> Bool
-delimsMatch (Chunk open@Delim{} p1 opents)
-            (Chunk close@Delim{} p2 closets) =
+delimsMatch (Chunk open@Delim{} p1 _)
+            (Chunk close@Delim{} p2 _) =
   delimCanOpen open && delimCanClose close &&
       (delimType open == delimType close &&
            if (delimCanOpen open && delimCanClose open) ||
@@ -956,9 +956,10 @@ inbetween op cl = try $ do
 
 pLinkLabel :: Monad m => ParsecT Text s m Text
 pLinkLabel = try $ do
-  lab <- try $ between (char '[') (char ']')
-            (snd <$> withRaw (many
-              (pEscaped <|> satisfy (\c -> c /= ']' && c /= '['))))
+  lab <- snd <$> (try
+         (between (char '[') (char ']')
+           (withRaw
+             (many (pEscaped <|> satisfy (\c -> c /= ']' && c /= '['))))))
   guard $ T.length lab <= 999
   return lab
 

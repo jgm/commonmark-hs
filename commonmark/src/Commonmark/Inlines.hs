@@ -61,7 +61,7 @@ import qualified Data.Text                  as T
 import qualified Data.Vector                as V
 import           Commonmark.Entity          (unEntity, charEntity, numEntity)
 
--- import Debug.Trace
+import Debug.Trace
 
 mkInlineParser :: (Monad m, IsInline a)
                => [BracketedSpec a]
@@ -157,9 +157,9 @@ parseChunks bspecs specs ilParsers attrParser rm positions t =
                         Just ps -> Just (tickstart:ps)) len $
                 backtickSpans st }
       optional $ lookAhead $ do
+        pos <- getPosition
         d <- anyChar
-        when (isDelimChar d) $ do
-           pos <- getPosition
+        when (isDelimChar d) $
            updateState $ \st -> st{ precedingChars = M.insert pos c $
                                      precedingChars st }
    isDelimChar c = c `Set.member` delimcharset
@@ -578,19 +578,17 @@ processEmphasis positions xs =
                                , absoluteBottom = chunkPos z
                                , dLinePositions = positions }
 
-{- for debugging:
-prettyCursors :: (IsInline a) => Cursor (Chunk a) -> Cursor (Chunk a) -> String
-prettyCursors left right =
-  toS (reverse $ befores left) <> (maybe "" (inBrs . toS . (:[])) (center left)) <>
-  if (chunkPos <$> center left) == (chunkPos <$> center right)
-     then toS (afters right)
-     else toS (middles) <> (maybe "" (inBrs . toS . (:[])) (center right)) <>
-          toS (afters right)
- where middles = take (length (afters left) - length (afters right) -
-                         maybe 0 (const 1) (center right)) (afters left)
-       toS = show . unChunks
-       inBrs x = "{" ++ x ++ "}"
--}
+-- prettyCursors :: (IsInline a) => Cursor (Chunk a) -> Cursor (Chunk a) -> String
+-- prettyCursors left right =
+--   toS (reverse $ befores left) <> (maybe "" (inBrs . toS . (:[])) (center left)) <>
+--   if (chunkPos <$> center left) == (chunkPos <$> center right)
+--      then toS (afters right)
+--      else toS (middles) <> (maybe "" (inBrs . toS . (:[])) (center right)) <>
+--           toS (afters right)
+--  where middles = take (length (afters left) - length (afters right) -
+--                          maybe 0 (const 1) (center right)) (afters left)
+--        toS = show . unChunks
+--        inBrs x = "{" ++ x ++ "}"
 
 processEm :: IsInline a => DState a -> [Chunk a]
 processEm st =
@@ -690,7 +688,8 @@ processEm st =
 -- This only applies to emph delims, not []:
 delimsMatch :: IsInline a
             => Chunk a -> Chunk a -> Bool
-delimsMatch (Chunk open@Delim{} _ opents) (Chunk close@Delim{} _ closets) =
+delimsMatch (Chunk open@Delim{} p1 opents)
+            (Chunk close@Delim{} p2 closets) =
   delimCanOpen open && delimCanClose close &&
       (delimType open == delimType close &&
            if (delimCanOpen open && delimCanClose open) ||
@@ -698,7 +697,7 @@ delimsMatch (Chunk open@Delim{} _ opents) (Chunk close@Delim{} _ closets) =
                 then delimLength close `mod` 3 == 0 ||
                      (delimLength open + delimLength close) `mod` 3 /= 0
                 else True) &&
-    opents /= closets
+    p2 > p1
 delimsMatch _ _ = False
 
 processBrackets :: IsInline a

@@ -758,15 +758,14 @@ setextHeadingSpec = BlockSpec
          return $! (addRange node . heading level) ils
      , blockFinalize       = \node@(Node cdata children) parent -> do
          let oldAttr = blockAttributes cdata
-         let toks = getBlockText removeIndent node
-         (newtoks, attr) <- parseFinalAttributes True toks
-                        <|> (return $! (toks, mempty))
-         let newlns = case blockLines cdata of
-                        (_:((sp,ep),_):zs) -> ((sp,ep),newtoks):zs
-                        xs                 -> xs
-         defaultFinalizer (Node cdata{ blockAttributes = oldAttr <> attr
-                                     , blockLines = newlns }
-                                children) parent
+         case blockLines cdata of
+           [] -> defaultFinalizer node parent
+           (p, t):rest -> do
+             (t', attr) <- parseFinalAttributes True t
+                            <|> (return $! (t, mempty))
+             defaultFinalizer (Node cdata{ blockAttributes = oldAttr <> attr
+                                         , blockLines = (p,t'):rest }
+                                    children) parent
      }
 
 parseFinalAttributes :: Monad m

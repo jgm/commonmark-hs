@@ -673,13 +673,15 @@ atxHeadingSpec = BlockSpec
              void (satisfy isSpaceChar)
                 <|> void (lookAhead lineEnd)
                 <|> lookAhead eof
-             raw <- textWhile1 (\c -> c /= '\r' && c /= '\n')
+             raw <- option mempty $ textWhile1 (\c -> c /= '\r' && c /= '\n')
              endpos <- getPosition
              -- trim off closing ###
              let rawtrimmed = T.stripEnd raw
              let raw' = case T.unsnoc $ T.dropWhileEnd (=='#') rawtrimmed of
-                          Just (t,c) | c == ' ' || c == '\t' -> t
-                          _ -> rawtrimmed
+                          Just (t,c)
+                            | c == ' ' || c == '\t' -> t
+                            | otherwise             -> rawtrimmed
+                          Nothing -> mempty
              addNodeToStack $ Node (defBlockData atxHeadingSpec){
                             blockLines = [((pos, endpos), raw')],
                             blockData = toDyn level,

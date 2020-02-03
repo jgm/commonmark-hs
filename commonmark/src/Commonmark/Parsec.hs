@@ -124,8 +124,8 @@ whitespace = textWhile1 iswhite
 -- | Parses a 'LineEnd' token.
 lineEnd ::  Monad m => ParsecT Text s m Text
 lineEnd =
-  (char '\r' >> (("\r\n" <$ char '\n') <|> (return "\r")))
-   <|> ("\n" <$ char '\n')
+  ("\n" <$ char '\n')
+   <|> (char '\r' >> (("\r\n" <$ char '\n') <|> (return "\r")))
 {-# INLINEABLE lineEnd #-}
 
 -- | Parses a 'Spaces' token.

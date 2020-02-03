@@ -76,7 +76,7 @@ mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   let positions = V.fromList positionList
   let attrParser = choice attrParsers
   res <- parseChunks bracketedSpecs formattingSpecs ilParsers attrParser
-           rm positions (mconcat ts)
+           rm positions (T.stripEnd $! T.concat ts)
   return $!
     case res of
        Left err     -> Left err

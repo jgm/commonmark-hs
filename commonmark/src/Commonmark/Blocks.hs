@@ -668,22 +668,13 @@ atxHeadingSpec = BlockSpec
              void (satisfy isSpaceChar)
                 <|> void (lookAhead lineEnd)
                 <|> lookAhead eof
-             raw <- many (satisfy (\c -> c /= '\r' && c /= '\n'))
+             raw <- textWhile1 (\c -> c /= '\r' && c /= '\n')
              endpos <- getPosition
              -- trim off closing ###
-             let removeClosingHash (_ :: Int) [] = []
-                 removeClosingHash 0 (' ':xs) =
-                   removeClosingHash 0 xs
-                 removeClosingHash 0 ('\t':xs) =
-                   removeClosingHash 0 xs
-                 removeClosingHash _ ('#':'\\':xs) =
-                   '#':'\\':xs
-                 removeClosingHash _ ('#':xs) =
-                   removeClosingHash 1 xs
-                 removeClosingHash 1 (' ':xs) = xs
-                 removeClosingHash 1 ('\t':xs) = xs
-                 removeClosingHash _ xs = xs
-             let raw' = T.pack $ reverse . removeClosingHash 0 . reverse $ raw
+             let rawtrimmed = T.stripEnd raw
+             let raw' = case T.unsnoc $ T.dropWhileEnd (=='#') rawtrimmed of
+                          Just (t,c) | c == ' ' || c == '\t' -> t
+                          _ -> rawtrimmed
              addNodeToStack $ Node (defBlockData atxHeadingSpec){
                             blockLines = [((pos, endpos), raw')],
                             blockData = toDyn level,

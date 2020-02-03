@@ -138,6 +138,8 @@ parseChunks bspecs specs ilParsers attrParser rm positions t =
          inp <- getInput
          pos <- getPosition
          pBuildMaps
+         updateState $ \st -> st{
+           backtickSpans = IntMap.map reverse $ backtickSpans st }
          setInput inp
          setPosition pos
          many (pChunk specmap attrParser ilParsers isDelimChar) <* eof)
@@ -150,23 +152,22 @@ parseChunks bspecs specs ilParsers attrParser rm positions t =
      "source" t
   where
    pBuildMaps = skipMany $ do
+      spos <- getPosition
       c <- anyChar
       when (c == '`') $ do
-         tickstart <- (\x -> incSourceColumn x (-1)) <$> getPosition
          len <- ((+ 1) . length) <$> many (char '`')
          updateState $ \st ->
            st{ backtickSpans = IntMap.alter
                 (\x -> case x of
-                        Nothing -> Just [tickstart]
-                        Just ps -> Just (tickstart:ps)) len $
+                        Nothing -> Just [spos]
+                        Just ps -> Just (spos:ps)) len $
                 backtickSpans st }
-      res <- option Nothing $ Just <$> lookAhead
-                     ((,) <$> getPosition <*> anyChar)
-      case res of
-        Just (pos, d) | isDelimChar d->
+      pos <- getPosition
+      d <- option '\n' $ lookAhead anyChar
+      when (isDelimChar d) $
          updateState $ \st -> st{ precedingChars = M.insert pos c $
                                      precedingChars st }
-        _ -> return ()
+
    isDelimChar c = c `Set.member` delimcharset
    delimcharset = Set.fromList delimchars
    delimchars = '[' : ']' : suffixchars ++

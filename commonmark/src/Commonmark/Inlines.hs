@@ -732,7 +732,7 @@ processBrackets bracketedSpecs positions rm xs =
                        }
 
 data Cursor a = Cursor
-     { center  :: Maybe a
+     { center  :: !(Maybe a)
      , befores :: [a]
      , afters  :: [a]
      }

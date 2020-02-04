@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE StrictData #-}
 module Commonmark.ReferenceMap
   ( ReferenceMap(..)
   , LinkInfo(..)

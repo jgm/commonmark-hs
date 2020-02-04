@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE StrictData #-}
 module Commonmark.Syntax
   ( SyntaxSpec(..)
   , defaultSyntaxSpec

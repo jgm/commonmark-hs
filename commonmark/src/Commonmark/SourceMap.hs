@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StrictData                 #-}
 module Commonmark.SourceMap
   ( SourceMap(..)
   , WithSourceMap(..)

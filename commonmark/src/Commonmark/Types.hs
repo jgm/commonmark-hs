@@ -5,6 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE MonoLocalBinds             #-}
+{-# LANGUAGE StrictData                 #-}
 
 module Commonmark.Types
   ( Format(..)

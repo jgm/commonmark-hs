@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE StrictData                 #-}
 module Commonmark.Html
   ( Html
   , htmlInline

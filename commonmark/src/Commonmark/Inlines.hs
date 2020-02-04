@@ -5,6 +5,7 @@
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StrictData        #-}
 
 module Commonmark.Inlines
   ( mkInlineParser

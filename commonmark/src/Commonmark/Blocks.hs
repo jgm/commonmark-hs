@@ -8,6 +8,7 @@
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE StrictData            #-}
 module Commonmark.Blocks
   ( mkBlockParser
   , defaultBlockSpecs

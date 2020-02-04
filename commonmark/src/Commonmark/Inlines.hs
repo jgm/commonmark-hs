@@ -154,18 +154,18 @@ parseChunks bspecs specs ilParsers attrParser rm positions t =
   where
    pBuildMaps = {-# SCC pBuildMaps #-} skipMany $ do
       spos <- getPosition
-      c <- anyChar
+      !c <- anyChar
       when (c == '`') $ do
          len <- ((+ 1) . length) <$> many (char '`')
-         updateState $ \st ->
+         updateState $ \st -> spos `seq`
            st{ backtickSpans = IntMap.alter
                 (\x -> case x of
                         Nothing -> Just [spos]
                         Just ps -> Just (spos:ps)) len $
                 backtickSpans st }
       pos <- getPosition
-      d <- option '\n' $ lookAhead anyChar
-      when (isDelimChar d) $
+      !d <- option '\n' $ lookAhead anyChar
+      when (isDelimChar d) $ pos `seq`
          updateState $ \st -> st{ precedingChars = M.insert pos c $
                                      precedingChars st }
 

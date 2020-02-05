@@ -153,22 +153,23 @@ parseChunks bspecs specs ilParsers attrParser rm positions t =
               attributeParser = attrParser }
      "source" t
   where
-   pBuildMaps = {-# SCC pBuildMaps #-} skipMany $ do
-      spos <- getPosition
-      !c <- anyChar
-      when (c == '`') $ do
-         len <- ((+ 1) . length) <$> many (char '`')
-         updateState $ \st -> spos `seq`
-           st{ backtickSpans = IntMap.alter
-                (\x -> case x of
-                        Nothing -> Just [spos]
-                        Just ps -> Just (spos:ps)) len $
-                backtickSpans st }
-      pos <- getPosition
-      !d <- option '\n' $ lookAhead anyChar
-      when (isDelimChar d) $ pos `seq`
-         updateState $ \st -> st{ precedingChars = M.insert pos c $
-                                     precedingChars st }
+   pBuildMaps = {-# SCC pBuildMaps #-} optional $ go '\n'
+   go c = do
+      !pos <- getPosition
+      !d <- anyChar
+      if (d == '`')
+         then do
+           len <- (((+ 1) . T.length) <$> textWhile1 (=='`')) <|> return 1
+           updateState $ \st ->
+             st{ backtickSpans = IntMap.alter
+                  (\x -> case x of
+                          Nothing -> Just [pos]
+                          Just ps -> Just (pos:ps)) len $!
+                  backtickSpans st }
+         else when (isDelimChar d) $
+             updateState $ \st -> st{ precedingChars = M.insert pos c $!
+                                       precedingChars st }
+      eof <|> go d
 
    isDelimChar c = c `Set.member` delimcharset
    delimcharset = Set.fromList delimchars

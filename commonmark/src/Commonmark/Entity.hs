@@ -21,7 +21,6 @@ import Data.Text (Text)
 import qualified Data.Text.Read as TR
 import Control.Monad (guard, mzero)
 import Data.Maybe (isJust)
-import qualified Control.Monad.Trans.State.Strict as S
 #if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup (Semigroup(..))
 #endif
@@ -2334,12 +2333,10 @@ numEntity = do
 
 unEntity :: Text -> Text
 unEntity t =
-  case runIdentity $ S.evalStateT parser () of
+  case runIdentity $ runParserT parser () "" t of
         Left _    -> t
         Right ts' -> mconcat ts'
-  where parser = runParserT
-                  (many (pEntity' <|> textWhile1 (/= '&') <|> string "&"))
-                  "" t
+  where parser = many (pEntity' <|> textWhile1 (/= '&') <|> string "&")
         pEntity' :: ParsecT Text () Identity Text
         pEntity' = try $ do
           char '&'

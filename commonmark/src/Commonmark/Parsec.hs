@@ -3,12 +3,16 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BangPatterns #-}
 module Commonmark.Parsec
-  ( -- Re-exports
-    ParsecT
+  ( ParsecT
+  , Parsec
+  , runParserT
   , setTabWidth
   , getState
   , putState
   , updateState
+  , incSourceColumn
+  , incSourceLine
+  , setSourceColumn
   , getPosition
   , setPosition
   , textWhile1
@@ -32,17 +36,27 @@ module Commonmark.Parsec
 import           Control.Monad   (mzero)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
-import           Text.Megaparsec hiding (ParsecT)
+import           Text.Megaparsec hiding (ParsecT, Parsec, runParserT)
 import           Text.Megaparsec.Char
 import qualified Text.Megaparsec as M
 import qualified Control.Monad.Trans.State.Strict as S
 import           Control.Monad.Trans.Class (lift)
+import           Data.Void (Void)
+import           Data.Functor.Identity (Identity)
 import Debug.Trace
 
-type ParsecT s u m = M.ParsecT () s (S.StateT u m)
+type ParsecT s u m = M.ParsecT Void s (S.StateT u m)
+
+type Parsec s u = ParsecT s u Identity
 
 getState :: Monad m => ParsecT s u m u
 getState = lift S.get
+
+runParserT :: Monad m
+           => ParsecT s u m a -> u -> String -> s
+           -> m (Either (ParseErrorBundle s Void) a)
+runParserT parser st sourcename t =
+  S.evalStateT (M.runParserT parser sourcename t) st
 
 putState :: Monad m => u -> ParsecT s u m ()
 putState s = lift $ S.put s
@@ -72,9 +86,21 @@ setTabWidth n = do
   updateParserState $ \st ->
     st{ statePosState = (statePosState st){ pstateTabWidth = mkPos n } }
 
+incSourceColumn :: SourcePos -> Int -> SourcePos
+incSourceColumn pos n =
+  pos{ sourceColumn = mkPos $ unPos (sourceColumn pos) + n }
+
+setSourceColumn :: SourcePos -> Int -> SourcePos
+setSourceColumn pos n =
+  pos{ sourceColumn = mkPos n }
+
+incSourceLine :: SourcePos -> Int -> SourcePos
+incSourceLine pos n =
+  pos{ sourceColumn = mkPos $ unPos (sourceLine pos) + n }
 
 -- | Parses one or more whitespace 'Tok's.
-whitespace ::  (Monad m) => ParsecT Text u m Text
+whitespace ::  (Monad m, Stream s, Tokens s ~ Text, Token s ~ Char)
+           => ParsecT s u m Text
 whitespace = takeWhile1P (Just "whitespace") iswhite
   where iswhite ' '  = True
         iswhite '\t' = True
@@ -84,14 +110,16 @@ whitespace = takeWhile1P (Just "whitespace") iswhite
 {-# INLINEABLE whitespace #-}
 
 -- | Parses a 'LineEnd' token.
-lineEnd ::  Monad m => ParsecT Text s m Text
+lineEnd ::  (Monad m, Stream s, Token s ~ Char)
+        => ParsecT s u m Text
 lineEnd =
   ("\n" <$ char '\n')
    <|> (char '\r' >> (("\r\n" <$ char '\n') <|> (return "\r")))
 {-# INLINEABLE lineEnd #-}
 
--- | Parses a 'Spaces' token.
-spaceChars :: Monad m => ParsecT Text s m Text
+-- | Parses one or more spaces or tabs.
+spaceChars :: (Monad m, Stream s, Tokens s ~ Text, Token s ~ Char)
+           => ParsecT s u m Text
 spaceChars = takeWhile1P (Just "space") isspace
   where isspace ' '  = True
         isspace '\t' = True
@@ -101,18 +129,20 @@ spaceChars = takeWhile1P (Just "space") isspace
 -- | Parses exactly @n@ spaces. If tabs are encountered,
 -- they are split into spaces before being consumed; so
 -- a tab may be partially consumed by this parser.
-gobbleSpaces :: (Monad m) => Int -> ParsecT Text u m Int
+gobbleSpaces :: Monad m
+             => Int -> ParsecT Text u m Int
 gobbleSpaces 0 = return 0
 gobbleSpaces n = try $ gobble' True n
 {-# INLINEABLE gobbleSpaces #-}
 
 -- | Parses up to @n@ spaces.
-gobbleUpToSpaces :: (Monad m) => Int -> ParsecT Text u m Int
+gobbleUpToSpaces :: Monad m
+                 => Int -> ParsecT Text u m Int
 gobbleUpToSpaces 0 = return 0
 gobbleUpToSpaces n = gobble' False n
 {-# INLINEABLE gobbleUpToSpaces #-}
 
-gobble' :: (Monad m) => Bool -> Int -> ParsecT Text u m Int
+gobble' :: Monad m => Bool -> Int -> ParsecT Text u m Int
 gobble' requireAll numspaces
   | numspaces < 1  = return 0
   | otherwise = (do char ' '
@@ -140,14 +170,16 @@ gobble' requireAll numspaces
 
 -- | Applies a parser and returns its value (if successful)
 -- plus a list of the raw tokens parsed.
-withRaw :: Monad m => ParsecT Text u m a -> ParsecT Text u m (a, Text)
+withRaw :: (Monad m, Stream s, Tokens s ~ Text, Token s ~ Char)
+        => ParsecT s u m a -> ParsecT s u m (a, Text)
 withRaw parser = do
   (t, res) <- match parser
   return (res, t)
 {-# INLINEABLE withRaw #-}
 
 -- | Gobble up to 3 spaces (may be part of a tab).
-nonindentSpaces :: Monad m => ParsecT Text u m ()
+nonindentSpaces :: Monad m
+                => ParsecT Text u m ()
 nonindentSpaces = () <$ gobbleUpToSpaces 3
 {-# INLINEABLE nonindentSpaces #-}
 
@@ -163,7 +195,8 @@ skipWhile f = skipMany (satisfy f)
 {-# INLINEABLE skipWhile #-}
 
 -- | Parse optional spaces and an endline.
-blankLine :: Monad m => ParsecT Text u m ()
+blankLine :: (Monad m, Stream s, Token s ~ Char)
+          => ParsecT s u m ()
 blankLine = try $ do
   skipWhile (\c -> case c of
                      ' '  -> True
@@ -175,7 +208,8 @@ blankLine = try $ do
 -- | Efficiently parse the remaining text on a line,
 -- return it plus the source position of the line end
 -- (if there is one).
-restOfLine :: Monad m => ParsecT Text u m (Text, SourcePos)
+restOfLine :: (Monad m, Stream s, Tokens s ~ Text, Token s ~ Char)
+           => ParsecT s u m (Text, SourcePos)
 restOfLine =
    (do ts <- takeWhile1P (Just "cr or lf") (\c -> c /= '\r' && c /= '\n')
        pos <- getPosition

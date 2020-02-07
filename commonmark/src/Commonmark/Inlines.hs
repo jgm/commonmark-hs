@@ -1,4 +1,6 @@
 {-# LANGUAGE CPP               #-}
+{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -45,6 +47,7 @@ import           Commonmark.Parsec
 import           Commonmark.ReferenceMap
 import           Commonmark.Types
 import           Control.Monad              (guard, mzero, when)
+import           Data.Functor.Identity
 import           Data.List                  (foldl')
 import           Data.Char                  (isAscii, isLetter, isSpace,
                                              isSymbol, isPunctuation,
@@ -61,6 +64,7 @@ import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import qualified Data.Vector                as V
 import           Commonmark.Entity          (unEntity, charEntity, numEntity)
+import           Data.Void (Void)
 
 import Debug.Trace
 
@@ -71,7 +75,7 @@ mkInlineParser :: (Monad m, IsInline a)
                -> [InlineParser m Attributes]
                -> ReferenceMap
                -> [((SourcePos, SourcePos), Text)]
-               -> m (Either ParseError a)
+               -> m (Either (ParseErrorBundle Text Void) a)
 mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   let (positionList, ts) = unzip toks
   let positions = V.fromList positionList
@@ -130,7 +134,7 @@ parseChunks :: (Monad m, IsInline a)
             -> ReferenceMap
             -> V.Vector (SourcePos, SourcePos)
             -> Text
-            -> m (Either ParseError [Chunk a])
+            -> m (Either (ParseErrorBundle Text Void) [Chunk a])
 parseChunks bspecs specs ilParsers attrParser rm positions t =
   runParserT
      (do case positions V.!? 0 of
@@ -204,7 +208,7 @@ data IPState m = IPState
      , linePositions        :: !(V.Vector (SourcePos, SourcePos))
      , ipReferenceMap       :: !ReferenceMap
      , precedingChars       :: !(M.Map SourcePos Char)
-     , attributeParser      :: ParsecT Text (IPState m) m Attributes
+     , attributeParser      :: InlineParser m Attributes
      }
 
 type InlineParser m = ParsecT Text (IPState m) m
@@ -289,7 +293,7 @@ imageSpec = BracketedSpec
             }
 
 pLinkSuffix :: IsInline il
-            => ReferenceMap -> Text -> Parsec Text s (il -> il)
+            => ReferenceMap -> Text -> ParsecT Text s Identity (il -> il)
 pLinkSuffix rm key = do
   LinkInfo target title attrs <- pLink rm key
   return $! addAttributes attrs . link target title
@@ -389,7 +393,7 @@ pInline :: (IsInline a, Monad m)
         -> (Char -> Bool)
         -> InlineParser m (a, Text)
 pInline ilParsers isDelimChar = do
-  (xs, ts) <- withRaw $ many1
+  (xs, ts) <- withRaw $ some
                (do startpos <- getPosition
                    res <- choice ilParsers <|> pSymbol isDelimChar
                    endpos <- getPosition
@@ -404,24 +408,25 @@ rangeFromStartEnd :: V.Vector (SourcePos, SourcePos)
                   -> SourceRange
 rangeFromStartEnd positions startpos endpos = SourceRange realPositions
  where
-  startline = sourceLine startpos
-  endline = sourceLine endpos
+  startline = unPos $ sourceLine startpos
+  endline = unPos $ sourceLine endpos
   realPos lnum = case positions V.!? (lnum - 1) of
                    Nothing -> error $ "Could not find position for line " ++
                                     show lnum
                    Just (start, end) ->
                      let scol = if lnum == startline
-                                   then sourceColumn startpos +
+                                   then sourceColumn startpos <>
                                         sourceColumn start
                                    else sourceColumn start
                          ecol = if lnum == endline
-                                   then sourceColumn endpos +
+                                   then sourceColumn endpos <>
                                         sourceColumn start
                                    else sourceColumn end
                          slin = sourceLine start
                          elin = sourceLine end
                          sn = sourceName startpos
-                     in  (newPos sn slin scol, newPos sn elin ecol)
+                     in  (SourcePos sn slin scol,
+                          SourcePos sn elin ecol)
   realPositions = map realPos [startline..endline]
 
 pEscapedChar :: (IsInline a, Monad m) => InlineParser m a
@@ -810,7 +815,7 @@ processBs bracketedSpecs st =
                          , maybe True  (< chunkPos opener)
                             (M.lookup (bracketedName s) bottoms) ]
 
-          in case parse
+          in case runIdentity $ runParserT
                  (withRaw
                    (do setPosition (incSourceColumn closePos 1)
                        (spec, constructor) <- choice $
@@ -818,6 +823,7 @@ processBs bracketedSpecs st =
                            specs
                        pos <- getPosition
                        return (spec, constructor, pos)))
+                 ()
                  ""
                  (mconcat (map chunkText (afters right))) of
                    Left _ -> -- match but no link/image

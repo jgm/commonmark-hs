@@ -1,31 +1,20 @@
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BangPatterns #-}
 module Commonmark.Parsec
   ( -- Re-exports
     ParsecT
-  , runParserT
-  , Parsec
-  , runParser
-  , parse
-  , mkPT
-  , Consumed(..)
-  , Reply(..)
-  , (<|>)
-  , (<?>)
-  , try
-  , getParserState
-  , setParserState
-  , getInput
-  , setInput
+  , setTabWidth
   , getState
   , putState
   , updateState
   , getPosition
   , setPosition
-  , many
-  , skipMany
+  , textWhile1
+  , anyChar
   , module Text.Megaparsec
+  , module Text.Megaparsec.Char
   -- Modified and new functions
   , whitespace
   , lineEnd
@@ -37,48 +26,56 @@ module Commonmark.Parsec
   , restOfLine
   , isOneOfCI
   , nonindentSpaces
-  , skipManyTill
   , skipWhile
   )
   where
 import           Control.Monad   (mzero)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
-import           Text.Megaparsec
+import           Text.Megaparsec hiding (ParsecT)
+import           Text.Megaparsec.Char
+import qualified Text.Megaparsec as M
+import qualified Control.Monad.Trans.State.Strict as S
+import           Control.Monad.Trans.Class (lift)
 import Debug.Trace
 
-setTabWidth :: Int -> ParsecT s u m ()
+type ParsecT s u m = M.ParsecT () s (S.StateT u m)
+
+getState :: Monad m => ParsecT s u m u
+getState = lift S.get
+
+putState :: Monad m => u -> ParsecT s u m ()
+putState s = lift $ S.put s
+
+updateState :: Monad m => (u -> u) -> ParsecT s u m ()
+updateState f = lift $ S.modify f
+
+getPosition :: MonadParsec e s m => m SourcePos
+getPosition = getSourcePos
+
+setPosition :: MonadParsec e s m => SourcePos -> m ()
+setPosition pos = updateParserState $ \st ->
+  let ps = statePosState st
+   in st{ statePosState = ps{
+          pstateSourcePos = pos
+       } }
+
+textWhile1 :: (Monad m, Stream s, Tokens s ~ Text, Token s ~ Char)
+           => (Char -> Bool) -> ParsecT s u m Text
+textWhile1 = takeWhile1P Nothing
+
+anyChar :: (Monad m, Stream s, Token s ~ Char) => ParsecT s u m Char
+anyChar = anySingle
+
+setTabWidth :: (Monad m, Stream s) => Int -> ParsecT s u m ()
 setTabWidth n = do
   updateParserState $ \st ->
-    st{ statePosState = (statePosState st){ pstateTabWidth = Pos n } }
+    st{ statePosState = (statePosState st){ pstateTabWidth = mkPos n } }
 
-
-updatePosWithChar :: SourcePos -> Char -> SourcePos
-updatePosWithChar !spos '\t' = incSourceColumn spos
-                                  (4 - (sourceColumn spos - 1) `mod` 4)
-updatePosWithChar !spos '\n' = setSourceColumn (incSourceLine spos 1) 1
-updatePosWithChar !spos _    = incSourceColumn spos 1
-{-# INLINEABLE updatePosWithChar #-}
-
-updatePosWithText :: Text -> SourcePos -> SourcePos
-updatePosWithText t pos = T.foldl' updatePosWithChar pos t
-{-# INLINEABLE updatePosWithText #-}
-
--- | Efficiently parse a chunk of text meeting a condition.
-textWhile1 :: Monad m => (Char -> Bool) -> ParsecT Text u m Text
-textWhile1 f = do
-  inp <- getInput
-  pos <- getPosition
-  _ <- satisfy f
-  let (ts, rest) = T.span f inp
-  setInput rest
-  setPosition $ updatePosWithText ts pos
-  return $! ts
-{-# INLINEABLE textWhile1 #-}
 
 -- | Parses one or more whitespace 'Tok's.
 whitespace ::  (Monad m) => ParsecT Text u m Text
-whitespace = textWhile1 iswhite
+whitespace = takeWhile1P (Just "whitespace") iswhite
   where iswhite ' '  = True
         iswhite '\t' = True
         iswhite '\r' = True
@@ -95,7 +92,7 @@ lineEnd =
 
 -- | Parses a 'Spaces' token.
 spaceChars :: Monad m => ParsecT Text s m Text
-spaceChars = textWhile1 isspace
+spaceChars = takeWhile1P (Just "space") isspace
   where isspace ' '  = True
         isspace '\t' = True
         isspace _    = False
@@ -124,14 +121,17 @@ gobble' requireAll numspaces
                 (do pos <- getPosition
                     char '\t'
                     pos' <- getPosition
-                    case sourceColumn pos' - sourceColumn pos of
+                    case unPos (sourceColumn pos') -
+                         unPos (sourceColumn pos) of
                          n | n < numspaces  ->
                                (+ n) <$> gobble' requireAll (numspaces - n)
                            | n == numspaces -> return $! n
                            | otherwise      -> do
                                let newtok = T.replicate (n - numspaces) " "
                                getInput >>= setInput . (newtok <>)
-                               setPosition $ incSourceColumn pos numspaces
+                               setPosition pos{
+                                 sourceColumn = mkPos
+                                   (unPos (sourceColumn pos) + numspaces) }
                                return $! numspaces)
                <|> if requireAll
                       then mzero
@@ -142,12 +142,8 @@ gobble' requireAll numspaces
 -- plus a list of the raw tokens parsed.
 withRaw :: Monad m => ParsecT Text u m a -> ParsecT Text u m (a, Text)
 withRaw parser = do
-  inp <- getInput
-  res <- parser
-  inp' <- getInput
-  case T.stripSuffix inp' inp of
-    Just raw -> return $! (res, raw)
-    Nothing  -> mzero
+  (t, res) <- match parser
+  return (res, t)
 {-# INLINEABLE withRaw #-}
 
 -- | Gobble up to 3 spaces (may be part of a tab).
@@ -160,14 +156,9 @@ isOneOfCI :: [Text] -> Text -> Bool
 isOneOfCI ts t = T.toLower t `elem` ts
 {-# INLINEABLE isOneOfCI #-}
 
--- | Apply @p@ many times until @stop@ succeeds, discarding results.
-skipManyTill :: ParsecT s u m a -> ParsecT s u m b -> ParsecT s u m ()
-skipManyTill p stop = scan
-    where scan = (() <$ stop) <|> (p >> scan)
-{-# INLINEABLE skipManyTill #-}
-
 -- | Efficiently skip 'Tok's satisfying a certain condition.
-skipWhile :: (Monad m, Stream s) => (Char -> Bool) -> ParsecT s u m ()
+skipWhile :: (Monad m, Stream s, Token s ~ Char)
+          => (Char -> Bool) -> ParsecT s u m ()
 skipWhile f = skipMany (satisfy f)
 {-# INLINEABLE skipWhile #-}
 
@@ -186,7 +177,7 @@ blankLine = try $ do
 -- (if there is one).
 restOfLine :: Monad m => ParsecT Text u m (Text, SourcePos)
 restOfLine =
-   (do ts <- textWhile1 (\c -> c /= '\r' && c /= '\n')
+   (do ts <- takeWhile1P (Just "cr or lf") (\c -> c /= '\r' && c /= '\n')
        pos <- getPosition
        le <- option "" lineEnd
        return $! (ts <> le, pos))

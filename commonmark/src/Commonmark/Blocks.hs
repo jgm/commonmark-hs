@@ -72,6 +72,7 @@ import qualified Data.Map                  as M
 import qualified Data.Text                 as T
 import qualified Data.Text.Read            as TR
 import           Data.Tree
+import           Data.Void                 (Void)
 import Debug.Trace
 
 mkBlockParser
@@ -80,11 +81,11 @@ mkBlockParser
   -> [BlockParser m il bl bl] -- ^ Parsers to run at end
   -> (ReferenceMap ->
       [((SourcePos, SourcePos), Text)] ->
-      m (Either ParseError il)) -- ^ Inline parser
+      m (Either (ParseErrorBundle Text Void) il)) -- ^ Inline parser
   -> [BlockParser m il bl Attributes] -- ^ attribute parsers
   -> String -- ^ Name of source
   -> Text -- ^ Tokenized commonmark input
-  -> m (Either ParseError bl)  -- ^ Result or error
+  -> m (Either (ParseErrorBundle Text Void) bl)  -- ^ Result or error
 mkBlockParser specs finalParsers ilParser attrParsers sourcename t =
   runParserT (processLines specs finalParsers)
           BPState{ referenceMap     = emptyReferenceMap
@@ -370,7 +371,7 @@ data BPState m il bl = BPState
      { referenceMap     :: !ReferenceMap
      , inlineParser     :: ReferenceMap ->
                            [((SourcePos, SourcePos), Text)] ->
-                           m (Either ParseError il)
+                           m (Either (ParseErrorBundle Text Void) il)
      , nodeStack        :: [BlockNode m il bl]   -- reverse order, head is tip
      , blockMatched     :: !Bool
      , maybeLazy        :: !Bool

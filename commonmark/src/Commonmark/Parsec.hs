@@ -25,15 +25,8 @@ module Commonmark.Parsec
   , setPosition
   , many
   , skipMany
-  , module Text.Parsec.Pos
-  , module Text.Parsec.Combinator
-  , module Text.Parsec.Error
+  , module Text.Megaparsec
   -- Modified and new functions
-  , anyChar
-  , satisfy
-  , char
-  , textWhile1
-  , string
   , whitespace
   , lineEnd
   , spaceChars
@@ -51,21 +44,14 @@ module Commonmark.Parsec
 import           Control.Monad   (mzero)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
-import           Text.Parsec hiding (anyChar, char, string, satisfy)
-import           Text.Parsec.Pos
-import           Text.Parsec.Combinator
-import           Text.Parsec.Error
+import           Text.Megaparsec
 import Debug.Trace
 
--- | Parses a single Char satisfying a predicate. We define
--- this here instead of using parsec's default because parsec
--- assumes an 8-space tab stop and gets source pos wrong.
-satisfy :: (Monad m, Stream s m Char) => (Char -> Bool) -> ParsecT s u m Char
-satisfy f = tokenPrim (:[]) updatePos matcher
-  where matcher t | f t       = Just t
-                  | otherwise = Nothing
-        updatePos spos c _ = updatePosWithChar spos c
-{-# INLINEABLE satisfy #-}
+setTabWidth :: Int -> ParsecT s u m ()
+setTabWidth n = do
+  updateParserState $ \st ->
+    st{ statePosState = (statePosState st){ pstateTabWidth = Pos n } }
+
 
 updatePosWithChar :: SourcePos -> Char -> SourcePos
 updatePosWithChar !spos '\t' = incSourceColumn spos
@@ -77,27 +63,6 @@ updatePosWithChar !spos _    = incSourceColumn spos 1
 updatePosWithText :: Text -> SourcePos -> SourcePos
 updatePosWithText t pos = T.foldl' updatePosWithChar pos t
 {-# INLINEABLE updatePosWithText #-}
-
--- | Parses any Char.
-anyChar :: (Monad m, Stream s m Char) => ParsecT s u m Char
-anyChar = satisfy (const True)
-{-# INLINEABLE anyChar #-}
-
--- | Parses a specific Char.
-char :: (Monad m, Stream s m Char) => Char -> ParsecT s u m Char
-char c = satisfy (== c)
-{-# INLINEABLE char #-}
-
--- | Efficiently parse a text string.
-string :: (Monad m) => Text -> ParsecT Text u m Text
-string t = do
-  inp <- getInput
-  if t `T.isPrefixOf` inp
-     then do
-       _ <- count (T.length t) anyChar
-       return $! t
-     else mzero
-{-# INLINEABLE string #-}
 
 -- | Efficiently parse a chunk of text meeting a condition.
 textWhile1 :: Monad m => (Char -> Bool) -> ParsecT Text u m Text
@@ -202,7 +167,7 @@ skipManyTill p stop = scan
 {-# INLINEABLE skipManyTill #-}
 
 -- | Efficiently skip 'Tok's satisfying a certain condition.
-skipWhile :: (Monad m, Stream s m Char) => (Char -> Bool) -> ParsecT s u m ()
+skipWhile :: (Monad m, Stream s) => (Char -> Bool) -> ParsecT s u m ()
 skipWhile f = skipMany (satisfy f)
 {-# INLINEABLE skipWhile #-}
 

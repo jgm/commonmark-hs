@@ -13,7 +13,7 @@ where
 
 import Data.Char (chr, isAlphaNum, isDigit, isHexDigit)
 import Data.Maybe (isNothing)
-import Data.Functor.Identity (Identity)
+import Data.Functor.Identity (Identity, runIdentity)
 import qualified Data.Map as Map
 import Commonmark.Parsec
 import qualified Data.Text as T
@@ -21,6 +21,7 @@ import Data.Text (Text)
 import qualified Data.Text.Read as TR
 import Control.Monad (guard, mzero)
 import Data.Maybe (isJust)
+import qualified Control.Monad.Trans.State.Strict as S
 #if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup (Semigroup(..))
 #endif
@@ -2333,10 +2334,13 @@ numEntity = do
 
 unEntity :: Text -> Text
 unEntity t =
-  case parse (many (pEntity' <|> textWhile1 (/= '&') <|> string "&")) "" t of
+  case runIdentity $ S.evalStateT parser () of
         Left _    -> t
         Right ts' -> mconcat ts'
-  where pEntity' :: ParsecT Text () Identity Text
+  where parser = runParserT
+                  (many (pEntity' <|> textWhile1 (/= '&') <|> string "&"))
+                  "" t
+        pEntity' :: ParsecT Text () Identity Text
         pEntity' = try $ do
           char '&'
           ent <- numEntity <|> charEntity

@@ -86,11 +86,11 @@ mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   return $!
     case res of
        Left err     -> Left err
-       Right chunks ->
+       Right chnks ->
          (Right .
           unChunks .
           processEmphasis positions .
-          processBrackets bracketedSpecs positions rm) chunks
+          processBrackets bracketedSpecs positions rm) $ chnks
 
 defaultInlineParsers :: (Monad m, IsInline a) => [InlineParser m a]
 defaultInlineParsers =
@@ -141,13 +141,9 @@ parseChunks bspecs specs ilParsers attrParser rm positions t =
            Just (p,_) -> setPosition p
            _          -> return ()
          -- build maps of preceding characters and backtick spans
-         inp <- getInput
-         pos <- getPosition
-         pBuildMaps
+         lookAhead pBuildMaps
          updateState $ \st -> st{
            backtickSpans = IntMap.map reverse $ backtickSpans st }
-         setInput inp
-         setPosition pos
          many (pChunk specmap attrParser ilParsers isDelimChar) <* eof)
      IPState{ backtickSpans = mempty,
               userState = toDyn (),
@@ -161,7 +157,7 @@ parseChunks bspecs specs ilParsers attrParser rm positions t =
    go c = do
       !pos <- getPosition
       !d <- anyChar
-      if (d == '`')
+      if d == '`'
          then do
            len <- (((+ 1) . T.length) <$> textWhile1 (=='`')) <|> return 1
            updateState $ \st ->
@@ -633,13 +629,13 @@ processEm st =
              , rightCursor = moveRight right
              }
 
-       (Just chunk, Just closedelim@(Chunk Delim{ delimType = c,
+       (Just chnk, Just closedelim@(Chunk Delim{ delimType = c,
                                                   delimCanClose = True,
                                                   delimSpec = Just spec}
                                            closePos t))
-         | delimsMatch chunk closedelim ->
+         | delimsMatch chnk closedelim ->
            let closelen = T.length t
-               opendelim = chunk
+               opendelim = chnk
                contents = takeWhile (\ch -> chunkPos ch /= closePos)
                           (afters left)
                openlen = T.length (chunkText opendelim)
@@ -673,7 +669,7 @@ processEm st =
                              (rangeFromStartEnd positions
                                 emphStartPos emphEndPos) $
                              constructor $ unChunks contents)
-                         (chunkPos chunk)
+                         (chunkPos chnk)
                          emphtoks
                newcursor = Cursor (Just newelt)
                               (addnewopen (befores left))
@@ -683,7 +679,7 @@ processEm st =
                 , leftCursor = newcursor
                 }
 
-         | Just (chunkPos chunk) <=
+         | Just (chunkPos chnk) <=
              M.lookup (T.pack (c: show (T.length t `mod` 3))) bottoms ->
                   processEm
                   st{ leftCursor   = right
@@ -774,19 +770,19 @@ processBs bracketedSpecs st =
                             Nothing -> befores (rightCursor st)
                             Just c  -> c : befores (rightCursor st)
 
-       (Nothing, Just chunk) ->
+       (Nothing, Just chnk) ->
           processBs bracketedSpecs
                        st{ leftCursor = moveRight right
                          , rightCursor = moveRight right
-                         , absoluteBottom = chunkPos chunk
+                         , absoluteBottom = chunkPos chnk
                          }
 
-       (Just chunk, Just chunk')
-         | chunkPos chunk < bottom ->
+       (Just chnk, Just chnk')
+         | chunkPos chnk < bottom ->
             processBs bracketedSpecs
                        st { leftCursor = moveRight right
                           , rightCursor = moveRight right
-                          , absoluteBottom = chunkPos chunk'
+                          , absoluteBottom = chunkPos chnk'
                           }
 
        (Just opener@(Chunk Delim{ delimCanOpen = True, delimType = '[' } _ _),

@@ -33,7 +33,7 @@ module Commonmark.Parsec
   , skipWhile
   )
   where
-import           Control.Monad   (mzero)
+import           Control.Monad   (mzero, void)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Text.Megaparsec hiding (ParsecT, Parsec, runParserT)
@@ -194,15 +194,10 @@ skipWhile :: (Monad m, Stream s, Token s ~ Char)
 skipWhile f = skipMany (satisfy f)
 {-# INLINEABLE skipWhile #-}
 
--- | Parse optional spaces and an endline.
-blankLine :: (Monad m, Stream s, Token s ~ Char)
+-- | Parse optional spaces and an endline or eof.
+blankLine :: (Monad m, Stream s, Tokens s ~ Text, Token s ~ Char)
           => ParsecT s u m ()
-blankLine = try $ do
-  skipWhile (\c -> case c of
-                     ' '  -> True
-                     '\t' -> True
-                     _    -> False)
-  () <$ lineEnd
+blankLine = try $ void lineEnd <|> (spaceChars >> (void lineEnd <|> eof))
 {-# INLINEABLE blankLine #-}
 
 -- | Efficiently parse the remaining text on a line,

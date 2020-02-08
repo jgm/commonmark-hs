@@ -106,6 +106,7 @@ processLines :: (Monad m, IsBlock il bl)
              -> [BlockParser m il bl bl] -- ^ Parsers to run at end
              -> BlockParser m il bl bl
 processLines specs finalParsers = do
+  setTabWidth 4
   skipMany (processLine specs)
   eof
   tree <- (nodeStack <$> getState) >>= collapseNodeStack
@@ -609,8 +610,8 @@ paraSpec = BlockSpec
      , blockStart          = do
              interruptsParagraph >>= guard . not
              skipWhile isSpaceChar
+             notFollowedBy (void lineEnd <|> eof)
              pos <- getPosition
-             notFollowedBy lineEnd
              addNodeToStack $
                Node (defBlockData paraSpec){
                        blockStartPos = [pos] } []

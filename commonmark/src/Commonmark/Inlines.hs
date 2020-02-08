@@ -420,10 +420,10 @@ rangeFromToks (!z:zs) !endpos
           case break (hasType LineEnd) ts of
              ([], [])     -> []
              ([], _:ys)   -> go ys
-             (x:_, [])   -> [(tokPos x, endpos)]
-             (x:_, y:ys) ->
+             (!x:_, [])   -> [(tokPos x, endpos)]
+             (!x:_, !y:ys) ->
                case ys of
-                 (Tok _ pos _ : _) | sourceColumn pos == 1 -> go (x:ys)
+                 (Tok _ !pos _ : _) | sourceColumn pos == 1 -> go (x:ys)
                  _ -> (tokPos x, tokPos y) : go ys
 
 pEscapedChar :: (IsInline a, Monad m) => InlineParser m a

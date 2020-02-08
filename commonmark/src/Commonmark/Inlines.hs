@@ -400,26 +400,27 @@ pInline :: (IsInline a, Monad m)
         -> InlineParser m (a, [Tok])
 pInline ilParsers isDelimChar = do
   (xs, ts) <- withRaw $ many1
-               (do startpos <- getPosition
-                   (res, toks) <- withRaw
-                                   (choice ilParsers <|> pSymbol isDelimChar)
+               (do toks <- getInput
+                   res <- choice ilParsers <|> pSymbol isDelimChar
                    endpos <- getPosition
-                   let range = if sourceLine startpos == sourceLine endpos
-                                  then SourceRange [(startpos, endpos)]
-                                  else rangeFromToks toks
-                   return (ranged range res))
+                   let range = rangeFromToks
+                         (takeWhile ((< endpos) . tokPos) toks) endpos
+                   return $! ranged range res)
   return $! (mconcat xs, ts)
 
-rangeFromToks :: [Tok] -> SourceRange
-rangeFromToks = SourceRange . go
- where go ts =
-        case break (hasType LineEnd) ts of
+rangeFromToks :: [Tok] -> SourcePos -> SourceRange
+rangeFromToks [] _ = SourceRange mempty
+rangeFromToks (!z:zs) !endpos
+  | sourceLine (tokPos z) == sourceLine endpos
+    = SourceRange [(tokPos z, endpos)]
+  | otherwise
+    = SourceRange $ go (z:zs)
+       where
+        go ts =
+          case break (hasType LineEnd) ts of
              ([], [])     -> []
              ([], _:ys)   -> go ys
-             (x:xs, [])   ->
-                let y = last (x:xs) in
-                [(tokPos x,
-                  incSourceColumn (tokPos y) (T.length (tokContents y)))]
+             (x:_, [])   -> [(tokPos x, endpos)]
              (x:_, y:ys) ->
                case ys of
                  (Tok _ pos _ : _) | sourceColumn pos == 1 -> go (x:ys)
@@ -661,7 +662,9 @@ processEm st =
                emphtoks = opentoks ++ concatMap chunkToks contents ++ closetoks
                newelt = Chunk
                          (Parsed $
-                           ranged (rangeFromToks emphtoks) $
+                           ranged (rangeFromToks emphtoks
+                                     (incSourceColumn (chunkPos closedelim)
+                                       numtoks)) $
                              constructor $ unChunks contents)
                          (chunkPos chunk)
                          emphtoks
@@ -826,7 +829,7 @@ processBs bracketedSpecs st =
                          elttoks = concatMap chunkToks
                                      (openers ++ chunksinside ++ [closer])
                                       ++ desttoks
-                         elt = ranged (rangeFromToks elttoks)
+                         elt = ranged (rangeFromToks elttoks newpos)
                                   $ constructor $ unChunks $
                                        processEmphasis chunksinside
                          eltchunk = Chunk (Parsed elt) openerPos elttoks

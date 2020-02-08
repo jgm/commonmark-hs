@@ -65,7 +65,7 @@ tokenize name = go (initialPos name) . T.groupBy f
          | otherwise -> error $ "Don't know what to do with" ++ show t
 {-# SCC tokenize #-}
 
--- | Reverses 'tokenize'.  @untokenize . tokenize ""@ should be
+-- | Reverses 'tokenize'.  @untokenize . tokenize@ should be
 -- the identity.
 untokenize :: [Tok] -> Text
 untokenize = mconcat . map tokContents

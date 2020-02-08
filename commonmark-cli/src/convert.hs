@@ -119,7 +119,6 @@ main = catch (do
              currentCallStack >>= mapM_ (hPutStrLn stderr)
              throwIO e)
 
-
 errExit :: String -> IO a
 errExit err = do
   hPutStrLn stderr err

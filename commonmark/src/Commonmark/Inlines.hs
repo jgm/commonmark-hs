@@ -155,7 +155,7 @@ parseChunks bspecs specs ilParsers attrParser rm positions t =
   where
    pBuildMaps = {-# SCC pBuildMaps #-} optional $ go '\n'
    go c = do
-      !pos <- getPosition
+      !offset <- getOffset
       !d <- anyChar
       if d == '`'
          then do
@@ -163,11 +163,11 @@ parseChunks bspecs specs ilParsers attrParser rm positions t =
            updateState $ \st ->
              st{ backtickSpans = IntMap.alter
                   (\x -> case x of
-                          Nothing -> Just [pos]
-                          Just ps -> Just (pos:ps)) len $!
+                          Nothing -> Just [offset]
+                          Just os -> Just (offset:os)) len $!
                   backtickSpans st }
          else when (isDelimChar d) $
-             updateState $ \st -> st{ precedingChars = M.insert pos c $!
+             updateState $ \st -> st{ precedingChars = IntMap.insert offset c $!
                                        precedingChars st }
       eof <|> go d
 
@@ -197,13 +197,13 @@ data ChunkType a =
      deriving Show
 
 data IPState m = IPState
-     { backtickSpans        :: !(IntMap.IntMap [SourcePos])
+     { backtickSpans        :: !(IntMap.IntMap [Int])
                                -- record of lengths of
                                -- backtick spans so we don't scan in vain
      , userState            :: !Dynamic
      , linePositions        :: !(V.Vector (SourcePos, SourcePos))
      , ipReferenceMap       :: !ReferenceMap
-     , precedingChars       :: !(M.Map SourcePos Char)
+     , precedingChars       :: !(IntMap.IntMap Char)
      , attributeParser      :: InlineParser m Attributes
      }
 
@@ -323,6 +323,7 @@ pDelimChunk :: (IsInline a, Monad m)
             -> InlineParser m (Chunk a)
 pDelimChunk specmap isDelimChar = do
   c <- satisfy isDelimChar
+  offset <- (\x -> x - 1) <$> getOffset
   pos <- (\x -> incSourceColumn x (-1)) <$> getPosition
   let !mbspec = M.lookup c specmap
   cs <- if isJust mbspec
@@ -331,7 +332,7 @@ pDelimChunk specmap isDelimChar = do
   let toks = T.pack (c:cs)
   st <- getState
   next <- option '\n' (lookAhead anyChar)
-  let precedingChar = M.lookup pos (precedingChars st)
+  let precedingChar = IntMap.lookup offset (precedingChars st)
   let precededByWhitespace = maybe True isSpace precedingChar
   let precededByPunctuation =
        case formattingIgnorePunctuation <$> mbspec of
@@ -449,19 +450,19 @@ pBacktickSpan :: Monad m
               => InlineParser m (Either Text Text)
 pBacktickSpan = do
   t <- textWhile1 (== '`')
-  pos' <- getPosition
+  off' <- getOffset
   let numticks = T.length t
   st' <- getState
-  case dropWhile (<= pos') <$> IntMap.lookup numticks (backtickSpans st') of
-     Just (pos'':ps) -> do
+  case dropWhile (<= off') <$> IntMap.lookup numticks (backtickSpans st') of
+     Just (off'':os) -> do
           codetoks <- many $ do
-            pos <- getPosition
-            guard $ pos < pos''
+            off <- getOffset
+            guard $ off < off''
             anyChar
           backticks <- textWhile1 (== '`')
           guard $ T.length backticks == numticks
           updateState $ \st ->
-            st{ backtickSpans = IntMap.insert numticks ps (backtickSpans st) }
+            st{ backtickSpans = IntMap.insert numticks os (backtickSpans st) }
           return $! Right $ T.pack codetoks
      _ -> return $! Left t
 

@@ -137,11 +137,11 @@ used to run the benchmarks.
  | program                   | time (ms) |
  | -------                   | ---------:|
  | cmark                     |   21      |
- | cheapskate                |  172      |
- | commonmark.js             |  237      |
- | **commonmark-hs**         |  522      |
- | pandoc -f commonmark      | 1448      |
- | pandoc -f markdown_strict | 1808      |
+ | cheapskate                |  167      |
+ | commonmark.js             |  228      |
+ | **commonmark-hs**         |  485      |
+ | pandoc -f commonmark      | 1305      |
+ | pandoc -f markdown_strict | 1733      |
 
 It would be good to improve performance.  I'd welcome suggestions about how
 to accomplish this.

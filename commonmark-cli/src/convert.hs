@@ -120,9 +120,9 @@ main = catch (do
              throwIO e)
 
 
-errExit :: ParseError -> IO a
+errExit :: String -> IO a
 errExit err = do
-  hPrint stderr err
+  hPutStrLn stderr err
   exitWith (ExitFailure 1)
 
 extensions :: (Monad m, Typeable m,

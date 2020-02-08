@@ -87,7 +87,7 @@ data SpecTest = SpecTest
      , html       :: Text }
   deriving (Show)
 
-toSpecTest :: (Text -> Either ParseError (Html ()))
+toSpecTest :: (Text -> Either String (Html ()))
            -> SpecTest -> TestTree
 toSpecTest parser st =
   testCase name (actual @?= expected)
@@ -98,7 +98,7 @@ toSpecTest parser st =
           actual = normalizeHtml .  TL.toStrict . renderHtml .
                    fromRight mempty $
                      (parser (markdown st)
-                      :: Either ParseError (Html ()))
+                      :: Either String (Html ()))
 
 normalizeHtml :: Text -> Text
 normalizeHtml = T.replace "\n</li>" "</li>" .

@@ -118,7 +118,7 @@ test-suite test-commonmark
     , text
     , tasty
     , tasty-hunit
-    , megaparsec >= 7.0.0
+    , parsec
   default-language: Haskell2010
 
 benchmark benchmark-commonmark

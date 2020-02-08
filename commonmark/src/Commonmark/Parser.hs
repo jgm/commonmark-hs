@@ -3,15 +3,13 @@ module Commonmark.Parser
     , parseCommonmarkWith
     , module Commonmark.Types
     , module Commonmark.Syntax
-    -- * Exported from "Text.Parsec.Error"
-    , ParseError
     ) where
 
 import           Commonmark.Blocks
 import           Commonmark.Inlines
 import           Commonmark.Types
 import           Commonmark.Syntax (SyntaxSpec(..), defaultSyntaxSpec)
-import           Text.Parsec.Error (ParseError)
+import           Commonmark.Parsec (errorBundlePretty)
 import           Data.Functor.Identity   (runIdentity)
 import           Data.Text (Text)
 
@@ -34,21 +32,27 @@ import           Data.Text (Text)
 parseCommonmark :: IsBlock il bl
                 => String   -- ^ Name of input file or source
                 -> Text      -- ^ Commonmark input
-                -> Either ParseError bl  -- ^ Result or error
+                -> Either String bl -- ^ Result or error
 parseCommonmark sourcename =
-  runIdentity . parseCommonmarkWith defaultSyntaxSpec sourcename
+    runIdentity . parseCommonmarkWith defaultSyntaxSpec sourcename
 
 -- | Parse a commonmark document using specified syntax elements.
 parseCommonmarkWith :: (Monad m, IsBlock il bl, IsInline il)
                     => SyntaxSpec m il bl -- ^ Defines syntax
                     -> String  -- ^ Name of input file or source
                     -> Text    -- ^ Tokenized commonmark input
-                    -> m (Either ParseError bl)  -- ^ Result or error
-parseCommonmarkWith syntax =
-    mkBlockParser (syntaxBlockSpecs syntax)
+                    -> m (Either String bl)  -- ^ Result or error
+parseCommonmarkWith syntax sn t = do
+  res <- mkBlockParser (syntaxBlockSpecs syntax)
       (syntaxFinalParsers syntax)
       (mkInlineParser (syntaxBracketedSpecs syntax)
                       (syntaxFormattingSpecs syntax)
                       (syntaxInlineParsers syntax)
                       (syntaxAttributeParsers syntax))
       (syntaxAttributeParsers syntax)
+      sn
+      t
+  return $
+    case res of
+      Left err -> Left $ errorBundlePretty err
+      Right x  -> Right x

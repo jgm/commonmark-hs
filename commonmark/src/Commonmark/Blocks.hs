@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -149,8 +150,9 @@ processLine specs = do
   isblank <- option False $ True <$ (do getState >>= guard . maybeBlank
                                         lookAhead blankLine)
   {-# SCC block_starts #-} unless isblank $
-    (do skipMany1 (doBlockStarts specs)
-        optional (try (blockStart paraSpec)))
+    (do skipSome (doBlockStarts specs)
+        optional (try (blockStart paraSpec))
+        return ())
       <|>
     (do getState >>= guard . maybeLazy
         -- lazy line
@@ -175,8 +177,8 @@ processLine specs = do
                                                : blockLines curdata }
                   else
                     if isblank
-                       then curdata{ blockBlanks = sourceLine endpos :
-                                        blockBlanks curdata }
+                       then curdata{ blockBlanks = unPos (sourceLine endpos)
+                                       : blockBlanks curdata }
                        else curdata
            } : rest
       }
@@ -397,17 +399,20 @@ data ListItemData = ListItemData
      , listItemBlanksAtEnd  :: !Bool
      } deriving (Show, Eq)
 
-runInlineParser :: Monad m
+runInlineParser :: (Monad m, Monoid il)
                 => [((SourcePos, SourcePos), Text)]
                 -> BlockParser m il bl il
 runInlineParser tls = do
   refmap <- referenceMap <$> getState
   ilParser <- inlineParser <$> getState
-  res <- lift $ ilParser refmap tls
+  res <- lift . lift $ ilParser refmap tls
   case res of
        Right ils -> return $! ils
-       Left err  -> mkPT (\_ -> return (Empty (return (Error err))))
-                    -- pass up ParseError
+       Left err  -> mapM registerError (bundleErrors err) >> return mempty
+         where
+          registerError (FancyError _i fncyset) = fancyFailure fncyset
+          registerError (TrivialError _i mbee setee) = failure mbee setee
+
 {-# SCC runInlineParser #-}
 
 addRange :: (Monad m, IsBlock il bl)
@@ -418,7 +423,7 @@ addRange (Node b _)
    where
      go [] = []
      go ((!startpos1, _):(!startpos2, !endpos2):rest)
-       | sourceColumn startpos2 == 1 = go ((startpos1, endpos2):rest)
+       | sourceColumn startpos2 == mkPos 1 = go ((startpos1, endpos2):rest)
      go (!x:xs) = x : go xs
 
 -- Add a new node to the block stack.  If current tip can contain
@@ -517,9 +522,9 @@ extractReferenceLinks node = do
   let startPos = case reverse (blockStartPos (rootLabel node)) of
                    (x:_) -> x
                    _     -> initialPos ""
-  res <- lift $ runParserT
+  res <- lift . lift $ runParserT
                  (do setPosition startPos
-                     ds <- many1 (linkReferenceDef (choice $ attributeParsers st))
+                     ds <- some (linkReferenceDef (choice $ attributeParsers st))
                      pos <- getPosition
                      return (ds, pos))
                  st "" (getBlockText removeIndent node)
@@ -673,7 +678,7 @@ atxHeadingSpec = BlockSpec
      , blockStart          = do
              nonindentSpaces
              pos <- getPosition
-             hashes <- many1 (char '#')
+             hashes <- some (char '#')
              let level = length hashes
              guard $ level <= 6
              void (satisfy isSpaceChar)
@@ -723,8 +728,8 @@ setextHeadingSpec = BlockSpec
              guard $ blockParagraph (bspec cur)
              nonindentSpaces
              pos <- getPosition
-             level <- (2 :: Int) <$ skipMany1 (char '-')
-                  <|> (1 :: Int) <$ skipMany1 (char '=')
+             level <- (2 :: Int) <$ skipSome (char '-')
+                  <|> (1 :: Int) <$ skipSome (char '=')
              skipWhile isSpaceChar
              lookAhead (eof <|> void lineEnd)
              -- process any reference links, make sure there's some
@@ -776,10 +781,10 @@ parseFinalAttributes requireWhitespace ts = do
   attrParsers <- attributeParsers <$> getState
   let pAttr' = try $ (if requireWhitespace
                          then () <$ whitespace
-                         else optional whitespace)
+                         else () <$ optional whitespace)
                      *> choice attrParsers <* optional whitespace <* eof
   st <- getState
-  res <- lift $ runParserT
+  res <- lift . lift $ runParserT
        ((,) <$> (T.pack <$> many (notFollowedBy pAttr' >> anyChar))
             <*> option [] pAttr') st "heading contents" ts
   case res of
@@ -876,7 +881,7 @@ listItemSpec parseListMarker = BlockSpec
                                    blockSpec . rootLabel) children)
           curline <- sourceLine <$> getPosition
           let blanksAtEnd = case blanks of
-                                   (l:_) -> l >= curline - 1
+                                   (l:_) -> l >= unPos curline - 1
                                    _     -> False
           let blanksInside = case length blanks of
                                 n | n > 1     -> True
@@ -903,7 +908,7 @@ itemStart parseListMarker = do
            <|> 1 <$ lookAhead lineEnd
   return $! (pos, ListItemData{
            listItemType = ty
-          , listItemIndent = (aftercol - beforecol) + numspaces
+          , listItemIndent = (unPos aftercol - unPos beforecol) + numspaces
           , listItemBlanksInside = False
           , listItemBlanksAtEnd = False
           })
@@ -949,7 +954,8 @@ listSpec = BlockSpec
           blockBlanks' <- case childrenData of
                              c:_ | listItemBlanksAtEnd c -> do
                                  curline <- sourceLine <$> getPosition
-                                 return $! curline - 1 : blockBlanks cdata
+                                 return $! unPos curline - 1 :
+                                           blockBlanks cdata
                              _ -> return $! blockBlanks cdata
           let ldata' = toDyn (ListData lt ls)
           -- need to transform paragraphs on tight lists
@@ -1038,9 +1044,10 @@ fencedCodeSpec = BlockSpec
              prepos <- getPosition
              nonindentSpaces
              pos <- getPosition
-             let indentspaces = sourceColumn pos - sourceColumn prepos
-             (c, ticks) <-  (('`',) <$> many1 (char '`'))
-                        <|> (('~',) <$> many1 (char '~'))
+             let indentspaces = unPos (sourceColumn pos) -
+                                 unPos (sourceColumn prepos)
+             (c, ticks) <-  (('`',) <$> some (char '`'))
+                        <|> (('~',) <$> some (char '~'))
              let fencelength = length ticks
              guard $ fencelength >= 3
              skipWhile isSpaceChar
@@ -1196,18 +1203,18 @@ endCond 1 = try $ do
         char '/'
         textWhile1 isAlphaNum >>= guard . isOneOfCI ["script","pre","style"]
         char '>'
-  skipManyTill (satisfy (not . isLineEndChar)) closer
+  void $ skipManyTill (satisfy (not . isLineEndChar)) closer
 endCond 2 = try $ do
   let closer = try $ char '-' >> char '-' >> char '>'
-  skipManyTill (satisfy (not . isLineEndChar)) closer
+  void $ skipManyTill (satisfy (not . isLineEndChar)) closer
 endCond 3 = try $ do
   let closer = try $ char '?' >> char '>'
-  skipManyTill (satisfy (not . isLineEndChar)) closer
+  void $ skipManyTill (satisfy (not . isLineEndChar)) closer
 endCond 4 = try $
-  skipManyTill (satisfy (not . isLineEndChar)) (char '>')
+  void $ skipManyTill (satisfy (not . isLineEndChar)) (char '>')
 endCond 5 = try $ do
   let closer = try $ char ']' >> char ']' >> char '>'
-  skipManyTill (satisfy (not . isLineEndChar)) closer
+  void $ skipManyTill (satisfy (not . isLineEndChar)) closer
 endCond 6 = void blankLine
 endCond 7 = void blankLine
 endCond n = fail $ "Unknown HTML block type " ++ show n

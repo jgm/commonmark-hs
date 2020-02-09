@@ -66,9 +66,14 @@ import           Data.Monoid
 import           Data.Char                 (isAsciiUpper, isDigit, isSpace)
 import           Data.Dynamic
 import           Data.List                 (sort)
-import           Data.Text                 (Text)
 import qualified Data.Map                  as M
+import           Data.ByteString           (ByteString)
+import qualified Data.ByteString           as B
+import qualified Data.ByteString.Char8     as B8
+import qualified Data.ByteString.UTF8      as UTF8
+import           Data.Text                 (Text)
 import qualified Data.Text                 as T
+import qualified Data.Text.Encoding        as TE
 import qualified Data.Text.Read            as TR
 import           Data.Tree
 import           Text.Parsec
@@ -338,7 +343,7 @@ defaultFinalizer !child !parent = do
   case lookup "id" (blockAttributes (rootLabel child)) of
     Nothing -> return ()
     Just !ident -> updateState $ \st ->
-      st{ counters = M.insert ("identifier:" <> ident)
+      st{ counters = M.insert ("identifier:" <> TE.decodeUtf8 ident)
           (toDyn (0 :: Int)) (counters st) }
   return $! parent{ subForest = child : subForest parent }
 
@@ -485,7 +490,8 @@ refLinkDefSpec = BlockSpec
      , blockContinue       = const mzero
      , blockConstructor    = \node -> do
          let linkdefs = fromDyn (blockData (rootLabel node))
-                  [] :: [((SourceRange, Text), (Text, Text))]
+                  [] :: [((SourceRange, ByteString),
+                          (ByteString, ByteString))]
          return $! mconcat $ map (\((range, lab), (dest, tit)) ->
             (ranged range
               (referenceLinkDefinition lab (dest, tit)))) linkdefs
@@ -894,8 +900,11 @@ bulletListMarker = do
 
 orderedListMarker :: Monad m => BlockParser m il bl ListType
 orderedListMarker = do
-  Tok WordChars _ ds <- satisfyWord (\t -> T.all isDigit t && T.length t < 10)
-  (start :: Int) <- either fail (return . fst) (TR.decimal ds)
+  Tok WordChars _ ds <- satisfyWord (\t ->
+                            B8.all (\c -> c >= '0' && c <= '9') t &&
+                            B8.length t < 10)
+  (start :: Int) <- either fail (return . fst)
+                       (TR.decimal (TE.decodeUtf8 ds))
   delimtype <- Period <$ symbol '.' <|> OneParen <$ symbol ')'
   return $! OrderedList start Decimal delimtype
 
@@ -1027,7 +1036,7 @@ fencedCodeSpec = BlockSpec
              guard $ fencelength >= 3
              skipWhile (hasType Spaces)
              let infoTok = noneOfToks (LineEnd : [Symbol '`' | c == '`'])
-             info <- T.strip . unEntity <$> many (pEscaped <|> infoTok)
+             info <- strip . unEntity <$> many (pEscaped <|> infoTok)
              lookAhead $ void lineEnd <|> eof
 
              let infotoks = tokenize "info string" info
@@ -1057,14 +1066,14 @@ fencedCodeSpec = BlockSpec
              endOfBlock
              return $! (pos, node))
                <|> (do let ((_, _, indentspaces, _, _)
-                              :: (Char, Int, Int, Text, Attributes)) = fromDyn
+                              :: (Char, Int, Int, ByteString, Attributes)) = fromDyn
                                    (blockData (rootLabel node))
                                    ('`', 3, 0, mempty, mempty)
                        pos <- getPosition
                        _ <- gobbleUpToSpaces indentspaces
                        return $! (pos, node))
      , blockConstructor    = \node -> do
-           let ((_, _, _, info, attrs) :: (Char, Int, Int, Text, Attributes)) =
+           let ((_, _, _, info, attrs) :: (Char, Int, Int, ByteString, Attributes)) =
                    fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty, mempty)
            let codetext = untokenize $ drop 1 (getBlockText id node)
            return $! addRange node $!
@@ -1142,7 +1151,7 @@ startCond 2 = void $ try $ do
 startCond 3 = void $ symbol '?'
 startCond 4 = void $ try $ do
   symbol '!'
-  satisfyWord (\t -> case T.uncons t of
+  satisfyWord (\t -> case B8.uncons t of
                           Just (c, _) -> isAsciiUpper c
                           _           -> False)
 startCond 5 = void $ try $ do
@@ -1227,3 +1236,6 @@ bspec = blockSpec . rootLabel
 endOfBlock :: Monad m => BlockParser m il bl ()
 endOfBlock = updateState $ \st -> st{ blockMatched = False }
 
+strip :: ByteString -> ByteString
+strip =
+  B8.reverse . B8.dropWhile (==' ') . B8.reverse . B8.dropWhile (== ' ')

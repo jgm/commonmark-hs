@@ -10,6 +10,7 @@ module Commonmark.ReferenceMap
   ) where
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.ByteString (ByteString)
 import qualified Data.Map as M
 import Data.Dynamic
 import Commonmark.Types
@@ -21,8 +22,8 @@ import Data.Typeable (Typeable)
 newtype ReferenceMap = ReferenceMap { unReferenceMap :: M.Map Text [Dynamic] }
   deriving (Show)
 
-data LinkInfo = LinkInfo{ linkDestination :: Text
-                        , linkTitle       :: Text
+data LinkInfo = LinkInfo{ linkDestination :: ByteString
+                        , linkTitle       :: ByteString
                         , linkAttributes  :: Attributes }
      deriving (Show, Typeable)
 

@@ -22,11 +22,15 @@ import           Commonmark.Types
 import           Commonmark.Entity (lookupEntity)
 import           Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.Lazy as TL
-import           Data.Text.Lazy.Builder (Builder, fromText, toLazyText,
-                                         singleton)
+import           Data.ByteString (ByteString)
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.UTF8 as UTF8
+import qualified Data.ByteString.Lazy.UTF8 as LUTF8
+import           Data.ByteString.Builder (Builder, byteString,
+                          toLazyByteString, charUtf8)
 import           Data.Text.Encoding   (encodeUtf8)
-import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Char8 as B8
 import           Text.Printf          (printf)
 import           Data.Char            (ord, isAlphaNum, isAscii, isSpace)
 import           Data.Maybe           (fromMaybe)
@@ -39,14 +43,14 @@ data ElementType =
   | BlockElement
 
 data Html a =
-    HtmlElement !ElementType !Text [Attribute] (Maybe (Html a))
-  | HtmlText !Text
-  | HtmlRaw !Text
+    HtmlElement !ElementType !ByteString [Attribute] (Maybe (Html a))
+  | HtmlText !ByteString
+  | HtmlRaw !ByteString
   | HtmlNull
   | HtmlConcat (Html a) (Html a)
 
 instance Show (Html a) where
-  show = TL.unpack . renderHtml
+  show = LUTF8.toString . renderHtml
 
 instance Semigroup (Html a) where
   x <> HtmlNull                = x
@@ -78,22 +82,22 @@ instance Rangeable (Html a) => IsInline (Html a) where
   lineBreak = htmlInline "br" Nothing <> nl
   softBreak = nl
   str t = htmlText t
-  entity t = case lookupEntity (T.drop 1 t) of
+  entity t = case lookupEntity (B.drop 1 t) of
                    Just t' -> htmlText t'
                    Nothing -> htmlRaw t
-  escapedChar c = htmlText (T.singleton c)
+  escapedChar c = htmlText (UTF8.fromString [c])
   emph ils = htmlInline "em" (Just ils)
   strong ils = htmlInline "strong" (Just ils)
   link target title ils =
     addAttribute ("href", escapeURI target) .
-    (if T.null title
+    (if B.null title
         then id
         else addAttribute ("title", title)) $
     htmlInline "a" (Just ils)
   image target title ils =
     addAttribute ("src", escapeURI target) .
     addAttribute ("alt", toPlainText ils) .
-    (if T.null title
+    (if B.null title
         then id
         else addAttribute ("title", title)) $
     htmlInline "img" Nothing
@@ -109,11 +113,11 @@ instance IsInline (Html a) => IsBlock (Html a) (Html a) where
   blockQuote bs = htmlBlock "blockquote" $ Just (nl <> bs)
   codeBlock info t =
     htmlBlock "pre" $ Just $
-    (if T.null lang
+    (if B.null lang
         then id
         else addAttribute ("class", "language-" <> lang)) $
     htmlInline "code" $ Just (htmlText t)
-    where lang = T.takeWhile (not . isSpace) info
+    where lang = B8.takeWhile (not . isSpace) info
   heading level ils = htmlBlock h (Just ils)
     where h = case level of
                    1 -> "h1"
@@ -135,7 +139,7 @@ instance IsInline (Html a) => IsBlock (Html a) (Html a) where
                              else nl) <> x)
   list (OrderedList startnum enumtype _delimtype) lSpacing items =
     (if startnum /= 1
-        then addAttribute ("start", T.pack (show startnum))
+        then addAttribute ("start", UTF8.fromString (show startnum))
         else id) .
     (case enumtype of
        Decimal  -> id
@@ -157,28 +161,28 @@ instance Rangeable (Html ()) where
   ranged _ x = x
 
 instance Rangeable (Html SourceRange) where
-  ranged sr x = addAttribute ("data-sourcepos", T.pack (show sr)) x
+  ranged sr x = addAttribute ("data-sourcepos", UTF8.fromString (show sr)) x
 
 
 
-htmlInline :: Text -> Maybe (Html a) -> Html a
+htmlInline :: ByteString -> Maybe (Html a) -> Html a
 htmlInline tagname mbcontents = HtmlElement InlineElement tagname [] mbcontents
 
-htmlBlock :: Text -> Maybe (Html a) -> Html a
+htmlBlock :: ByteString -> Maybe (Html a) -> Html a
 htmlBlock tagname mbcontents = HtmlElement BlockElement tagname [] mbcontents
 
-htmlText :: Text -> Html a
+htmlText :: ByteString -> Html a
 htmlText = HtmlText
 
-htmlRaw :: Text -> Html a
+htmlRaw :: ByteString -> Html a
 htmlRaw = HtmlRaw
 
 addAttribute :: Attribute -> Html a -> Html a
 addAttribute attr (HtmlElement eltType tagname attrs mbcontents) =
   HtmlElement eltType tagname (incorporateAttribute attr attrs) mbcontents
 addAttribute attr (HtmlText t)
-  | T.all (==' ') t = HtmlText t
-  | otherwise       = HtmlElement InlineElement "span" [attr] $ Just (HtmlText t)
+  | B8.all (==' ') t = HtmlText t
+  | otherwise        = HtmlElement InlineElement "span" [attr] $ Just (HtmlText t)
 addAttribute _ elt = elt
 
 incorporateAttribute :: Attribute -> [Attribute] -> [Attribute]
@@ -190,33 +194,33 @@ incorporateAttribute (k, v) as =
                               else (k, v')) :
                           filter (\(x, _) -> x /= k) as
 
-renderHtml :: Html a -> TL.Text
-renderHtml = {-# SCC renderHtml #-} toLazyText . toBuilder
+renderHtml :: Html a -> BL.ByteString
+renderHtml = {-# SCC renderHtml #-} toLazyByteString . toBuilder
 
 toBuilder :: Html a -> Builder
 toBuilder (HtmlNull) = mempty
 toBuilder (HtmlConcat x y) = toBuilder x <> toBuilder y
-toBuilder (HtmlRaw t) = fromText t
+toBuilder (HtmlRaw t) = byteString t
 toBuilder (HtmlText t) = escapeHtml t
 toBuilder (HtmlElement eltType tagname attrs mbcontents) =
-  "<" <> fromText tagname <> mconcat (map toAttr attrs) <> filling <> nl'
+  "<" <> byteString tagname <> mconcat (map toAttr attrs) <> filling <> nl'
   where
-    toAttr (x,y) = " " <> fromText x <> "=\"" <> escapeHtml y <> "\""
+    toAttr (x,y) = " " <> byteString x <> "=\"" <> escapeHtml y <> "\""
     nl' = case eltType of
            BlockElement -> "\n"
            _            -> mempty
     filling = case mbcontents of
                  Nothing   -> " />"
                  Just cont -> ">" <> toBuilder cont <> "</" <>
-                              fromText tagname <> ">"
+                              byteString tagname <> ">"
 
-escapeHtml :: Text -> Builder
+escapeHtml :: ByteString -> Builder
 escapeHtml t =
-  case T.uncons post of
-    Just (c, rest) -> fromText pre <> escapeHtmlChar c <> escapeHtml rest
-    Nothing        -> fromText pre
+  case UTF8.uncons post of
+    Just (c, rest) -> byteString pre <> escapeHtmlChar c <> escapeHtml rest
+    Nothing        -> byteString pre
  where
-  (pre,post)        = T.break needsEscaping t
+  (pre,post)        = UTF8.break needsEscaping t
   needsEscaping '<' = True
   needsEscaping '>' = True
   needsEscaping '&' = True
@@ -228,15 +232,15 @@ escapeHtmlChar '<' = "&lt;"
 escapeHtmlChar '>' = "&gt;"
 escapeHtmlChar '&' = "&amp;"
 escapeHtmlChar '"' = "&quot;"
-escapeHtmlChar c   = singleton c
+escapeHtmlChar c   = charUtf8 c
 
-escapeURI :: Text -> Text
-escapeURI = mconcat . map escapeURIChar . B.unpack . encodeUtf8
+escapeURI :: ByteString -> ByteString
+escapeURI = mconcat . map escapeURIChar . UTF8.toString
 
-escapeURIChar :: Char -> Text
+escapeURIChar :: Char -> ByteString
 escapeURIChar c
-  | isEscapable c = T.singleton '%' <> T.pack (printf "%02X" (ord c))
-  | otherwise     = T.singleton c
+  | isEscapable c = "%" <> B8.pack (printf "%02X" (ord c))
+  | otherwise     = UTF8.fromString [c]
   where isEscapable d = not (isAscii d && isAlphaNum d)
                      && d `notElem` ['%','/','?',':','@','-','.','_','~','&',
                                      '#','!','$','\'','(',')','*','+',',',

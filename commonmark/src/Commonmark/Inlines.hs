@@ -57,6 +57,11 @@ import           Data.Monoid                ((<>))
 #endif
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
+import qualified Data.Text.Encoding         as TE
+import           Data.ByteString            (ByteString)
+import qualified Data.ByteString            as B
+import qualified Data.ByteString.Char8      as B8
+import qualified Data.ByteString.UTF8       as UTF8
 import           Commonmark.Entity          (unEntity, charEntity, numEntity)
 import           Text.Parsec                hiding (State, space)
 import           Text.Parsec.Pos
@@ -114,7 +119,7 @@ unChunks = {-# SCC unChunks #-} foldl' mappend mempty . go
                     t = untokenize (chunkToks c)
                     range = SourceRange
                              [(chunkPos c,
-                               incSourceColumn (chunkPos c) (T.length t))]
+                               incSourceColumn (chunkPos c) (UTF8.length t))]
           Parsed ils -> x : go rest
               where !x = f ils
 
@@ -379,8 +384,9 @@ pDelimChunk specmap isDelimChar = do
                     Just spec
                       | formattingWhenUnmatched spec /= c ->
                          map (\t -> t{ tokContents =
+                               TE.encodeUtf8 $
                                T.map (\_ -> formattingWhenUnmatched spec)
-                                  (tokContents t) }) toks
+                                  (TE.decodeUtf8 $ tokContents t) }) toks
                     _ -> toks
   let !len = length toks'
   return $! Chunk Delim{ delimType = c
@@ -471,16 +477,17 @@ pCodeSpan =
     Left ticks     -> return $! str (untokenize ticks)
     Right codetoks -> return $! code . normalizeCodeSpan . untokenize $ codetoks
 
-normalizeCodeSpan :: Text -> Text
-normalizeCodeSpan = removeSurroundingSpace . T.map nltosp
+normalizeCodeSpan :: ByteString -> ByteString
+normalizeCodeSpan = removeSurroundingSpace . B8.map nltosp
   where
    nltosp '\n' = ' '
    nltosp c    = c
    removeSurroundingSpace s
-     | not (T.null s)
-     , not (T.all (== ' ') s)
-     , T.head s == ' '
-     , T.last s == ' ' = T.drop 1 $ T.dropEnd 1 s
+     | not (B8.null s)
+     , not (B8.all (== ' ') s)
+     , B8.head s == ' '
+     , B8.last s == ' ' = B8.drop 1 . B8.reverse . B8.drop 1 . B8.reverse $
+                          s
      | otherwise = s
 
 pHtml :: (IsInline a, Monad m) => InlineParser m a
@@ -495,7 +502,7 @@ pAutolink = try $ do
   symbol '>'
   return $! link target "" (str lab)
 
-pUri :: Monad m => InlineParser m (Text, Text)
+pUri :: Monad m => InlineParser m (ByteString, ByteString)
 pUri = try $ do
   s <- pScheme
   _ <- symbol ':'
@@ -509,19 +516,19 @@ pUri = try $ do
   let uri = s <> ":" <> untokenize ts
   return $! (uri, uri)
 
-pScheme :: Monad m => InlineParser m Text
+pScheme :: Monad m => InlineParser m ByteString
 pScheme = do
-  t <- satisfyWord (\t -> case T.uncons t of
+  t <- satisfyWord (\t -> case UTF8.uncons t of
                                Nothing -> False
                                Just (c,rest) -> isAscii c && isLetter c &&
-                                                T.all isAscii rest)
+                                                B8.all isAscii rest)
   ts <- many $ oneOfToks [WordChars, Symbol '+', Symbol '.', Symbol '-']
   let s = untokenize (t:ts)
-  let len = T.length s
+  let len = UTF8.length s
   guard $ len >= 2 && len <= 32
   return $! s
 
-pEmail :: Monad m => InlineParser m (Text, Text)
+pEmail :: Monad m => InlineParser m (ByteString, ByteString)
 pEmail = do
   let isEmailSymbolTok (Tok (Symbol c) _ _) =
          c == '.' || c == '!' || c == '#' || c == '$' || c == '%' ||
@@ -530,17 +537,17 @@ pEmail = do
          c == '{' || c == '|' || c == '}' || c == '~' || c == '-' ||
          c == ']'
       isEmailSymbolTok _ = False
-  name <- many1 $ satisfyWord (T.all isAscii)
+  name <- many1 $ satisfyWord (B8.all isAscii)
                <|> satisfyTok isEmailSymbolTok
   _ <- symbol '@'
   let domainPart = do
-        x <- satisfyWord (T.all isAscii)
+        x <- satisfyWord (B8.all isAscii)
         xs <- many $ (symbol '-' <* notFollowedBy eof <* notFollowedBy (symbol '.'))
-                  <|> satisfyWord (T.all isAscii)
+                  <|> satisfyWord (B8.all isAscii)
         return $! (x:xs)
   d <- domainPart
   ds <- many (symbol '.' >> domainPart)
-  let addr = untokenize name <> "@" <> T.intercalate "." (map untokenize (d:ds))
+  let addr = untokenize name <> "@" <> B8.intercalate "." (map untokenize (d:ds))
   return $! ("mailto:" <> addr, addr)
 
 pSpaces :: (IsInline a, Monad m) => InlineParser m a
@@ -642,8 +649,8 @@ processEm st =
                contents = takeWhile (\ch -> chunkPos ch /= closePos)
                           (afters left)
                openlen = length (chunkToks opendelim)
-               fallbackConstructor x = str (T.singleton c) <> x <>
-                                       str (T.singleton c)
+               fallbackConstructor x = str (UTF8.fromString [c]) <> x <>
+                                       str (UTF8.fromString [c])
                (constructor, numtoks) =
                 case (formattingSingleMatch spec, formattingDoubleMatch spec) of
                         (_, Just c2)
@@ -787,7 +794,7 @@ processBs bracketedSpecs st =
                        then ""
                        else
                          case untokenize (concatMap chunkToks chunksinside) of
-                              ks | T.length ks <= 999 -> ks
+                              ks | UTF8.length ks <= 999 -> TE.decodeUtf8 ks
                               _  -> ""
               prefixChar = case befores left of
                                  Chunk Delim{delimType = c} _ [_] : _
@@ -954,7 +961,7 @@ inbetween op cl =
 
 pLinkLabel :: Monad m => ParsecT [Tok] s m Text
 pLinkLabel = try $ do
-  lab <- untokenize
+  lab <- TE.decodeUtf8 . untokenize
       <$> try (between (symbol '[') (symbol ']')
             (snd <$> withRaw (many
               (pEscaped <|> noneOfToks [Symbol ']', Symbol '[']))))

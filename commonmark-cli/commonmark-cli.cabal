@@ -27,7 +27,7 @@ executable commonmark
   ghc-options: -threaded -rtsopts
   build-depends: base >=4.7 && <5
                , commonmark
-               , commonmark-pandoc
+               -- , commonmark-pandoc
                , lucid
                , pandoc-types
                , aeson

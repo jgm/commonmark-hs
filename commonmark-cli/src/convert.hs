@@ -5,13 +5,15 @@ module Main where
 
 import           Commonmark
 import           Commonmark.Html
-import           Commonmark.Pandoc
+-- import           Commonmark.Pandoc
 import           Data.Aeson                 (encode)
 import qualified Data.ByteString.Lazy       as BL
-import qualified Text.Pandoc.Builder        as B
+-- import qualified Text.Pandoc.Builder        as B
 import           Control.Monad
 import           Control.Monad.Identity
 import           Data.Typeable
+import qualified Data.ByteString            as B
+import qualified Data.ByteString.Lazy           as BL
 import qualified Data.Text.IO               as TIO
 import qualified Data.Text.Lazy.IO          as TLIO
 import qualified Data.Map                   as M
@@ -73,8 +75,8 @@ main = catch (do
     putStrLn $ prg ++ " " ++ showVersion version
     exitSuccess
   toks <- if null files
-            then tokenize "stdin" <$> TIO.getContents
-            else mconcat <$> mapM (\f -> tokenize f <$> TIO.readFile f) files
+            then tokenize "stdin" <$> B.getContents
+            else mconcat <$> mapM (\f -> tokenize f <$> B.readFile f) files
   when (Tokenize `elem` opts) $ do
     print toks
     exitSuccess
@@ -100,20 +102,13 @@ main = catch (do
        case runIdentity (parseCommonmarkWith spec toks) of
             Left e -> errExit e
             Right (r :: Html SourceRange)
-                   -> TLIO.putStr . renderHtml $ r
+                   -> BL.putStr . renderHtml $ r
     else
-      if PandocJSON `elem` opts then do
+      do
         spec <- specFromExtensionNames [x | Extension x <- opts]
         case runIdentity (parseCommonmarkWith spec toks) of
              Left e -> errExit e
-             Right (r :: Cm () B.Blocks) -> do
-               BL.putStr . encode $ B.doc $ unCm r
-               BL.putStr "\n"
-      else do
-        spec <- specFromExtensionNames [x | Extension x <- opts]
-        case runIdentity (parseCommonmarkWith spec toks) of
-             Left e -> errExit e
-             Right (r :: Html ()) -> TLIO.putStr . renderHtml $ r)
+             Right (r :: Html ()) -> BL.putStr . renderHtml $ r)
    (\(e :: AsyncException) -> do
              currentCallStack >>= mapM_ (hPutStrLn stderr)
              throwIO e)
@@ -126,38 +121,38 @@ errExit err = do
 
 extensions :: (Monad m, Typeable m,
                Typeable bl, Typeable il,
-               IsBlock il bl, IsInline il,
-               HasPipeTable il bl,
-               HasMath il,
-               HasEmoji il,
-               HasSpan il,
-               ToPlainText il,
-               HasStrikethrough il,
-               HasSuperscript il,
-               HasSubscript il,
-               HasDefinitionList il bl,
-               HasDiv bl,
-               HasFootnote il bl)
+               IsBlock il bl, IsInline il)
+--               HasPipeTable il bl,
+--               HasMath il,
+--               HasEmoji il,
+--               HasSpan il,
+--               ToPlainText il,
+--               HasStrikethrough il,
+--               HasSuperscript il,
+--               HasSubscript il,
+--               HasDefinitionList il bl,
+--               HasDiv bl,
+--               HasFootnote il bl)
            => [(String, SyntaxSpec m il bl)]
-extensions =
-  [ ("autolinks", autolinkSpec)
-  ,("pipe_tables", pipeTableSpec)
-  ,("strikethrough", strikethroughSpec)
-  ,("superscript", superscriptSpec)
-  ,("subscript", subscriptSpec)
-  ,("smart", smartPunctuationSpec)
-  ,("math", mathSpec)
-  ,("emoji", emojiSpec)
-  ,("footnotes", footnoteSpec)
-  ,("definition_lists", definitionListSpec)
-  ,("fancy_lists", fancyListSpec)
-  ,("attributes", attributesSpec)
-  ,("raw_attribute", rawAttributeSpec)
-  ,("bracketed_spans", bracketedSpanSpec)
-  ,("fenced_divs", fencedDivSpec)
-  ,("auto_identifiers", autoIdentifiersSpec)
-  ,("implicit_heading_references", implicitHeadingReferencesSpec)
-  ]
+extensions = []
+--  [ ("autolinks", autolinkSpec)
+--  ,("pipe_tables", pipeTableSpec)
+--  ,("strikethrough", strikethroughSpec)
+--  ,("superscript", superscriptSpec)
+--  ,("subscript", subscriptSpec)
+--  ,("smart", smartPunctuationSpec)
+--  ,("math", mathSpec)
+--  ,("emoji", emojiSpec)
+--  ,("footnotes", footnoteSpec)
+--  ,("definition_lists", definitionListSpec)
+--  ,("fancy_lists", fancyListSpec)
+--  ,("attributes", attributesSpec)
+--  ,("raw_attribute", rawAttributeSpec)
+--  ,("bracketed_spans", bracketedSpanSpec)
+--  ,("fenced_divs", fencedDivSpec)
+--  ,("auto_identifiers", autoIdentifiersSpec)
+--  ,("implicit_heading_references", implicitHeadingReferencesSpec)
+--  ]
 
 extensionList :: [String]
 extensionList = map fst
@@ -170,16 +165,16 @@ listExtensions =
 
 specFromExtensionNames ::
  (Monad m, Typeable m, Typeable bl, Typeable il,
-  IsBlock il bl, IsInline il,
-  HasPipeTable il bl, HasMath il, HasEmoji il,
-  HasSpan il,
-  ToPlainText il,
-  HasStrikethrough il,
-  HasSuperscript il,
-  HasSubscript il,
-  HasDefinitionList il bl,
-  HasDiv bl,
-  HasFootnote il bl)
+  IsBlock il bl, IsInline il)
+  -- HasPipeTable il bl, HasMath il, HasEmoji il,
+  -- HasSpan il,
+  -- ToPlainText il,
+  -- HasStrikethrough il,
+  -- HasSuperscript il,
+  -- HasSubscript il,
+  -- HasDefinitionList il bl,
+  -- HasDiv bl,
+  -- HasFootnote il bl)
   => [String] -> IO (SyntaxSpec m il bl)
 specFromExtensionNames extnames = do
  let extFromName name =
@@ -200,33 +195,15 @@ highlightWith sm ts = "<pre>" <>  mconcat (map (renderTok sm) ts) <> "</pre>"
 renderTok :: SourceMap -> Tok -> Builder
 renderTok (SourceMap sm) (Tok _ pos t) =
   case M.lookup pos sm of
-       Nothing -> fromText t
+       Nothing -> "SntOUe"-- fromText t
        Just (starts, ends) ->
-         foldMap toEnd ends <> foldMap toStart starts <> fromText t
-    where toStart x = "<span class=\"" <> fromText x <> "\"" <>
+         foldMap toEnd ends <> foldMap toStart starts <> "SNOTHU"
+    where toStart x = "<span class=\"" <> "SNTHOU" <> "\"" <>
                           (if x /= "str"
-                              then "title=\"" <> fromText x <> "\""
+                              then "title=\"" <> "sntoeu" <> "\""
                               else "") <>
                           ">"
           toEnd   _ = "</span>"
 
 styles :: Builder
-styles = "<style>\n" <> fromText (T.unlines
-  [ "pre { color: silver; }"
-  , "span.str { color: black; }"
-  , "span.code { color: teal; }"
-  , "span.emph { font-style: italic; }"
-  , "span.strong { font-weight: bold; }"
-  , "span.link span.str { text-decoration: underline; color: magenta; }"
-  , "span.image span.str { text-decoration: underline; color: blue; }"
-  , "span.header1 span.str { font-weight: bold; color: purple; }"
-  , "span.header2 span.str { font-weight: bold; color: purple; }"
-  , "span.header3 span.str { font-weight: bold; color: purple; }"
-  , "span.header4 span.str { font-weight: bold; color: purple; }"
-  , "span.header5 span.str { font-weight: bold; color: purple; }"
-  , "span.codeBlock { color: teal; }"
-  , "span.rawInline { color: gray; }"
-  , "span.rawBlock { color: gray; }"
-  , "span.escapedChar { color: gray; }"
-  , "span.entity { color: gray; }"
-  ]) <> "</style>\n"
+styles = "<style>\n" 

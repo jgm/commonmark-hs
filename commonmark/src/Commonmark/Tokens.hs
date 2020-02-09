@@ -47,7 +47,7 @@ tokenize name = go (initialPos name)
             case UTF8.decode rest of
               Just ('\n', _) ->
                 Tok LineEnd pos (B.take 2 bs) :
-                go (incSourceLine (setSourceColumn pos 1) 1) (B.drop 2 bs)
+                go (incSourceLine (setSourceColumn pos 1) 1) (B.drop 1 rest)
               _ -> Tok LineEnd pos (B.take 1 bs) :
                    go (incSourceLine (setSourceColumn pos 1) 1) rest
 
@@ -56,7 +56,7 @@ tokenize name = go (initialPos name)
                 go (incSourceLine (setSourceColumn pos 1) 1) (B.drop len bs)
 
           | c == ' ' ->
-             let (sps, rest) = B.span (== 20) bs
+             let (sps, rest) = B.span (== 32) bs
               in Tok Spaces pos sps :
                  go (incSourceColumn pos (B.length sps)) rest
 

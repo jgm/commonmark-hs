@@ -11,14 +11,15 @@ module Commonmark.Tokens
   ) where
 
 import           Data.Char       (isAlphaNum, isSpace)
-import           Data.Text       (Text)
-import qualified Data.Text       as T
+import           Data.ByteString (ByteString)
+import qualified Data.ByteString as B
+import qualified Data.ByteString.UTF8 as UTF8
 import           Data.Data       (Data, Typeable)
 import           Text.Parsec.Pos
 
 data Tok = Tok { tokType     :: !TokType
                , tokPos      :: !SourcePos
-               , tokContents :: !Text
+               , tokContents :: !ByteString
                }
                deriving (Show, Eq, Data, Typeable)
 
@@ -30,43 +31,56 @@ data TokType =
      | Symbol !Char
      deriving (Show, Eq, Ord, Data, Typeable)
 
--- | Convert a 'Text' into a list of 'Tok'. The first parameter
--- species the source name.
-tokenize :: String -> Text -> [Tok]
-tokenize name = go (initialPos name) . T.groupBy f
+-- | Convert a 'ByteString' (assumed UTF-8 encoded)
+-- into a list of 'Tok'. The first parameter is the source name.
+tokenize :: String -> ByteString -> [Tok]
+tokenize name = go (initialPos name)
   where
-    -- We group \r\n, consecutive spaces, and consecutive alphanums;
-    -- everything else gets in a token by itself.
-    f '\r' '\n' = True
-    f ' ' ' '   = True
-    f x   y     = isAlphaNum x && isAlphaNum y
+   go :: SourcePos -> ByteString -> [Tok]
+   go !pos !bs =
+       case UTF8.decode bs of
+         Nothing -> []
+         Just (c, len)
 
-    go _pos [] = []
-    go !pos (t:ts) = -- note that t:ts are guaranteed to be nonempty
-      let !thead = T.head t in
-      if | thead == ' ' ->
-            Tok Spaces pos t :
-            go (incSourceColumn pos (T.length t)) ts
-         | t == "\t" ->
-            Tok Spaces pos t :
-            go (incSourceColumn pos (4 - (sourceColumn pos - 1) `mod` 4)) ts
-         | t == "\r" || t == "\n" || t == "\r\n" ->
-            Tok LineEnd pos t :
-            go (incSourceLine (setSourceColumn pos 1) 1) ts
-         | isAlphaNum thead ->
-           Tok WordChars pos t :
-           go (incSourceColumn pos (T.length t)) ts
-         | isSpace thead ->
-           Tok UnicodeSpace pos t :
-           go (incSourceColumn pos (T.length t)) ts
-         | T.length t == 1 ->
-           Tok (Symbol thead) pos t :
-           go (incSourceColumn pos 1) ts
-         | otherwise -> error $ "Don't know what to do with" ++ show t
+          | c == '\r' ->
+            let rest = B.drop 1 bs in
+            case UTF8.decode rest of
+              Just ('\n', _) ->
+                Tok LineEnd pos (B.take 2 bs) :
+                go (incSourceLine (setSourceColumn pos 1) 1) (B.drop 2 bs)
+              _ -> Tok LineEnd pos (B.take 1 bs) :
+                   go (incSourceLine (setSourceColumn pos 1) 1) rest
+
+          | c == '\n' ->
+                Tok LineEnd pos (B.take len bs) :
+                go (incSourceLine (setSourceColumn pos 1) 1) (B.drop len bs)
+
+          | c == ' ' ->
+             let (sps, rest) = B.span (== 20) bs
+              in Tok Spaces pos sps :
+                 go (incSourceColumn pos (B.length sps)) rest
+
+          | c == '\t' ->
+             Tok Spaces pos (B.take len bs) :
+             go (incSourceColumn pos (4 - (sourceColumn pos - 1) `mod` 4))
+                 (B.drop len bs)
+
+          | isSpace c ->
+             Tok UnicodeSpace pos (B.take len bs) :
+             go (incSourceColumn pos 1) (B.drop len bs)
+
+          | isAlphaNum c ->
+             let (cs, rest) = UTF8.span isAlphaNum bs
+              in Tok WordChars pos cs :
+                 go (incSourceColumn pos (UTF8.length cs)) rest
+
+          | otherwise ->
+             Tok (Symbol c) pos (B.take len bs) :
+             go (incSourceColumn pos 1) (B.drop len bs)
 {-# SCC tokenize #-}
 
 -- | Reverses 'tokenize'.  @untokenize . tokenize@ should be
 -- the identity.
-untokenize :: [Tok] -> Text
+untokenize :: [Tok] -> ByteString
 untokenize = mconcat . map tokContents
 {-# SCC untokenize #-}

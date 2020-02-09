@@ -11,7 +11,7 @@ import           Commonmark.Tokens
 import           Commonmark.Util
 import           Control.Monad     (liftM2)
 import           Data.Char         (isAscii, isLetter)
-import qualified Data.Text         as T
+import qualified Data.ByteString.Char8  as B8
 import           Text.Parsec       hiding (State)
 
 (.&&.) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
@@ -21,8 +21,8 @@ import           Text.Parsec       hiding (State)
 -- letters, digits, or hyphens (-).
 htmlTagName :: Monad m => ParsecT [Tok] s m [Tok]
 htmlTagName = try $ do
-  let isTagText t' = T.all isAscii t'
-  let startsWithLetter t' = not (T.null t') && isLetter (T.head t')
+  let isTagText t' = B8.all isAscii t'
+  let startsWithLetter t' = not (B8.null t') && isLetter (B8.head t')
   t <- satisfyWord (isTagText .&&. startsWithLetter)
   rest <- many (symbol '-' <|> satisfyWord isTagText)
   return (t:rest)
@@ -32,8 +32,8 @@ htmlTagName = try $ do
 -- the XML specification restricted to ASCII. HTML5 is laxer.)
 htmlAttributeName :: Monad m => ParsecT [Tok] s m [Tok]
 htmlAttributeName = try $ do
-  let isTagText t' = T.all isAscii t'
-  let startsWithLetter t' = not (T.null t') && isLetter (T.head t')
+  let isTagText t' = B8.all isAscii t'
+  let startsWithLetter t' = not (B8.null t') && isLetter (B8.head t')
   t <- satisfyWord (startsWithLetter .&&. isTagText) <|>
         symbol '_' <|>
         symbol ':'
@@ -162,7 +162,7 @@ htmlDeclaration :: Monad m => ParsecT [Tok] s m [Tok]
 htmlDeclaration = try $ do
   -- assume < has already been parsed
   op <- symbol '!'
-  let isDeclName t = not (T.null t) && T.all (isAscii .&&. isLetter) t
+  let isDeclName t = not (B8.null t) && B8.all (isAscii .&&. isLetter) t
   name <- satisfyWord isDeclName
   ws <- whitespace
   contents <- many (satisfyTok (not . hasType (Symbol '>')))

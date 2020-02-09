@@ -18,6 +18,11 @@ import Commonmark.Util
 import Commonmark.Tokens
 import Text.Parsec
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as B8
+import qualified Data.ByteString.UTF8 as UTF8
+import Data.ByteString (ByteString)
 import Data.Text (Text)
 import qualified Data.Text.Read as TR
 import Control.Monad (guard, mzero)
@@ -29,9 +34,9 @@ import Data.Semigroup (Semigroup(..))
 
 -- | Lookup an entity, using 'lookupNumericEntity' if it starts with
 --   @#@ and 'lookupNamedEntity' otherwise
-lookupEntity :: Text -> Maybe Text
+lookupEntity :: ByteString -> Maybe ByteString
 lookupEntity t =
-  case T.uncons t of
+  case B8.uncons t of
     Just ('#', t') -> lookupNumericEntity t'
     _              -> lookupNamedEntity t
 
@@ -46,23 +51,23 @@ lookupEntity t =
 -- > lookupNumericEntity "Haskell" == Nothing
 -- > lookupNumericEntity "" == Nothing
 -- > lookupNumericEntity "89439085908539082" == Nothing
-lookupNumericEntity :: Text -> Maybe Text
+lookupNumericEntity :: ByteString -> Maybe ByteString
 lookupNumericEntity = f
         -- entity = '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
     where
-        f t = case T.uncons t of
+        f t = case B8.uncons t of
                 Just ('x', t') -> g TR.hexadecimal t'
                 Just ('X', t') -> g TR.hexadecimal t'
                 _              -> g TR.decimal     t
 
-        g :: TR.Reader Integer -> Text -> Maybe Text
+        g :: TR.Reader Integer -> ByteString -> Maybe ByteString
         g reader t =
-            case reader t of
+            case reader (TE.decodeUtf8 t) of
               Right (x,t')
                 | T.null t' || t' == ";" ->
                   if x < 1 || x > 0x10FFFF
                      then Just "\xFFFD" -- illegal code point
-                     else Just $ T.singleton $ chr $ fromInteger x
+                     else Just $ UTF8.fromString [chr $ fromInteger x]
               _  -> Nothing
 
 
@@ -70,16 +75,16 @@ lookupNumericEntity = f
 --
 -- > lookupNamedEntity "amp" == Just "&"
 -- > lookupNamedEntity "haskell" == Nothing
-lookupNamedEntity :: Text -> Maybe Text
+lookupNamedEntity :: ByteString -> Maybe ByteString
 lookupNamedEntity = \x -> Map.lookup x htmlEntityMap
 
-htmlEntityMap :: Map.Map Text Text
+htmlEntityMap :: Map.Map ByteString ByteString
 htmlEntityMap = Map.fromList htmlEntities
 
 -- | A table mapping HTML entity names to resolved strings. Most resolved strings are a single character long,
 --   but some (e.g. @"ngeqq"@) are two characters long. The list is taken from
 --   <http://www.w3.org/TR/html5/syntax.html#named-character-references>.
-htmlEntities :: [(Text, Text)]
+htmlEntities :: [(ByteString, ByteString)]
 htmlEntities =
     [("Aacute", "\x00C1")
     ,("aacute", "\x00E1")
@@ -2326,19 +2331,19 @@ numEntity = do
   octo <- symbol '#'
   wc@(Tok WordChars _ t) <- satisfyTok (hasType WordChars)
   guard $
-    case T.uncons t of
+    case T.uncons (TE.decodeUtf8 t) of
          Just (x, rest)
           | x == 'x' || x == 'X' ->
             T.all isHexDigit rest &&
             not (T.null rest) &&
             T.length rest <= 6
-          | otherwise -> T.all isDigit t &&
-            T.length t <= 7
+          | isDigit x -> T.all isDigit rest &&
+            T.length rest <= 6
          _ -> False
   semi <- symbol ';'
   return [octo, wc, semi]
 
-unEntity :: [Tok] -> Text
+unEntity :: [Tok] -> ByteString
 unEntity ts = untokenize $
   case parse (many (pEntity' <|> anyTok)) "" ts of
         Left _    -> ts

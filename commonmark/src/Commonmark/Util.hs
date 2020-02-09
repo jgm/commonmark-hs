@@ -26,21 +26,24 @@ module Commonmark.Util
   )
   where
 import           Control.Monad   (mzero, void)
-import           Data.Text       (Text)
-import qualified Data.Text       as T
+import           Data.ByteString (ByteString)
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as B8
+import qualified Data.ByteString.UTF8 as UTF8
 import           Text.Parsec
 import           Text.Parsec.Pos (updatePosString)
+import           Data.Char (toLower)
 import           Commonmark.Tokens
 
 -- | Parses a single 'Tok' satisfying a predicate.
 satisfyTok :: Monad m => (Tok -> Bool) -> ParsecT [Tok] s m Tok
-satisfyTok f = tokenPrim (T.unpack . tokContents) updatePos matcher
+satisfyTok f = tokenPrim (UTF8.toString . tokContents) updatePos matcher
   where matcher t | f t       = Just t
                   | otherwise = Nothing
         updatePos :: SourcePos -> Tok -> [Tok] -> SourcePos
         updatePos _spos _ (Tok _ !pos _ : _) = pos
         updatePos !spos (Tok _ _pos !t) []    =
-          updatePosString spos (T.unpack t)
+          updatePosString spos (UTF8.toString t)
 {-# INLINE satisfyTok #-}
 
 -- | Parses any 'Tok'.
@@ -89,7 +92,7 @@ spaceTok = satisfyTok (hasType Spaces)
 {-# INLINE spaceTok #-}
 
 -- | Parses a 'WordChars' token matching a predicate.
-satisfyWord ::  Monad m => (Text -> Bool) -> ParsecT [Tok] s m Tok
+satisfyWord ::  Monad m => (ByteString -> Bool) -> ParsecT [Tok] s m Tok
 satisfyWord f = satisfyTok (\t -> hasType WordChars t && textIs f t)
 {-# INLINE satisfyWord #-}
 
@@ -118,7 +121,7 @@ gobble' requireAll numspaces
            | otherwise      -> do
                let newtok = Tok Spaces
                       (incSourceColumn pos numspaces)
-                      (T.replicate (n - numspaces) " ")
+                      (B8.replicate (n - numspaces) ' ')
                getInput >>= setInput . (newtok:)
                return $! numspaces)
     <|> if requireAll
@@ -147,7 +150,7 @@ hasTypeIn :: [TokType] -> Tok -> Bool
 hasTypeIn tys (Tok ty' _ _) = ty' `elem` tys
 
 -- | Filters tokens with certain contents.
-textIs :: (Text -> Bool) -> Tok -> Bool
+textIs :: (ByteString -> Bool) -> Tok -> Bool
 textIs f (Tok _ _ t) = f t
 {-# INLINE textIs #-}
 
@@ -156,9 +159,9 @@ nonindentSpaces :: Monad m => ParsecT [Tok] u m ()
 nonindentSpaces = void $ gobbleUpToSpaces 3
 {-# INLINE nonindentSpaces #-}
 
--- | Case-insensitive membership in a list of 'Text's.
-isOneOfCI :: [Text] -> Text -> Bool
-isOneOfCI ts t = T.toLower t `elem` ts
+-- | Case-insensitive membership in a list of lowercase ASCII ByteStrings.
+isOneOfCI :: [ByteString] -> ByteString -> Bool
+isOneOfCI ts t = B8.map toLower t `elem` ts
 {-# INLINE isOneOfCI #-}
 
 -- | Apply @p@ many times until @stop@ succeeds, discarding results.

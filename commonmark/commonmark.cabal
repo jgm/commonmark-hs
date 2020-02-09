@@ -65,8 +65,9 @@ library
       src
   build-depends:
       base >=4.7 && <5
-    , text
     , bytestring
+    , text
+    , utf8-string >= 1.0
     , containers
     , transformers
     , parsec
@@ -115,7 +116,7 @@ test-suite test-commonmark
   build-depends:
       base >=4.7 && <5
     , commonmark
-    , text
+    , bytestring
     , tasty
     , tasty-quickcheck
     , tasty-hunit
@@ -130,7 +131,7 @@ benchmark benchmark-commonmark
   build-depends:
        commonmark
      , base >= 4.8 && < 5
-     , text
+     , bytestring
      , transformers
      , containers
      , bytestring

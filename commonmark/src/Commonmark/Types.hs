@@ -24,20 +24,22 @@ module Commonmark.Types
   )
 where
 import           Data.Data            (Data)
-import           Data.Text            (Text)
-import qualified Data.Text            as T
+import           Data.ByteString      (ByteString)
 import           Data.Typeable        (Typeable)
 import           Text.Parsec.Pos      (SourcePos, sourceColumn, sourceLine,
                                        sourceName)
+import qualified Data.Text            as T
+import qualified Data.Text.Encoding   as TE
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Semigroup       (Semigroup, (<>))
 #endif
 
-newtype Format = Format Text
+newtype Format = Format ByteString
   deriving (Show, Data, Typeable)
 
 instance Eq Format where
-  (Format t1) == (Format t2) = T.toCaseFold t1 == T.toCaseFold t2
+  (Format t1) == (Format t2) = T.toCaseFold (TE.decodeUtf8 t1) ==
+                               T.toCaseFold (TE.decodeUtf8 t2)
 
 data ListSpacing =
        TightList
@@ -61,27 +63,26 @@ data DelimiterType =
 data ListType =
        BulletList !Char
      | OrderedList !Int !EnumeratorType !DelimiterType
-     -- first Text is before, second Text is after enumerator
      deriving (Show, Ord, Eq, Data, Typeable)
 
 class (Monoid a, Show a, Rangeable a, HasAttributes a) => IsInline a where
   lineBreak :: a
   softBreak :: a
-  str :: Text -> a
-  entity :: Text -> a
+  str :: ByteString -> a
+  entity :: ByteString -> a
   escapedChar :: Char -> a
   emph :: a -> a
   strong :: a -> a
-  link :: Text -- ^ Destination
-       -> Text -- ^ Title
+  link :: ByteString -- ^ Destination
+       -> ByteString -- ^ Title
        -> a    -- ^ Link description
        -> a
-  image :: Text -- ^ Source
-        -> Text -- ^ Title
+  image :: ByteString -- ^ Source
+        -> ByteString -- ^ Title
         -> a    -- ^ Description
         -> a
-  code :: Text -> a
-  rawInline :: Format -> Text -> a
+  code :: ByteString -> a
+  rawInline :: Format -> ByteString -> a
 
 class (Monoid b, Show b, Rangeable b, IsInline il, HasAttributes b)
       => IsBlock il b | b -> il where
@@ -89,13 +90,14 @@ class (Monoid b, Show b, Rangeable b, IsInline il, HasAttributes b)
   plain :: il -> b
   thematicBreak :: b
   blockQuote :: b -> b
-  codeBlock :: Text -> Text -> b
+  codeBlock :: ByteString -> ByteString -> b
   heading :: Int -- ^ Level
           -> il  -- ^ text
           -> b
-  rawBlock :: Format -> Text -> b
-  referenceLinkDefinition :: Text -- ^ Label
-                          -> (Text, Text) -- ^ Destination, title
+  rawBlock :: Format -> ByteString -> b
+  referenceLinkDefinition :: ByteString -- ^ Label
+                          -> (ByteString, ByteString)
+                                        -- ^ Destination, title
                           -> b
   list :: ListType -> ListSpacing -> [b] -> b
 
@@ -146,7 +148,7 @@ prettyRange (SourceRange xs@((p,_):_)) =
             then ""
             else ";" ++ go (sourceName p2) rest
 
-type Attribute = (Text, Text)
+type Attribute = (ByteString, ByteString)
 
 type Attributes = [Attribute]
 
@@ -154,4 +156,4 @@ class HasAttributes a where
   addAttributes :: Attributes -> a -> a
 
 class ToPlainText a where
-  toPlainText :: a -> Text
+  toPlainText :: a -> ByteString

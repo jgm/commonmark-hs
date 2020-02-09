@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StrictData        #-}
 
 module Commonmark.Inlines
   ( mkInlineParser

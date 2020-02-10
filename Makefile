@@ -23,8 +23,8 @@ haddock:
 	stack haddock
 
 prof:
-	stack install --profile --ghc-options="-fno-prof-auto"
-	# commonmark +RTS -pj -RTS benchmark.md >/dev/null
+	cabal build --enable-profiling --verbose --ghc-options="-fno-prof-auto" commonmark-cli
+	# bin/commonmark +RTS -pj -RTS benchmark.md >/dev/null
 	# cat commonmark.prof | ghc-prof-aeson-flamegraph | flamegraph.pl > prof.svg
 	# open -a Safari prof.svg
 

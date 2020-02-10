@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import           Commonmark
+import           Commonmark.Extensions
 import           Commonmark.Html
 import           Control.Monad         (when)
 import           Data.Functor.Identity
@@ -15,7 +16,6 @@ import           System.IO             (hSetEncoding, utf8, openFile,
 import qualified Data.Text.Lazy        as TL
 import           Test.Tasty
 import           Test.Tasty.HUnit
-import           Test.Tasty.QuickCheck
 import           Text.Parsec
 import           Text.Parsec.Pos
 #if !MIN_VERSION_base(4,11,0)
@@ -31,12 +31,26 @@ readTextFile fp = do
 main :: IO ()
 main = do
   tests <- mapM (uncurry getSpecTestTree)
-             [ ("test/spec.txt", mempty)
-             , ("test/regression.md", mempty)
+             [ ("test/smart.md", smartPunctuationSpec)
+             , ("test/strikethrough.md", strikethroughSpec)
+             , ("test/superscript.md", superscriptSpec)
+             , ("test/subscript.md", subscriptSpec)
+             , ("test/pipe_tables.md", pipeTableSpec)
+             , ("test/footnotes.md", footnoteSpec)
+             , ("test/math.md", mathSpec)
+             , ("test/emoji.md", emojiSpec)
+             , ("test/autolinks.md", autolinkSpec)
+             , ("test/definition_lists.md", definitionListSpec)
+             , ("test/fancy_lists.md", fancyListSpec)
+             , ("test/attributes.md", attributesSpec)
+             , ("test/raw_attribute.md", rawAttributeSpec)
+             , ("test/bracketed_spans.md", bracketedSpanSpec)
+             , ("test/fenced_divs.md", fencedDivSpec)
+             , ("test/auto_identifiers.md", autoIdentifiersSpec <> attributesSpec)
+             , ("test/implicit_heading_references.md",
+                 autoIdentifiersSpec <> attributesSpec <> implicitHeadingReferencesSpec)
              ]
-  defaultMain $ testGroup "Tests"
-     (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip
-      : tests)
+  defaultMain $ testGroup "Tests" tests
 
 getSpecTestTree :: FilePath
                 -> SyntaxSpec Identity (Html ()) (Html ())
@@ -92,10 +106,6 @@ normalizeHtml = T.replace "\n</li>" "</li>" .
 fromRight :: b -> Either a b ->  b
 fromRight fallback (Left _) = fallback
 fromRight _ (Right x)       = x
-
-tokenize_roundtrip :: String -> Bool
-tokenize_roundtrip s = untokenize (tokenize "source" t) == t
-  where t = T.pack s
 
 --- parser for spec test cases
 

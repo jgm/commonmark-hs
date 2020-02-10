@@ -12,6 +12,9 @@ This repository contains three packages:
 - [`commonmark-pandoc`](commonmark-pandoc/):
   type instances for parsing commonmark as a Pandoc AST.
 
+- [`commonmark-extensions`](commonmark-extensions/):
+  a set of useful extensions to core commonmark syntax.
+
 - [`commonmark-cli`](commonmark-cli/): a
   command-line program that uses this library to convert
   and syntax-highlight commonmark documents.

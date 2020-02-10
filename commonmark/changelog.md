@@ -1,3 +1,3 @@
-# Changelog for commonmark-core
+# Changelog for commonmark
 
 ## Unreleased changes

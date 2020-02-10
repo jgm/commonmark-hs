@@ -6,7 +6,7 @@ homepage:       https://github.com/jgm/commonmark-hs
 bug-reports:    https://github.com/jgm/commonmark-hs/issues
 author:         John MacFarlane
 maintainer:     jgm@berkeley.edu
-copyright:      2018 John MacFarlane
+copyright:      2018-2020 John MacFarlane
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -25,7 +25,8 @@ library
       src
   build-depends:
       base >=4.7 && <5
-    , commonmark
+    , commonmark >= 0.1 && < 0.2
+    , commonmark-extensions >= 0.1 && < 0.2
     , pandoc-types >= 1.20 && < 1.21
     , text
     , containers

@@ -19,20 +19,7 @@ import           Data.Functor.Identity   (runIdentity)
 -- | Parse a tokenized commonmark document using the core syntax
 -- elements.  Use 'tokenize' to convert 'Text' into ['Tok'].
 -- If you want to add syntax extensions or run the parser in a monad,
--- use 'parseCommonmarkWith'.  Simple usage example:
---
--- @
--- {-# LANGUAGE ScopedTypeVariables #-}
--- import Commonmark
--- import Data.Text.IO as TIO
--- import Data.Text.Lazy.IO as TLIO
---
--- main = do
---   inp <- TIO.getContents
---   case parseCommonmark (tokenize "stdin" inp) of
---        Left e     -> error (show e)
---        Right (html :: Html ()) -> TLIO.putStr (renderHtml html)
--- @
+-- use 'parseCommonmarkWith'.
 parseCommonmark :: IsBlock il bl
                 => [Tok] -- ^ Tokenized commonmark input
                 -> Either ParseError bl  -- ^ Result or error

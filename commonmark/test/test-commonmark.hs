@@ -3,7 +3,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import           Commonmark
-import           Commonmark.Html
 import           Control.Monad         (when)
 import           Data.Functor.Identity
 import           Data.List             (groupBy)

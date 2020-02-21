@@ -4,7 +4,6 @@
 
 import           Commonmark
 import           Commonmark.Extensions
-import           Commonmark.Html
 import           Control.Monad         (when)
 import           Data.Functor.Identity
 import           Data.List             (groupBy)

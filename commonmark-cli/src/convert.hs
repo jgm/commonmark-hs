@@ -4,7 +4,6 @@
 module Main where
 
 import           Commonmark
-import           Commonmark.Html
 import           Commonmark.Extensions
 import           Commonmark.Pandoc
 import           Data.Aeson                 (encode)

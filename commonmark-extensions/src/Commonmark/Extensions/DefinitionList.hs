@@ -45,7 +45,7 @@ definitionListBlockSpec = BlockSpec
      , blockConstructor    = \(Node bdata items) -> do
          let listType = fromDyn (blockData bdata) LooseList
          let getItem item@(Node _ ds) = do
-               term <- runInlineParser (getBlockText removeIndent item)
+               term <- runInlineParser (getBlockText item)
                defs <- mapM (\c -> (blockConstructor (bspec c)) c) ds
                return $! (term, defs)
          definitionList listType <$> mapM getItem items
@@ -77,7 +77,7 @@ definitionListItemBlockSpec = BlockSpec
          let plainSpec = paraSpec{
                blockConstructor    = \node ->
                    (addRange node . plain)
-                       <$> runInlineParser (getBlockText removeIndent node)
+                       <$> runInlineParser (getBlockText node)
                }
          let totight (Node nd cs)
                | blockType (blockSpec nd) == "Paragraph"

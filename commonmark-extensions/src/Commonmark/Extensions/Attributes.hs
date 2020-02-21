@@ -200,7 +200,7 @@ rawAttributeBlockSpec = BlockSpec
            let ((_, _, _, fmt) :: (Char, Int, Int, Format)) =
                    fromDyn (blockData (rootLabel node))
                      ('`', 3, 0, Format mempty)
-           let codetext = untokenize $ drop 1 (getBlockText id node)
+           let codetext = untokenize $ drop 1 (getBlockText node)
            -- drop 1 initial lineend token
            return $! addRange node $ rawBlock fmt codetext
      , blockFinalize       = defaultFinalizer

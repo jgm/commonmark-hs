@@ -166,8 +166,9 @@ processLine specs = do
 
   (cur:rest) <- nodeStack <$> getState
   -- add line contents
-  (toks, endpos) <- {-# SCC restOfLine #-} restOfLine
   let curdata = rootLabel cur
+  when (blockParagraph (bspec cur)) $ skipMany spaceTok
+  (toks, endpos) <- {-# SCC restOfLine #-} restOfLine
   updateState $ \st -> st{
       nodeStack = map (addEndPos endpos) $
         cur{ rootLabel =
@@ -503,7 +504,7 @@ extractReferenceLinks node = do
   st <- getState
   res <- lift $ runParserT ((,) <$> ((lookAhead anyTok >>= setPosition . tokPos) >>
                         many1 (linkReferenceDef (choice $ attributeParsers st)))
-                  <*> getInput) st "" (getBlockText removeIndent node)
+                  <*> getInput) st "" (getBlockText node)
   case res of
         Left _ -> return $! (Just node, Nothing)
         Right (linkdefs, toks') -> do
@@ -598,7 +599,7 @@ paraSpec = BlockSpec
              return $! (pos, n)
      , blockConstructor    = \node ->
          (addRange node . paragraph)
-             <$> runInlineParser (getBlockText removeIndent node)
+             <$> runInlineParser (getBlockText node)
      , blockFinalize       = \child parent -> do
          (mbchild, mbrefdefs) <- extractReferenceLinks child
          case (mbchild, mbrefdefs) of
@@ -616,7 +617,7 @@ plainSpec :: (Monad m, IsBlock il bl)
 plainSpec = paraSpec{
     blockConstructor    = \node ->
          (addRange node . plain)
-             <$> runInlineParser (getBlockText removeIndent node)
+             <$> runInlineParser (getBlockText node)
   }
 
 
@@ -654,7 +655,7 @@ atxHeadingSpec = BlockSpec
              hashes <- many1 (symbol '#')
              let level = length hashes
              guard $ level <= 6
-             void spaceTok
+             (spaceTok *> skipMany spaceTok)
                 <|> void (lookAhead lineEnd)
                 <|> lookAhead eof
              raw <- many (satisfyTok (not . hasType LineEnd))
@@ -683,11 +684,11 @@ atxHeadingSpec = BlockSpec
      , blockContinue       = const mzero
      , blockConstructor    = \node -> do
          let level = fromDyn (blockData (rootLabel node)) 1
-         ils <- runInlineParser (getBlockText removeIndent node)
+         ils <- runInlineParser (getBlockText node)
          return $! (addRange node . heading level) ils
      , blockFinalize       = \node@(Node cdata children) parent -> do
          let oldAttr = blockAttributes cdata
-         let toks = getBlockText removeIndent node
+         let toks = getBlockText node
          (newtoks, attr) <- parseFinalAttributes True toks
                         <|> (return $! (toks, mempty))
          defaultFinalizer (Node cdata{ blockAttributes = oldAttr <> attr
@@ -737,11 +738,11 @@ setextHeadingSpec = BlockSpec
      , blockContinue       = const mzero
      , blockConstructor    = \node -> do
          let level = fromDyn (blockData (rootLabel node)) 1
-         ils <- runInlineParser (getBlockText removeIndent node)
+         ils <- runInlineParser (getBlockText node)
          return $! (addRange node . heading level) ils
      , blockFinalize       = \node@(Node cdata children) parent -> do
          let oldAttr = blockAttributes cdata
-         let toks = getBlockText removeIndent node
+         let toks = getBlockText node
          (newtoks, attr) <- parseFinalAttributes True toks
                         <|> (return $! (toks, mempty))
          defaultFinalizer (Node cdata{ blockAttributes = oldAttr <> attr
@@ -998,7 +999,7 @@ indentedCodeSpec = BlockSpec
      , blockConstructor    = \node ->
              return $! (addRange node
                         (codeBlock mempty
-                           (untokenize (getBlockText id node))))
+                           (untokenize (getBlockText node))))
      , blockFinalize       = \(Node cdata children) parent -> do
          -- strip off blank lines at end:
          let cdata' = cdata{ blockLines =
@@ -1066,7 +1067,7 @@ fencedCodeSpec = BlockSpec
      , blockConstructor    = \node -> do
            let ((_, _, _, info, attrs) :: (Char, Int, Int, Text, Attributes)) =
                    fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty, mempty)
-           let codetext = untokenize $ drop 1 (getBlockText id node)
+           let codetext = untokenize $ drop 1 (getBlockText node)
            return $! addRange node $!
               if null attrs
                  then codeBlock info codetext
@@ -1123,7 +1124,7 @@ rawHtmlSpec = BlockSpec
      , blockConstructor    = \node ->
              return $! (addRange node
                         (rawBlock (Format "html")
-                           (untokenize (getBlockText id node))))
+                           (untokenize (getBlockText node))))
      , blockFinalize       = defaultFinalizer
      }
 
@@ -1197,9 +1198,9 @@ endCond n = fail $ "Unknown HTML block type " ++ show n
 
 --------------------------------
 
-getBlockText :: ([Tok] -> [Tok]) -> BlockNode m il bl -> [Tok]
-getBlockText transform =
-  concatMap transform . reverse . blockLines . rootLabel
+getBlockText :: BlockNode m il bl -> [Tok]
+getBlockText =
+  concat . reverse . blockLines . rootLabel
 
 removeIndent :: [Tok] -> [Tok]
 removeIndent = dropWhile (hasType Spaces)

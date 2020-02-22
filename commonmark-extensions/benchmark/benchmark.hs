@@ -6,7 +6,6 @@ import Data.Text (Text)
 import Data.Functor.Identity  -- base >= 4.8
 import Commonmark
 import Commonmark.Extensions
-import Commonmark.Html
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 #if !MIN_VERSION_base(4,11,0)

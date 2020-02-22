@@ -428,7 +428,7 @@ rangeFromToks (!z:zs) !endpos
                  _ -> (tokPos x, tokPos y) : go ys
 
 pEscapedChar :: (IsInline a, Monad m) => InlineParser m a
-pEscapedChar = do
+pEscapedChar = {-# SCC pEscapedChar #-} do
   symbol '\\'
   option (str "\\") $
     do tok <- satisfyTok
@@ -442,7 +442,7 @@ pEscapedChar = do
           _                  -> fail "Should not happen"
 
 pEntity :: (IsInline a, Monad m) => InlineParser m a
-pEntity = try $ do
+pEntity = {-# SCC pEntity #-} try $ do
   symbol '&'
   ent <- numEntity <|> charEntity
   return $! (entity ("&" <> untokenize ent))
@@ -465,7 +465,7 @@ pBacktickSpan = do
      _ -> return $! Left ts
 
 pCodeSpan :: (IsInline a, Monad m) => InlineParser m a
-pCodeSpan =
+pCodeSpan = {-# SCC pCodeSpan #-}
   pBacktickSpan >>=
   \case
     Left ticks     -> return $! str (untokenize ticks)
@@ -484,12 +484,12 @@ normalizeCodeSpan = removeSurroundingSpace . T.map nltosp
      | otherwise = s
 
 pHtml :: (IsInline a, Monad m) => InlineParser m a
-pHtml = try $ do
+pHtml = {-# SCC pHtml #-} try $ do
   t <- symbol '<'
   rawInline (Format "html") . untokenize . (t:) <$> htmlTag
 
 pAutolink :: (IsInline a, Monad m) => InlineParser m a
-pAutolink = try $ do
+pAutolink = {-# SCC pAutolink #-} try $ do
   symbol '<'
   (target, lab) <- pUri <|> pEmail
   symbol '>'
@@ -544,7 +544,7 @@ pEmail = do
   return $! ("mailto:" <> addr, addr)
 
 pSpaces :: (IsInline a, Monad m) => InlineParser m a
-pSpaces = do
+pSpaces = {-# SCC pSpaces #-} do
   Tok Spaces pos t <- satisfyTok (hasType Spaces)
   (do Tok LineEnd pos' _ <- satisfyTok (hasType LineEnd)
       return $!
@@ -554,19 +554,19 @@ pSpaces = do
    <|> (return $! str t)
 
 pSoftbreak :: (IsInline a, Monad m) => InlineParser m a
-pSoftbreak = do
+pSoftbreak = {-# SCC pSoftbreak #-} do
   _ <- satisfyTok (hasType LineEnd)
   return $! softBreak
 
 pWords :: (IsInline a, Monad m) => InlineParser m a
-pWords = do
+pWords = {-# SCC pWords #-} do
   t <- satisfyTok (hasType WordChars)
   return $! str (tokContents t)
 
 pSymbol :: (IsInline a, Monad m)
         => (Char -> Bool)  -- ^ Test for delimiter character
         -> InlineParser m a
-pSymbol isDelimChar = do
+pSymbol isDelimChar = {-# SCC pSymbol #-} do
   t <- pNonDelimTok isDelimChar
   return $! str (tokContents t)
 

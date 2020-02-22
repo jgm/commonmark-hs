@@ -560,15 +560,15 @@ pSoftbreak = {-# SCC pSoftbreak #-} do
 
 pWords :: (IsInline a, Monad m) => InlineParser m a
 pWords = {-# SCC pWords #-} do
-  t <- satisfyTok (hasType WordChars)
-  return $! str (tokContents t)
+  Tok _ _ !t <- satisfyTok (hasType WordChars)
+  return $! str t
 
 pSymbol :: (IsInline a, Monad m)
         => (Char -> Bool)  -- ^ Test for delimiter character
         -> InlineParser m a
 pSymbol isDelimChar = {-# SCC pSymbol #-} do
-  t <- pNonDelimTok isDelimChar
-  return $! str (tokContents t)
+  Tok _ _ !t <- pNonDelimTok isDelimChar
+  return $! str t
 
 data DState a = DState
      { leftCursor     :: Cursor (Chunk a)

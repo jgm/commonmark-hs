@@ -24,7 +24,7 @@ haddock:
 
 prof:
 	cabal build --enable-profiling --ghc-options="-fno-prof-auto" commonmark-cli
-	cabal run --enable-profiling --ghc-options="-fno-prof-auto" commonmark-cli -- +RTS -P -RTS benchmark.md >/dev/null
+	cabal run --enable-profiling --ghc-options="-fno-prof-auto" commonmark-cli -- +RTS -P -V0.00000002 -RTS benchmark.md >/dev/null
 	profiterole commonmark.prof
 	# bin/commonmark +RTS -pj -RTS benchmark.md >/dev/null
 	# cat commonmark.prof | ghc-prof-aeson-flamegraph | flamegraph.pl > prof.svg

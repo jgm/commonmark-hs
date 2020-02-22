@@ -27,7 +27,7 @@ data TokType =
      | UnicodeSpace
      | LineEnd
      | WordChars
-     | Symbol !Char
+     | Symbol {-# UNPACK #-} !Char
      deriving (Show, Eq, Ord, Data, Typeable)
 
 -- | Convert a 'Text' into a list of 'Tok'. The first parameter

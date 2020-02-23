@@ -200,9 +200,10 @@ tokensWhile1 f = do
 restOfLine :: Monad m => ParsecT [Tok] s m ([Tok], SourcePos)
 restOfLine =
    (do ts <- tokensWhile1 (not . hasType LineEnd)
-       pos <- getPosition
-       le <- option [] $ (:[]) <$> lineEnd
-       return $! (ts ++ le, pos))
+       (do le@(Tok LineEnd pos _) <- lineEnd
+           return $! (ts ++ [le], pos))
+        <|> (do pos <- getPosition
+                return $! (ts, pos)))
   <|>
    (do le@(Tok _ pos _) <- lineEnd
        return $! ([le], pos))

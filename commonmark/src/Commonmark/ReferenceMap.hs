@@ -10,7 +10,7 @@ module Commonmark.ReferenceMap
   ) where
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import Data.Dynamic
 import Commonmark.Types
 #if !MIN_VERSION_base(4,13,0)

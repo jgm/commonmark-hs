@@ -14,7 +14,7 @@ module Commonmark.SourceMap
 where
 import           Data.Text            (Text)
 import qualified Data.Text            as T
-import qualified Data.Map             as M
+import qualified Data.Map.Strict      as M
 import qualified Data.Sequence as Seq
 import Commonmark.Types
 import Control.Monad.Trans.State

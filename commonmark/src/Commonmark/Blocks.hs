@@ -67,7 +67,7 @@ import           Data.Char                 (isAsciiUpper, isDigit, isSpace)
 import           Data.Dynamic
 import           Data.List                 (sort)
 import           Data.Text                 (Text)
-import qualified Data.Map                  as M
+import qualified Data.Map.Strict           as M
 import qualified Data.Text                 as T
 import qualified Data.Text.Read            as TR
 import           Data.Tree

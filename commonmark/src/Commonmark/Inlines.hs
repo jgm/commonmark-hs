@@ -49,7 +49,7 @@ import           Data.List                  (foldl')
 import           Data.Char                  (isAscii, isLetter)
 import           Data.Dynamic               (Dynamic, toDyn)
 import qualified Data.IntMap.Strict         as IntMap
-import qualified Data.Map                   as M
+import qualified Data.Map.Strict            as M
 import           Data.Maybe                 (isJust, mapMaybe)
 import qualified Data.Set                   as Set
 #if !MIN_VERSION_base(4,11,0)

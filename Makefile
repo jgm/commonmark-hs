@@ -8,7 +8,7 @@ else
   BENCHARGS?="--output $(LOGS)/benchmark-$(DATE).html --time-limit=2"
 endif
 SOURCEFILES?=$(shell find commonmark/src commonmark-cli/src commonmark-pandoc/src -name '*.hs')
-GHC_OPTS=-Wall -fno-warn-unused-do-bind -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -Wincomplete-uni-patterns -Werror=missing-home-modules -Widentities -Wcpp-undef -fhide-source-paths
+GHC_OPTS=-Wall -fno-warn-unused-do-bind -Wnoncanonical-monad-instances -Wincomplete-uni-patterns -Werror=missing-home-modules -Widentities -Wcpp-undef -fhide-source-paths -fno-prof-auto
 PROFTARGET?=benchmark.md
 
 all:
@@ -24,19 +24,19 @@ haddock:
 	stack haddock
 
 prof:
-	cabal build --enable-profiling --ghc-options="-fno-prof-auto" commonmark-cli
-	cabal run --enable-profiling --ghc-options="-fno-prof-auto" commonmark-cli -- +RTS -P -V0.00000002 -RTS ${PROFTARGET} >/dev/null
+	cabal build --enable-profiling --ghc-options="${GHC_OPTS}" commonmark-cli
+	cabal run --enable-profiling --ghc-options="${GHC_OPTS}" commonmark-cli -- +RTS -P -V0.00000002 -RTS ${PROFTARGET} >/dev/null
 	profiterole commonmark.prof
-	awk '{print $$3,"\t",$$5}' commonmark.profiterole.txt | sort -n | uniq | tail -32
+	awk '{print $$3,"\t",$$5}' commonmark.profiterole.txt | sort -n | uniq | grep '^[0-9]'
 
 heapprof:
-	cabal run --enable-profiling --ghc-options="-fno-prof-auto" commonmark-cli -- +RTS -hc -RTS ${PROFTARGET} >/dev/null
+	cabal run --enable-profiling --ghc-options="${GHC_OPTS}" commonmark-cli -- +RTS -hc -RTS ${PROFTARGET} >/dev/null
 	hp2ps -b -c commonmark.hp
 	ps2pdf commonmark.ps
 	open commonmark.pdf
 
 flamegraph:
-	cabal run --enable-profiling --ghc-options="-fno-prof-auto" commonmark-cli -- +RTS -pj -RTS ${PROFTARGET} >/dev/null
+	cabal run --enable-profiling --ghc-options="${GHC_OPTS}" commonmark-cli -- +RTS -pj -RTS ${PROFTARGET} >/dev/null
 	cat commonmark.prof | ghc-prof-aeson-flamegraph | flamegraph.pl > prof.svg
 	open -a Safari prof.svg
 

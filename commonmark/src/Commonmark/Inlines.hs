@@ -316,12 +316,6 @@ pDelimTok isDelimChar = do
                Tok (Symbol c) _ _ -> isDelimChar c
                _                  -> False)
 
-pNonDelimTok :: Monad m => (Char -> Bool) -> InlineParser m Tok
-pNonDelimTok isDelimChar =
-  satisfyTok (\case
-               Tok (Symbol c) _ _ -> not (isDelimChar c)
-               _ -> True)
-
 pDelimChunk :: (IsInline a, Monad m)
             => FormattingSpecMap a
             -> (Char -> Bool)
@@ -567,7 +561,9 @@ pSymbol :: (IsInline a, Monad m)
         => (Char -> Bool)  -- ^ Test for delimiter character
         -> InlineParser m a
 pSymbol isDelimChar = {-# SCC pSymbol #-} do
-  Tok _ _ !t <- pNonDelimTok isDelimChar
+  Tok _ _ !t <- satisfyTok (\case
+                  Tok (Symbol c) _ _ -> not (isDelimChar c)
+                  _ -> True) -- captures unicode spaces too
   return $! str t
 
 data DState a = DState

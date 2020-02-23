@@ -214,7 +214,7 @@ attributesSpec = mempty
   { syntaxAttributeParsers = [pAttributes]
   }
 
-pAttributes :: Monad m => ParsecT [Tok] u m Attributes
+pAttributes :: forall u m . Monad m => ParsecT [Tok] u m Attributes
 pAttributes = mconcat <$> many1 pattr
   where
     pattr = try $ do

@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE BangPatterns      #-}
@@ -39,12 +40,13 @@ module Commonmark.Inlines
   )
 where
 
-import           Commonmark.Tag             (htmlTag)
+import           Commonmark.Tag             (htmlTag, Enders, defaultEnders)
 import           Commonmark.Tokens
 import           Commonmark.Util
 import           Commonmark.ReferenceMap
 import           Commonmark.Types
 import           Control.Monad              (guard, mzero)
+import           Control.Monad.Trans.State.Strict
 import           Data.List                  (foldl')
 import           Data.Char                  (isAscii, isLetter)
 import           Data.Dynamic               (Dynamic, toDyn)
@@ -75,7 +77,9 @@ mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
   let attrParser = choice attrParsers
   let toks' = dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks
-  res <- {-# SCC parseChunks #-} parseChunks bracketedSpecs formattingSpecs ilParsers attrParser rm toks'
+  res <- {-# SCC parseChunks #-} evalStateT
+          (parseChunks bracketedSpecs formattingSpecs ilParsers
+           attrParser rm toks') defaultEnders
   return $!
     case res of
        Left err     -> Left err
@@ -118,7 +122,6 @@ unChunks = {-# SCC unChunks #-} foldl' mappend mempty . go
           Parsed ils -> x : go rest
               where !x = f ils
 
-
 parseChunks :: (Monad m, IsInline a)
             => [BracketedSpec a]
             -> [FormattingSpec a]
@@ -126,7 +129,7 @@ parseChunks :: (Monad m, IsInline a)
             -> InlineParser m Attributes
             -> ReferenceMap
             -> [Tok]
-            -> m (Either ParseError [Chunk a])
+            -> StateT Enders m (Either ParseError [Chunk a])
 parseChunks bspecs specs ilParsers attrParser rm ts =
   runParserT
      (do case ts of
@@ -177,10 +180,10 @@ data IPState m = IPState
      , userState            :: !Dynamic
      , ipReferenceMap       :: !ReferenceMap
      , precedingTokTypes    :: M.Map SourcePos TokType
-     , attributeParser      :: ParsecT [Tok] (IPState m) m Attributes
+     , attributeParser      :: InlineParser m Attributes
      }
 
-type InlineParser m = ParsecT [Tok] (IPState m) m
+type InlineParser m = ParsecT [Tok] (IPState m) (StateT Enders m)
 
 --- Formatting specs:
 

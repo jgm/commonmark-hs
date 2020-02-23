@@ -118,7 +118,7 @@ pFootnoteRef = try $ do
   rm <- ipReferenceMap <$> getState
   case lookupReference lab rm of
         Just (FootnoteDef num _ mkContents) -> do
-          res <- lift $ mkContents rm
+          res <- lift . lift $ mkContents rm
           case res of
                Left err -> mkPT (\_ -> return (Empty (return (Error err))))
                Right contents -> return $!

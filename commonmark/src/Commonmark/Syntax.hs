@@ -30,7 +30,7 @@ data SyntaxSpec m il bl = SyntaxSpec
      , syntaxFinalParsers    :: [BlockParser m il bl bl]
         -- ^ Run at the end of document, e.g. to collect footnotes
      , syntaxAttributeParsers
-             :: forall u . [ParsecT [Tok] u m Attributes]
+             :: forall u m1 . Monad m1 => [ParsecT [Tok] u m1 Attributes]
        -- ^ Parse attributes
      }
 

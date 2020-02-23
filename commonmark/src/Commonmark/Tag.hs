@@ -5,14 +5,30 @@ module Commonmark.Tag
   , htmlClosingTag
   , htmlAttributeName
   , htmlAttributeValue
-  , htmlDoubleQuotedAttributeValue )
+  , htmlDoubleQuotedAttributeValue
+  , Enders
+  , defaultEnders )
 where
 import           Commonmark.Tokens
 import           Commonmark.Util
-import           Control.Monad     (liftM2)
+import           Control.Monad     (liftM2, guard)
+import           Control.Monad.Trans.State.Strict
+import           Control.Monad.Trans.Class (lift)
 import           Data.Char         (isAscii, isLetter)
 import qualified Data.Text         as T
 import           Text.Parsec       hiding (State)
+
+data Enders =
+  Enders
+  { scannedForCDATA                 :: !Bool
+  , scannedForProcessingInstruction :: !Bool
+  , scannedForDeclaration           :: !Bool
+  } deriving Show
+
+defaultEnders :: Enders
+defaultEnders = Enders { scannedForCDATA = False
+                       , scannedForProcessingInstruction = False
+                       , scannedForDeclaration = False }
 
 (.&&.) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
 (.&&.) = liftM2 (&&)
@@ -143,14 +159,18 @@ htmlComment = try $ do
 
 -- A processing instruction consists of the string <?, a string of
 -- characters not including the string ?>, and the string ?>.
-htmlProcessingInstruction :: Monad m => ParsecT [Tok] s m [Tok]
+htmlProcessingInstruction :: Monad m
+                          => ParsecT [Tok] s (StateT Enders m) [Tok]
 htmlProcessingInstruction = try $ do
   -- assume < has already been parsed
   let questionmark = symbol '?'
   op <- questionmark
+  alreadyScanned <- lift $ gets scannedForProcessingInstruction
+  guard $ not alreadyScanned
   contents <- many $ satisfyTok (not . hasType (Symbol '?'))
                  <|> try (questionmark <*
                            notFollowedBy (symbol '>'))
+  lift $ modify $ \st -> st{ scannedForProcessingInstruction = True }
   cl <- sequence [ questionmark
                  , symbol '>' ]
   return $ op : contents ++ cl
@@ -158,38 +178,44 @@ htmlProcessingInstruction = try $ do
 -- A declaration consists of the string <!, a name consisting of one or
 -- more uppercase ASCII letters, whitespace, a string of characters not
 -- including the character >, and the character >.
-htmlDeclaration :: Monad m => ParsecT [Tok] s m [Tok]
+htmlDeclaration :: Monad m => ParsecT [Tok] s (StateT Enders m) [Tok]
 htmlDeclaration = try $ do
   -- assume < has already been parsed
   op <- symbol '!'
+  alreadyScanned <- lift $ gets scannedForDeclaration
+  guard $ not alreadyScanned
   let isDeclName t = not (T.null t) && T.all (isAscii .&&. isLetter) t
   name <- satisfyWord isDeclName
   ws <- whitespace
   contents <- many (satisfyTok (not . hasType (Symbol '>')))
+  lift $ modify $ \st -> st{ scannedForDeclaration = True }
   cl <- symbol '>'
   return $ op : name : ws ++ contents ++ [cl]
 
 -- A CDATA section consists of the string <![CDATA[, a string of characters
 -- not including the string ]]>, and the string ]]>.
-htmlCDATASection :: Monad m => ParsecT [Tok] s m [Tok]
+htmlCDATASection :: Monad m => ParsecT [Tok] s (StateT Enders m) [Tok]
 htmlCDATASection = try $ do
   -- assume < has already been parsed
   op <- sequence [ symbol '!'
                  , symbol '['
                  , satisfyWord (== "CDATA")
                  , symbol '[' ]
+  alreadyScanned <- lift $ gets scannedForCDATA
+  guard $ not alreadyScanned
   let ender = try $ sequence [ symbol ']'
                              , symbol ']'
                              , symbol '>' ]
   contents <- many $ do
                 notFollowedBy ender
                 anyTok
+  lift $ modify $ \st -> st{ scannedForCDATA = True }
   cl <- ender
   return $ op ++ contents ++ cl
 
 -- An HTML tag consists of an open tag, a closing tag, an HTML comment,
 -- a processing instruction, a declaration, or a CDATA section.
 -- Assumes @<@ has already been parsed.
-htmlTag :: Monad m => ParsecT [Tok] s m [Tok]
+htmlTag :: Monad m => ParsecT [Tok] s (StateT Enders m) [Tok]
 htmlTag = htmlOpenTag <|> htmlClosingTag <|> htmlComment <|>
           htmlProcessingInstruction <|> htmlDeclaration <|> htmlCDATASection

@@ -140,8 +140,8 @@ parseChunks bspecs specs ilParsers attrParser rm ts =
               attributeParser = attrParser }
      "source" ts
   where
-   isDelimChar c = c `Set.member` delimcharset
-   delimcharset = Set.fromList delimchars
+   isDelimChar = (`Set.member` delimcharset)
+   !delimcharset = Set.fromList delimchars
    delimchars = '[' : ']' : suffixchars ++
                   prefixchars ++ M.keys specmap
    specmap = mkFormattingSpecMap specs
@@ -396,12 +396,17 @@ pInline :: (IsInline a, Monad m)
         -> InlineParser m a
 pInline ilParsers isDelimChar =
   mconcat <$> many1
-     (do toks <- getInput
-         res <- choice ilParsers <|> pSymbol isDelimChar
-         endpos <- getPosition
-         let range = rangeFromToks
-               (takeWhile ((< endpos) . tokPos) toks) endpos
-         return $! ranged range res)
+     ((do toks <- getInput
+          res <- choice ilParsers
+          endpos <- getPosition
+          let range = rangeFromToks
+                (takeWhile ((< endpos) . tokPos) toks) endpos
+          return $! ranged range res)
+     <|> (do pos <- getPosition
+             res <- pSymbol isDelimChar
+             endpos <- getPosition
+             let range = SourceRange [(pos, endpos)]
+             return $! ranged range res))
 
 rangeFromToks :: [Tok] -> SourcePos -> SourceRange
 rangeFromToks [] _ = SourceRange mempty

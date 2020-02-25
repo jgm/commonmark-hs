@@ -85,10 +85,10 @@ pathtests =
     T.replicate num "a <![CDATA[")
   , ("<?", \n ->
     let num = n `div` 2 in
-    T.replicate num "<?")
+    ("a" <> T.replicate num "<?"))
   , ("<!A ", \n ->
     let num = n `div` 4 in
-    T.replicate num "<!A ")
+    ("a" <> T.replicate num "<!A "))
   ]
 
 benchCommonmark :: SyntaxSpec Identity (Html ()) (Html ())

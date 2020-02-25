@@ -80,6 +80,15 @@ pathtests =
   , ("backticks", \n ->
     let num = floor (sqrt (9 + (8 * (fromIntegral n :: Double))) / 2) in
     mconcat $ map (\x -> "e" <> T.replicate x "`") [1..num])
+  , ("CDATA", \n ->
+    let num = n `div` 11 in
+    T.replicate num "a <![CDATA[")
+  , ("<?", \n ->
+    let num = n `div` 2 in
+    T.replicate num "<?")
+  , ("<!A ", \n ->
+    let num = n `div` 4 in
+    T.replicate num "<!A ")
   ]
 
 benchCommonmark :: SyntaxSpec Identity (Html ()) (Html ())

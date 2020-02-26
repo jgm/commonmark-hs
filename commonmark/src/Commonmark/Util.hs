@@ -207,4 +207,7 @@ restOfLine =
   <|>
    (do le@(Tok _ pos _) <- lineEnd
        return $! ([le], pos))
+  <|>
+   (do pos <- getPosition
+       return $! ([], pos))
 {-# INLINE restOfLine #-}

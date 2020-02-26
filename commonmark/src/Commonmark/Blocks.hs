@@ -107,8 +107,7 @@ processLines :: (Monad m, IsBlock il bl)
              -> [BlockParser m il bl bl] -- ^ Parsers to run at end
              -> BlockParser m il bl bl
 processLines specs finalParsers = do
-  skipMany (processLine specs)
-  eof
+  skipManyTill (processLine specs) eof
   tree <- (nodeStack <$> getState) >>= collapseNodeStack
   updateState $ \st -> st{ nodeStack = [reverseSubforests tree] }
   endContent <- mconcat <$> sequence finalParsers

@@ -29,12 +29,29 @@ readTextFile fp = do
 
 main :: IO ()
 main = do
+  let defaultParser = runIdentity . parseCommonmarkWith defaultSyntaxSpec
   tests <- mapM (uncurry getSpecTestTree)
              [ ("test/spec.txt", mempty)
              , ("test/regression.md", mempty)
              ]
   defaultMain $ testGroup "Tests"
      (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip
+      : toSpecTest defaultParser
+        SpecTest
+          { section    = "Issue #24 (eof after HTML block)"
+          , example    = 1
+          , markdown   = "<? a ?>"
+          , end_line   = 1
+          , start_line = 1
+          , html       = "<? a ?>" }
+      : toSpecTest defaultParser
+        SpecTest
+          { section    = "Issue #24 (eof after HTML block)"
+          , example    = 2
+          , markdown   = "<!-- a -->"
+          , end_line   = 2
+          , start_line = 2
+          , html       = "<!-- a -->" }
       : tests)
 
 getSpecTestTree :: FilePath

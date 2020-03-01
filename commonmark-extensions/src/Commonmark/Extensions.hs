@@ -1,3 +1,25 @@
+{- |
+
+Syntax extensions for the commonmark library.
+Usage example:
+
+> {-# LANGUAGE ScopedTypeVariables #-}
+> import Commonmark
+> import Commonmark.Extensions
+> import Data.Text.IO as TIO
+> import Data.Text.Lazy.IO as TLIO
+> import Data.Functor.Identity (runIdentity)
+>
+> main = do
+>   inp <- TIO.getContents
+>   let customParser = runIdentity . parseCommonmarkWith
+>         (mathSpec <> smartPunctuationSpec <> defaultSyntaxSpec)
+>   case customParser (tokenize "stdin" inp) of
+>        Left e                  -> error (show e)
+>        Right (html :: Html ()) -> TLIO.putStr (renderHtml html)
+
+-}
+
 module Commonmark.Extensions
     ( module Commonmark.Extensions.Smart
     , module Commonmark.Extensions.Strikethrough

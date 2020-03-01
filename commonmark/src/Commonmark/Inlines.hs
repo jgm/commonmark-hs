@@ -436,15 +436,15 @@ pEscapedChar = {-# SCC pEscapedChar #-} do
                   Tok LineEnd _ _    -> True
                   _                  -> False)
        case tok of
-          Tok (Symbol c) _ _ -> return $! escapedChar c
-          Tok LineEnd    _ _ -> return $! lineBreak
+          Tok (Symbol c) _ _ -> return $ escapedChar c
+          Tok LineEnd    _ _ -> return lineBreak
           _                  -> fail "Should not happen"
 
 pEntity :: (IsInline a, Monad m) => InlineParser m a
 pEntity = {-# SCC pEntity #-} try $ do
   symbol '&'
   ent <- numEntity <|> charEntity
-  return $! (entity ("&" <> untokenize ent))
+  return (entity ("&" <> untokenize ent))
 
 pBacktickSpan :: Monad m
               => InlineParser m (Either [Tok] [Tok])
@@ -460,15 +460,16 @@ pBacktickSpan = do
           guard $ length backticks == numticks
           updateState $ \st ->
             st{ backtickSpans = IntMap.insert numticks ps (backtickSpans st) }
-          return $! Right codetoks
-     _ -> return $! Left ts
+          return $ Right codetoks
+     _ -> return $ Left ts
 
 pCodeSpan :: (IsInline a, Monad m) => InlineParser m a
 pCodeSpan = {-# SCC pCodeSpan #-}
   pBacktickSpan >>=
   \case
-    Left ticks     -> return $! str (untokenize ticks)
-    Right codetoks -> return $! code . normalizeCodeSpan . untokenize $ codetoks
+    Left ticks     -> return $ str (untokenize ticks)
+    Right codetoks -> return $ code . normalizeCodeSpan . untokenize $
+                               codetoks
 
 normalizeCodeSpan :: Text -> Text
 normalizeCodeSpan = removeSurroundingSpace . T.map nltosp
@@ -492,7 +493,7 @@ pAutolink = {-# SCC pAutolink #-} try $ do
   symbol '<'
   (target, lab) <- pUri <|> pEmail
   symbol '>'
-  return $! link target "" (str lab)
+  return $ link target "" (str lab)
 
 pUri :: Monad m => InlineParser m (Text, Text)
 pUri = try $ do
@@ -506,7 +507,7 @@ pUri = try $ do
             _          -> True
   ts <- many $ satisfyTok isURITok
   let uri = s <> ":" <> untokenize ts
-  return $! (uri, uri)
+  return (uri, uri)
 
 pScheme :: Monad m => InlineParser m Text
 pScheme = do
@@ -518,7 +519,7 @@ pScheme = do
   let s = untokenize (t:ts)
   let len = T.length s
   guard $ len >= 2 && len <= 32
-  return $! s
+  return s
 
 pEmail :: Monad m => InlineParser m (Text, Text)
 pEmail = do
@@ -540,27 +541,27 @@ pEmail = do
   d <- domainPart
   ds <- many (symbol '.' >> domainPart)
   let addr = untokenize name <> "@" <> T.intercalate "." (map untokenize (d:ds))
-  return $! ("mailto:" <> addr, addr)
+  return ("mailto:" <> addr, addr)
 
 pSpaces :: (IsInline a, Monad m) => InlineParser m a
 pSpaces = {-# SCC pSpaces #-} do
   Tok Spaces pos t <- satisfyTok (hasType Spaces)
   (do Tok LineEnd pos' _ <- satisfyTok (hasType LineEnd)
-      return $!
+      return $
         if sourceColumn pos' - sourceColumn pos >= 2
            then lineBreak
            else softBreak)
-   <|> (return $! str t)
+   <|> (return $ str t)
 
 pSoftbreak :: (IsInline a, Monad m) => InlineParser m a
 pSoftbreak = {-# SCC pSoftbreak #-} do
   _ <- satisfyTok (hasType LineEnd)
-  return $! softBreak
+  return $ softBreak
 
 pWords :: (IsInline a, Monad m) => InlineParser m a
 pWords = {-# SCC pWords #-} do
   Tok _ _ !t <- satisfyTok (hasType WordChars)
-  return $! str t
+  return $ str t
 
 pSymbol :: (IsInline a, Monad m)
         => (Char -> Bool)  -- ^ Test for delimiter character
@@ -569,7 +570,7 @@ pSymbol isDelimChar = {-# SCC pSymbol #-} do
   Tok _ _ !t <- satisfyTok (\case
                   Tok (Symbol c) _ _ -> not (isDelimChar c)
                   _ -> True) -- captures unicode spaces too
-  return $! str t
+  return $ str t
 
 data DState a = DState
      { leftCursor     :: Cursor (Chunk a)

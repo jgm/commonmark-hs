@@ -14,8 +14,10 @@ Usage example:
 >   let customSyntax =
 >          (mathSpec <> smartPunctuationSpec <> defaultSyntaxSpec)
 >   inp <- TIO.getContents
->   (parsed :: Html ()) <- commonmarkWith customSyntax "stdin" inp
->   TLIO.putStr $ renderHtml parsed
+>   res <- commonmarkWith customSyntax "stdin" inp
+>   case res of
+>     Left e                  -> error (show e)
+>     Right (html :: Html ()) -> TLIO.putStr $ renderHtml html
 
 -}
 

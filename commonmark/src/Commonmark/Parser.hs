@@ -19,8 +19,7 @@ import           Data.Functor.Identity   (runIdentity)
 import           Data.Text (Text)
 
 -- | Parse a commonmark document using the core syntax
--- elements. Return mempty if there is a parse error (not expected
--- for commonmark, since every string is a valid commonmark document).
+-- elements.
 -- To produce HTML, instantiate 'bl' with @'Html' ()@ (see
 -- 'Commonmark.Html'.
 -- If you want to add syntax extensions or run the parser in a
@@ -29,9 +28,8 @@ import           Data.Text (Text)
 commonmark :: IsBlock il bl
            => String      -- ^ Name or path of input
            -> Text        -- ^ Commonmark text input
-           -> bl          -- ^ Result
+           -> (Either ParseError bl) -- ^ Result or error
 commonmark sourcename =
- either mempty id .
  runIdentity .
  parseCommonmarkWith defaultSyntaxSpec .
  tokenize sourcename
@@ -44,9 +42,8 @@ commonmarkWith :: (Monad m, IsBlock il bl, IsInline il)
                => SyntaxSpec m il bl       -- ^ Defines syntax
                -> String                   -- ^ Name or path of input
                -> Text                     -- ^ Commonmark text input
-               -> m bl                     -- ^ Result
+               -> m (Either ParseError bl) -- ^ Result or error
 commonmarkWith syntax sourcename =
- fmap (either mempty id) .
  parseCommonmarkWith syntax .
  tokenize sourcename
 

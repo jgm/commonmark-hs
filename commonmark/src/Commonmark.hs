@@ -9,8 +9,10 @@ Usage example:
 > import Data.Text.Lazy.IO as TLIO
 >
 > main = do
->   (html :: Html ()) <- commonmark "stdin" <$> TIO.getContents
->   TLIO.putStr $ renderHtml html
+>   res <- commonmark "stdin" <$> TIO.getContents
+>   case res of
+>     Left e                  -> error (show e)
+>     Right (html :: Html ()) -> TLIO.putStr $ renderHtml html
 
 The parser is highly polymorphic: in this example, we use
 the type annotation @'Html' ()@ to indicate that we want it

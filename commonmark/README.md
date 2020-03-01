@@ -139,7 +139,7 @@ used to run the benchmarks.
  | cmark                     |   21      |
  | cheapskate                |  167      |
  | commonmark.js             |  228      |
- | **commonmark-hs**         |  510      |
+ | **commonmark-hs**         |  506      |
  | pandoc -f commonmark      | 1305      |
  | pandoc -f markdown_strict | 1733      |
 

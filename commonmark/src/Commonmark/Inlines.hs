@@ -81,7 +81,7 @@ mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
 
 defaultInlineParser :: (Monad m, IsInline a) => InlineParser m a
 defaultInlineParser =
-  {-# SCC efficientDefaultInlineParser #-} try $ do
+  {-# SCC defaultInlineParser #-} try $ do
     tok@(Tok toktype _ t) <- anyTok
     case toktype of
         WordChars   -> return $ str t

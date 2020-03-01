@@ -10,6 +10,7 @@
 module Commonmark.Inlines
   ( mkInlineParser
   , defaultInlineParsers
+  , efficientDefaultInlineParser
   , IPState(..)
   , InlineParser
   , FormattingSpec(..)
@@ -90,16 +91,61 @@ mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
           processBrackets bracketedSpecs rm) chunks
 
 defaultInlineParsers :: (Monad m, IsInline a) => [InlineParser m a]
-defaultInlineParsers =
-                [ pWords
-                , pSpaces
-                , pSoftbreak
-                , withAttributes pCodeSpan
-                , pEscapedChar
-                , pEntity
-                , withAttributes pAutolink
-                , pHtml
-                ]
+defaultInlineParsers = [ efficientDefaultInlineParser ]
+--                 [ pWords
+--                 , pSpaces
+--                 , pSoftbreak
+--                 , withAttributes pCodeSpan
+--                 , pEscapedChar
+--                 , pEntity
+--                 , withAttributes pAutolink
+--                 , pHtml
+--                 ]
+
+efficientDefaultInlineParser :: (Monad m, IsInline a) => InlineParser m a
+efficientDefaultInlineParser =
+  {-# SCC efficientDefaultInlineParser #-} withAttributes $ try $ do
+    tok@(Tok toktype pos t) <- anyTok
+    case toktype of
+        WordChars   -> return $ str t
+        LineEnd     -> return softBreak
+        Spaces      -> doBreak (T.length t) <|> return (str t)
+        Symbol '\\' -> option (str "\\") doEscape
+        Symbol '`'  -> doCodeSpan tok
+        Symbol '&'  -> option (str "&") doEntity
+        Symbol '<'  -> option (str "<") (doAutolink <|> doHtml tok)
+        _           -> mzero
+    where
+     doBreak len = do
+       _ <- satisfyTok (hasType LineEnd)
+       return $
+         if len >= 2
+            then lineBreak
+            else softBreak
+     doEscape = do
+       tok <- satisfyTok
+                    (\case
+                      Tok (Symbol c) _ _ -> isAscii c
+                      Tok LineEnd _ _    -> True
+                      _                  -> False)
+       case tok of
+           Tok (Symbol c) _ _ -> return $ escapedChar c
+           Tok LineEnd    _ _ -> return lineBreak
+           _                  -> fail "Should not happen"
+     doEntity = do
+       ent <- numEntity <|> charEntity
+       return (entity ("&" <> untokenize ent))
+     doAutolink = try $ do
+       (target, lab) <- pUri <|> pEmail
+       symbol '>'
+       return $ link target "" (str lab)
+     doHtml tok = rawInline (Format "html") . untokenize . (tok:) <$>
+                  try htmlTag
+     doCodeSpan tok = pBacktickSpan tok >>=
+       \case
+         Left ticks     -> return $ str (untokenize ticks)
+         Right codetoks -> return $ code . normalizeCodeSpan . untokenize $
+                                    codetoks
 
 unChunks :: IsInline a => [Chunk a] -> a
 unChunks = {-# SCC unChunks #-} foldl' mappend mempty . go
@@ -447,15 +493,14 @@ pEntity = {-# SCC pEntity #-} try $ do
   return (entity ("&" <> untokenize ent))
 
 pBacktickSpan :: Monad m
-              => InlineParser m (Either [Tok] [Tok])
-pBacktickSpan = do
-  ts <- many1 (symbol '`')
-  pos' <- getPosition
+              => Tok -> InlineParser m (Either [Tok] [Tok])
+pBacktickSpan tok = do
+  ts <- (tok:) <$> many (symbol '`')
   let numticks = length ts
   st' <- getState
-  case dropWhile (<= pos') <$> IntMap.lookup numticks (backtickSpans st') of
+  case dropWhile (<= tokPos tok) <$> IntMap.lookup numticks (backtickSpans st') of
      Just (pos'':ps) -> do
-          codetoks <- many $ satisfyTok (\tok -> tokPos tok < pos'')
+          codetoks <- many $ satisfyTok (\tok' -> tokPos tok' < pos'')
           backticks <- many $ satisfyTok (hasType (Symbol '`'))
           guard $ length backticks == numticks
           updateState $ \st ->
@@ -464,12 +509,13 @@ pBacktickSpan = do
      _ -> return $ Left ts
 
 pCodeSpan :: (IsInline a, Monad m) => InlineParser m a
-pCodeSpan = {-# SCC pCodeSpan #-}
-  pBacktickSpan >>=
-  \case
-    Left ticks     -> return $ str (untokenize ticks)
-    Right codetoks -> return $ code . normalizeCodeSpan . untokenize $
-                               codetoks
+pCodeSpan = {-# SCC pCodeSpan #-} do
+  tok <- symbol '`'
+  pBacktickSpan tok >>=
+    \case
+      Left ticks     -> return $ str (untokenize ticks)
+      Right codetoks -> return $ code . normalizeCodeSpan . untokenize $
+                                 codetoks
 
 normalizeCodeSpan :: Text -> Text
 normalizeCodeSpan = removeSurroundingSpace . T.map nltosp

@@ -133,8 +133,9 @@ instance (HasSpan i, Semigroup i, Monoid i)
   spanWith attrs x = (spanWith attrs <$> x) <* addName "span"
 
 pRawSpan :: (IsInline a, Monad m) => InlineParser m a
-pRawSpan = do
-  pBacktickSpan >>=
+pRawSpan = try $ do
+  tok <- symbol '`'
+  pBacktickSpan tok >>=
    \case
     Left ticks     -> return $! str (untokenize ticks)
     Right codetoks -> do

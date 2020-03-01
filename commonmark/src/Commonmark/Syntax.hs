@@ -55,7 +55,7 @@ defaultSyntaxSpec = SyntaxSpec
   { syntaxBlockSpecs          = defaultBlockSpecs
   , syntaxBracketedSpecs      = defaultBracketedSpecs
   , syntaxFormattingSpecs     = defaultFormattingSpecs
-  , syntaxInlineParsers       = defaultInlineParsers
+  , syntaxInlineParsers       = [defaultInlineParser]
   , syntaxFinalParsers        = []
   , syntaxAttributeParsers    = []
   }

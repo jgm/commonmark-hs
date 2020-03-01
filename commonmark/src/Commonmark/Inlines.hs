@@ -9,8 +9,7 @@
 
 module Commonmark.Inlines
   ( mkInlineParser
-  , defaultInlineParsers
-  , efficientDefaultInlineParser
+  , defaultInlineParser
   , IPState(..)
   , InlineParser
   , FormattingSpec(..)
@@ -25,18 +24,8 @@ module Commonmark.Inlines
   , pEscaped
   , processEmphasis
   , processBrackets
-  -- * Basic parsers
-  , pWords
-  , pSpaces
-  , pSoftbreak
-  , pEscapedChar
-  , pEntity
   , pBacktickSpan
   , normalizeCodeSpan
-  , pCodeSpan
-  , pHtml
-  , pAutolink
-  , pSymbol
   , withAttributes
   )
 where
@@ -90,22 +79,10 @@ mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
           processEmphasis .
           processBrackets bracketedSpecs rm) chunks
 
-defaultInlineParsers :: (Monad m, IsInline a) => [InlineParser m a]
-defaultInlineParsers = [ efficientDefaultInlineParser ]
---                 [ pWords
---                 , pSpaces
---                 , pSoftbreak
---                 , withAttributes pCodeSpan
---                 , pEscapedChar
---                 , pEntity
---                 , withAttributes pAutolink
---                 , pHtml
---                 ]
-
-efficientDefaultInlineParser :: (Monad m, IsInline a) => InlineParser m a
-efficientDefaultInlineParser =
-  {-# SCC efficientDefaultInlineParser #-} withAttributes $ try $ do
-    tok@(Tok toktype pos t) <- anyTok
+defaultInlineParser :: (Monad m, IsInline a) => InlineParser m a
+defaultInlineParser =
+  {-# SCC efficientDefaultInlineParser #-} try $ do
+    tok@(Tok toktype _ t) <- anyTok
     case toktype of
         WordChars   -> return $ str t
         LineEnd     -> return softBreak
@@ -446,13 +423,21 @@ pInline :: (IsInline a, Monad m)
 pInline ilParsers isDelimChar =
   mconcat <$> many1 oneInline
     where
-     oneInline = do
+     oneInline = withAttributes $ do
        toks <- getInput
        res <- choice ilParsers <|> pSymbol isDelimChar
        endpos <- getPosition
        let range = rangeFromToks
                  (takeWhile ((< endpos) . tokPos) toks) endpos
        return $! ranged range res
+
+pSymbol :: (IsInline a, Monad m)
+        => (Char -> Bool) -> ParsecT [Tok] s m a
+pSymbol isDelimChar = {-# SCC pSymbol #-} do
+  str . tokContents <$>
+    satisfyTok (\case
+                  Tok (Symbol c) _ _ -> not (isDelimChar c)
+                  _ -> True)
 
 rangeFromToks :: [Tok] -> SourcePos -> SourceRange
 rangeFromToks [] _ = SourceRange mempty
@@ -472,26 +457,6 @@ rangeFromToks (!z:zs) !endpos
                  (Tok _ !pos _ : _) | sourceColumn pos == 1 -> go (x:ys)
                  _ -> (tokPos x, tokPos y) : go ys
 
-pEscapedChar :: (IsInline a, Monad m) => InlineParser m a
-pEscapedChar = {-# SCC pEscapedChar #-} do
-  symbol '\\'
-  option (str "\\") $
-    do tok <- satisfyTok
-                (\case
-                  Tok (Symbol c) _ _ -> isAscii c
-                  Tok LineEnd _ _    -> True
-                  _                  -> False)
-       case tok of
-          Tok (Symbol c) _ _ -> return $ escapedChar c
-          Tok LineEnd    _ _ -> return lineBreak
-          _                  -> fail "Should not happen"
-
-pEntity :: (IsInline a, Monad m) => InlineParser m a
-pEntity = {-# SCC pEntity #-} try $ do
-  symbol '&'
-  ent <- numEntity <|> charEntity
-  return (entity ("&" <> untokenize ent))
-
 pBacktickSpan :: Monad m
               => Tok -> InlineParser m (Either [Tok] [Tok])
 pBacktickSpan tok = do
@@ -508,15 +473,6 @@ pBacktickSpan tok = do
           return $ Right codetoks
      _ -> return $ Left ts
 
-pCodeSpan :: (IsInline a, Monad m) => InlineParser m a
-pCodeSpan = {-# SCC pCodeSpan #-} do
-  tok <- symbol '`'
-  pBacktickSpan tok >>=
-    \case
-      Left ticks     -> return $ str (untokenize ticks)
-      Right codetoks -> return $ code . normalizeCodeSpan . untokenize $
-                                 codetoks
-
 normalizeCodeSpan :: Text -> Text
 normalizeCodeSpan = removeSurroundingSpace . T.map nltosp
   where
@@ -528,18 +484,6 @@ normalizeCodeSpan = removeSurroundingSpace . T.map nltosp
      , T.head s == ' '
      , T.last s == ' ' = T.drop 1 $ T.dropEnd 1 s
      | otherwise = s
-
-pHtml :: (IsInline a, Monad m) => InlineParser m a
-pHtml = {-# SCC pHtml #-} try $ do
-  t <- symbol '<'
-  rawInline (Format "html") . untokenize . (t:) <$> htmlTag
-
-pAutolink :: (IsInline a, Monad m) => InlineParser m a
-pAutolink = {-# SCC pAutolink #-} try $ do
-  symbol '<'
-  (target, lab) <- pUri <|> pEmail
-  symbol '>'
-  return $ link target "" (str lab)
 
 pUri :: Monad m => InlineParser m (Text, Text)
 pUri = try $ do
@@ -588,35 +532,6 @@ pEmail = do
   ds <- many (symbol '.' >> domainPart)
   let addr = untokenize name <> "@" <> T.intercalate "." (map untokenize (d:ds))
   return ("mailto:" <> addr, addr)
-
-pSpaces :: (IsInline a, Monad m) => InlineParser m a
-pSpaces = {-# SCC pSpaces #-} do
-  Tok Spaces pos t <- satisfyTok (hasType Spaces)
-  (do Tok LineEnd pos' _ <- satisfyTok (hasType LineEnd)
-      return $
-        if sourceColumn pos' - sourceColumn pos >= 2
-           then lineBreak
-           else softBreak)
-   <|> (return $ str t)
-
-pSoftbreak :: (IsInline a, Monad m) => InlineParser m a
-pSoftbreak = {-# SCC pSoftbreak #-} do
-  _ <- satisfyTok (hasType LineEnd)
-  return $ softBreak
-
-pWords :: (IsInline a, Monad m) => InlineParser m a
-pWords = {-# SCC pWords #-} do
-  Tok _ _ !t <- satisfyTok (hasType WordChars)
-  return $ str t
-
-pSymbol :: (IsInline a, Monad m)
-        => (Char -> Bool)  -- ^ Test for delimiter character
-        -> InlineParser m a
-pSymbol isDelimChar = {-# SCC pSymbol #-} do
-  str . tokContents <$>
-    satisfyTok (\case
-                  Tok (Symbol c) _ _ -> not (isDelimChar c)
-                  _ -> True) -- captures unicode spaces too
 
 data DState a = DState
      { leftCursor     :: Cursor (Chunk a)

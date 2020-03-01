@@ -567,10 +567,10 @@ pSymbol :: (IsInline a, Monad m)
         => (Char -> Bool)  -- ^ Test for delimiter character
         -> InlineParser m a
 pSymbol isDelimChar = {-# SCC pSymbol #-} do
-  Tok _ _ !t <- satisfyTok (\case
+  str . tokContents <$>
+    satisfyTok (\case
                   Tok (Symbol c) _ _ -> not (isDelimChar c)
                   _ -> True) -- captures unicode spaces too
-  return $ str t
 
 data DState a = DState
      { leftCursor     :: Cursor (Chunk a)

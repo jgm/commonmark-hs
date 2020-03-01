@@ -8,15 +8,14 @@ Usage example:
 > import Commonmark.Extensions
 > import Data.Text.IO as TIO
 > import Data.Text.Lazy.IO as TLIO
-> import Data.Functor.Identity (runIdentity)
 >
+> main :: IO ()
 > main = do
+>   let customSyntax =
+>          (mathSpec <> smartPunctuationSpec <> defaultSyntaxSpec)
 >   inp <- TIO.getContents
->   let customParser = runIdentity . parseCommonmarkWith
->         (mathSpec <> smartPunctuationSpec <> defaultSyntaxSpec)
->   case customParser (tokenize "stdin" inp) of
->        Left e                  -> error (show e)
->        Right (html :: Html ()) -> TLIO.putStr (renderHtml html)
+>   (parsed :: Html ()) <- commonmarkWith customSyntax "stdin" inp
+>   TLIO.putStr $ renderHtml parsed
 
 -}
 

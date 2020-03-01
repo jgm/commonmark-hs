@@ -1,9 +1,7 @@
 {- |
 
-The basic task of this library is to parse text as commonmark. The input
-is a list of tokens (@['Tok']@), which can be be produced from a 'Text'
-using 'tokenize'.  Parsing is done by 'parseCommonmark' or
-'parseCommonmarkWith'.  Here is a simple usage example:
+The basic task of this library is to parse text as commonmark.
+Usage example:
 
 > {-# LANGUAGE ScopedTypeVariables #-}
 > import Commonmark
@@ -11,10 +9,8 @@ using 'tokenize'.  Parsing is done by 'parseCommonmark' or
 > import Data.Text.Lazy.IO as TLIO
 >
 > main = do
->   inp <- TIO.getContents
->   case parseCommonmark (tokenize "stdin" inp) of
->        Left e                  -> error (show e)
->        Right (html :: Html ()) -> TLIO.putStr (renderHtml html)
+>   (html :: Html ()) <- commonmark "stdin" <$> TIO.getContents
+>   TLIO.putStr $ renderHtml html
 
 The parser is highly polymorphic: in this example, we use
 the type annotation @'Html' ()@ to indicate that we want it

@@ -398,18 +398,15 @@ pInline :: (IsInline a, Monad m)
         -> (Char -> Bool)
         -> InlineParser m a
 pInline ilParsers isDelimChar =
-  mconcat <$> many1
-     ((do toks <- getInput
-          res <- choice ilParsers
-          endpos <- getPosition
-          let range = rangeFromToks
-                (takeWhile ((< endpos) . tokPos) toks) endpos
-          return $! ranged range res)
-     <|> (do pos <- getPosition
-             res <- pSymbol isDelimChar
-             endpos <- getPosition
-             let range = SourceRange [(pos, endpos)]
-             return $! ranged range res))
+  mconcat <$> many1 oneInline
+    where
+     oneInline = do
+       toks <- getInput
+       res <- choice ilParsers <|> pSymbol isDelimChar
+       endpos <- getPosition
+       let range = rangeFromToks
+                 (takeWhile ((< endpos) . tokPos) toks) endpos
+       return $! ranged range res
 
 rangeFromToks :: [Tok] -> SourcePos -> SourceRange
 rangeFromToks [] _ = SourceRange mempty

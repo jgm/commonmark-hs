@@ -2,9 +2,6 @@ module Commonmark.Parser
     ( commonmark
     , commonmarkWith
     , parseCommonmarkWith
-    , module Commonmark.Tokens
-    , module Commonmark.Types
-    , module Commonmark.Syntax
     -- * Exported from "Text.Parsec.Error"
     , ParseError
     ) where

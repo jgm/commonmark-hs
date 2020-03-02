@@ -766,15 +766,21 @@ processBs bracketedSpecs st =
                          , maybe True  (< chunkPos opener)
                             (M.lookup (bracketedName s) bottoms) ]
 
+              suffixToks = mconcat (map chunkToks (afters right))
+
+              suffixPos = case suffixToks of
+                             tok:_ -> tokPos tok
+                             []    -> initialPos ""
+
           in case parse
                  (withRaw
-                   (do (spec, constructor) <- choice $
+                   (do setPosition suffixPos
+                       (spec, constructor) <- choice $
                            map (\s -> (s,) <$> bracketedSuffix s rm key)
                            specs
                        pos <- getPosition
                        return (spec, constructor, pos)))
-                 ""
-                 (mconcat (map chunkToks (afters right))) of
+                 "" suffixToks of
                    Left _ -> -- match but no link/image
                          processBs bracketedSpecs
                             st{ leftCursor = moveLeft (leftCursor st)

@@ -16,8 +16,8 @@ import qualified Data.Text.IO               as TIO
 import qualified Data.Text.Lazy.IO          as TLIO
 import qualified Data.Map                   as M
 import qualified Data.Text                  as T
-import           Data.Text.Lazy.Builder     (Builder, toLazyText,
-                                             fromText, fromString)
+import qualified Data.Text.Lazy             as TL
+import           Data.Text.Lazy.Builder     (Builder, toLazyText, fromText)
 import           System.Environment
 import           System.Exit
 import           System.IO
@@ -84,15 +84,15 @@ main = catch (do
               runIdentity (parseCommonmarkWith spec toks) of
            Left e -> errExit e
            Right ((_ :: Html ()), sm) -> do
-             TLIO.putStr $ toLazyText $
+             TLIO.putStr $
                "<!DOCTYPE html>\n<head>\n" <>
                "<title>" <> (case files of
-                                 (x:_) -> fromString x
+                                 (x:_) -> TL.pack x
                                  _     -> "stdin") <> "</title>\n" <>
-               styles <>
+               toLazyText styles <>
                "</head>\n" <>
                "<body>\n" <>
-               highlightWith sm toks <>
+               renderHtml (highlightWith sm toks) <>
                "</body>\n"
   else
     if SourcePos `elem` opts then do
@@ -194,21 +194,23 @@ specFromExtensionNames extnames = do
             else mconcat <$> mapM extFromName extnames
  return $ exts <> defaultSyntaxSpec
 
-highlightWith :: SourceMap -> [Tok] -> Builder
-highlightWith sm ts = "<pre>" <>  mconcat (map (renderTok sm) ts) <> "</pre>"
+highlightWith :: SourceMap -> [Tok] -> Html ()
+highlightWith sm ts =
+  htmlBlock "pre" $ Just $ mconcat (map (renderTok sm) ts)
 
-renderTok :: SourceMap -> Tok -> Builder
+renderTok :: SourceMap -> Tok -> Html ()
 renderTok (SourceMap sm) (Tok _ pos t) =
   case M.lookup pos sm of
-       Nothing -> fromText t
+       Nothing -> htmlText t
        Just (starts, ends) ->
-         foldMap toEnd ends <> foldMap toStart starts <> fromText t
-    where toStart x = "<span class=\"" <> fromText x <> "\"" <>
+         foldMap toEnd ends <> foldMap toStart starts <> htmlText t
+    where toStart x = htmlRaw $
+                      "<span class=\"" <> x <> "\"" <>
                           (if x /= "str"
-                              then "title=\"" <> fromText x <> "\""
+                              then " title=\"" <> x <> "\""
                               else "") <>
                           ">"
-          toEnd   _ = "</span>"
+          toEnd   _ = htmlRaw "</span>"
 
 styles :: Builder
 styles = "<style>\n" <> fromText (T.unlines

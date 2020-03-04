@@ -214,7 +214,6 @@ doBlockStarts specs = do
                   M.insert (blockType spec)
                   pos (failurePositions st) }
         go initPos otherSpecs) <|> go initPos otherSpecs
-  {-# SCC go #-}
 
 checkContinue :: Monad m
               => BlockNode m il bl

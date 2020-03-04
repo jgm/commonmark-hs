@@ -66,12 +66,12 @@ definitionListItemBlockSpec ::
    => BlockSpec m il bl
 definitionListItemBlockSpec = BlockSpec
      { blockType           = "DefinitionListItem"
-     , blockStart          = undefined
+     , blockStart          = mzero
      , blockCanContain     = \sp -> blockType sp == "DefinitionListDefinition"
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = \n -> (,n) <$> getPosition
-     , blockConstructor    = undefined
+     , blockConstructor    = \_ -> mzero
      , blockFinalize       = \(Node cdata children) parent -> do
          let listSpacing   = fromDyn (blockData cdata) LooseList
          let plainSpec = paraSpec{

@@ -8,6 +8,7 @@
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE StrictData  #-}
 module Commonmark.Blocks
   ( mkBlockParser
   , defaultBlockSpecs
@@ -818,7 +819,7 @@ listItemSpec parseListMarker = BlockSpec
                             _                       -> False
                notFollowedBy blankLine
              let curdata = fromDyn (blockData (rootLabel cur))
-                                (ListData undefined undefined)
+                                (ListData (BulletList '*') TightList)
              let matchesList (BulletList c) (BulletList d)       = c == d
                  matchesList (OrderedList _ e1 d1)
                              (OrderedList _ e2 d2) = e1 == e2 && d1 == d2
@@ -834,8 +835,7 @@ listItemSpec parseListMarker = BlockSpec
      , blockParagraph      = False
      , blockContinue       = \node@(Node ndata children) -> do
              let lidata = fromDyn (blockData ndata)
-                             (ListItemData undefined undefined
-                                           undefined undefined)
+                             (ListItemData (BulletList '*') 0 False False)
              -- a marker followed by two blanks is just an empty item:
              guard $ null (blockBlanks ndata) ||
                      not (null children)
@@ -845,8 +845,8 @@ listItemSpec parseListMarker = BlockSpec
      , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = \(Node cdata children) parent -> do
           let lidata = fromDyn (blockData cdata)
-                                 (ListItemData undefined undefined
-                                               undefined undefined)
+                                 (ListItemData (BulletList '*')
+                                   0 False False)
           let blanks = removeConsecutive $ sort $
                          concat $ blockBlanks cdata :
                                   map (blockBlanks . rootLabel)
@@ -908,14 +908,14 @@ listSpec = BlockSpec
      , blockContinue       = \n -> (,n) <$> getPosition
      , blockConstructor    = \node -> do
           let ListData lt ls = fromDyn (blockData (rootLabel node))
-                                 (ListData undefined undefined)
+                                 (ListData (BulletList '*') TightList)
           (addRange node . list lt ls) <$> renderChildren node
      , blockFinalize       = \(Node cdata children) parent -> do
           let ListData lt _ = fromDyn (blockData cdata)
-                                 (ListData undefined undefined)
+                                 (ListData (BulletList '*') TightList)
           let getListItemData (Node d _) =
                 fromDyn (blockData d)
-                  (ListItemData undefined undefined undefined undefined)
+                  (ListItemData (BulletList '*') 0 False False)
           let childrenData = map getListItemData children
           let ls = case childrenData of
                           c:cs | any listItemBlanksInside (c:cs) ||

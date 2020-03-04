@@ -8,7 +8,6 @@
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE StrictData  #-}
 module Commonmark.Blocks
   ( mkBlockParser
   , defaultBlockSpecs
@@ -274,7 +273,7 @@ data BlockStartResult =
 
 -- | Defines a block-level element type.
 data BlockSpec m il bl = BlockSpec
-     { blockType           :: Text  -- ^ Descriptive name of block type
+     { blockType           :: !Text  -- ^ Descriptive name of block type
      , blockStart          :: BlockParser m il bl BlockStartResult
                            -- ^ Parses beginning
                            -- of block.  The parser should verify any
@@ -291,9 +290,9 @@ data BlockSpec m il bl = BlockSpec
      , blockCanContain     :: BlockSpec m il bl -> Bool -- ^ Returns True if
                            -- this kind of block can contain the specified
                            -- block type.
-     , blockContainsLines  :: Bool -- ^ True if this kind of block
+     , blockContainsLines  :: !Bool -- ^ True if this kind of block
                            -- can contain text lines.
-     , blockParagraph      :: Bool -- ^ True if this kind of block
+     , blockParagraph      :: !Bool -- ^ True if this kind of block
                            -- is paragraph.
      , blockContinue       :: BlockNode m il bl
                            -> BlockParser m il bl (SourcePos, BlockNode m il bl)

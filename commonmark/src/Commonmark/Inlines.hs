@@ -347,7 +347,7 @@ pDelimChunk :: (IsInline a, Monad m)
             -> (Char -> Bool)
             -> InlineParser m (Chunk a)
 pDelimChunk specmap isDelimChar = do
-  tok@(Tok (Symbol !c) pos _) <- pDelimTok isDelimChar
+  tok@(Tok (Symbol !c) !pos _) <- pDelimTok isDelimChar
   let !mbspec = M.lookup c specmap
   more <- if isJust mbspec
              then many $ symbol c

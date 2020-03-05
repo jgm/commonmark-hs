@@ -134,7 +134,10 @@ withRaw parser = do
   toks <- getInput
   res <- parser
   newpos <- getPosition
-  let rawtoks = takeWhile ((< newpos) . tokPos) toks
+  let getrawtoks (!t:ts)
+        | tokPos t < newpos = t : getrawtoks ts
+      getrawtoks _ = []
+  let rawtoks = getrawtoks toks
   return $! (res, rawtoks)
 {-# INLINE withRaw #-}
 

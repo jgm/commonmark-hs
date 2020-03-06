@@ -336,18 +336,15 @@ pChunk specmap attrParser ilParsers isDelimChar =
     return $! Chunk res pos ts
   <|> {-# SCC pDelimChunk #-} pDelimChunk specmap isDelimChar
 
-pDelimTok :: Monad m => (Char -> Bool) -> InlineParser m Tok
-pDelimTok isDelimChar = do
-  satisfyTok (\case
-               Tok (Symbol c) _ _ -> isDelimChar c
-               _                  -> False)
-
 pDelimChunk :: (IsInline a, Monad m)
             => FormattingSpecMap a
             -> (Char -> Bool)
             -> InlineParser m (Chunk a)
 pDelimChunk specmap isDelimChar = do
-  tok@(Tok (Symbol !c) !pos _) <- pDelimTok isDelimChar
+  tok@(Tok (Symbol !c) !pos _) <-
+      satisfyTok (\case
+                    Tok (Symbol c) _ _ -> isDelimChar c
+                    _                  -> False)
   let !mbspec = M.lookup c specmap
   more <- if isJust mbspec
              then many $ symbol c

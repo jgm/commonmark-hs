@@ -529,6 +529,10 @@ extractReferenceLinks node = do
                  (rootLabel node){
                      blockLines = takeWhile (any (isRefPos . tokPos))
                        (blockLines (rootLabel node))
+                   , blockStartPos = takeWhile isRefPos
+                       (blockStartPos (rootLabel node))
+                   , blockEndPos = takeWhile isRefPos
+                       (blockEndPos (rootLabel node))
                    , blockData = toDyn linkdefs
                    , blockSpec = refLinkDefSpec
                  }}

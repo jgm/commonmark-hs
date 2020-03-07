@@ -25,9 +25,11 @@ haddock:
 
 prof:
 	cabal build --enable-profiling --ghc-options="${GHC_OPTS}" commonmark-cli
-	cabal run --enable-profiling --ghc-options="${GHC_OPTS}" commonmark-cli -- +RTS -P -V0.00000002 -RTS ${PROFTARGET} >/dev/null
+	cabal run --enable-profiling --ghc-options="${GHC_OPTS}" commonmark-cli -- +RTS -hc -l-au -P -RTS ${PROFTARGET} >/dev/null
+	eventlog2html commonmark.eventlog
 	profiterole commonmark.prof
 	awk '{print $$3,"\t",$$5}' commonmark.profiterole.txt | sort -n | uniq | grep '^[0-9]'
+
 
 heapprof:
 	cabal run --enable-profiling --ghc-options="${GHC_OPTS}" commonmark-cli -- +RTS -hc -RTS ${PROFTARGET} >/dev/null

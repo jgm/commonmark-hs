@@ -33,7 +33,7 @@ instance HasEmoji (Html a) where
     htmlInline "span" $ Just $ htmlText t
 
 instance (HasEmoji i, Monoid i) => HasEmoji (WithSourceMap i) where
-  emoji kw t = emoji kw t <* addName "emoji"
+  emoji kw t = emoji kw t <$ addName "emoji"
 
 parseEmoji :: (Monad m, HasEmoji a) => InlineParser m a
 parseEmoji = try $ do

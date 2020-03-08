@@ -1000,8 +1000,14 @@ indentedCodeSpec = BlockSpec
              return $! codeBlock mempty (untokenize (getBlockText node))
      , blockFinalize       = \(Node cdata children) parent -> do
          -- strip off blank lines at end:
+         let blanks = takeWhile isblankLine $ blockLines cdata
+         let numblanks = length blanks
          let cdata' = cdata{ blockLines =
-                                dropWhile isblankLine $ blockLines cdata }
+                                drop numblanks $ blockLines cdata
+                           , blockStartPos =
+                                drop numblanks $ blockStartPos cdata
+                           , blockEndPos =
+                                drop numblanks $ blockEndPos cdata }
          defaultFinalizer (Node cdata' children) parent
      }
 

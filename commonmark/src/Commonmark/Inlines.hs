@@ -765,9 +765,7 @@ processBs bracketedSpecs st =
 
               suffixToks = mconcat (map chunkToks (afters right))
 
-              suffixPos = case suffixToks of
-                             tok:_ -> tokPos tok
-                             []    -> initialPos ""
+              suffixPos = incSourceColumn closePos 1
 
           in case parse
                  (withRaw

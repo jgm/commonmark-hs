@@ -21,7 +21,6 @@ module Commonmark.Blocks
   , LinkInfo(..)
   , defaultFinalizer
   , runInlineParser
-  , addRange
   , addNodeToStack
   , collapseNodeStack
   , getBlockText

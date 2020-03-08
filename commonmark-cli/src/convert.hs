@@ -6,18 +6,19 @@ module Main where
 import           Commonmark
 import           Commonmark.Extensions
 import           Commonmark.Pandoc
+import           Data.Maybe                 (isJust)
 import           Data.Aeson                 (encode)
+import qualified Data.Sequence              as Seq
 import qualified Data.ByteString.Lazy       as BL
 import qualified Text.Pandoc.Builder        as B
 import           Control.Monad
 import           Control.Monad.Identity
+import           Control.Monad.State
 import           Data.Typeable
 import qualified Data.Text.IO               as TIO
 import qualified Data.Text.Lazy.IO          as TLIO
 import qualified Data.Map                   as M
 import qualified Data.Text                  as T
-import qualified Data.Text.Lazy             as TL
-import           Data.Text.Lazy.Builder     (Builder, toLazyText, fromText)
 import           System.Environment
 import           System.Exit
 import           System.IO
@@ -29,6 +30,7 @@ import           Data.Monoid
 #endif
 import           Control.Exception          (AsyncException, catch, throwIO)
 import           GHC.Stack                  (currentCallStack)
+import           System.Console.ANSI
 
 data Opt =
        Help
@@ -46,7 +48,7 @@ options =
   [ Option ['t'] ["tokenize"] (NoArg Tokenize) "tokenize"
   , Option ['x'] ["extension"] (ReqArg Extension "extension") "use extension"
   , Option ['p'] ["sourcepos"] (NoArg SourcePos) "source positions"
-  , Option [] ["highlight"] (NoArg Highlight) "highlight"
+  , Option [] ["highlight"] (NoArg Highlight) "highlight using ANSI"
   , Option ['j'] ["json"] (NoArg PandocJSON) "pandoc JSON output"
   , Option ['v'] ["version"] (NoArg Version) "version info"
   , Option [] ["list-extensions"] (NoArg ListExtensions) "list extensions"
@@ -83,19 +85,7 @@ main = catch (do
       case runWithSourceMap <$>
               runIdentity (parseCommonmarkWith spec toks) of
            Left e -> errExit e
-           Right ((_ :: Html ()), sm) -> do
-             TLIO.putStr $
-               "<!DOCTYPE html>\n<head>\n" <>
-               "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">\n" <>
-              "<meta charset=\"utf-8\">" <>
-               "<title>" <> (case files of
-                                 (x:_) -> TL.pack x
-                                 _     -> "stdin") <> "</title>\n" <>
-               toLazyText styles <>
-               "</head>\n" <>
-               "<body>\n" <>
-               renderHtml (highlightWith sm toks) <>
-               "</body>\n"
+           Right ((_ :: Html ()), sm) -> highlightWith sm toks
   else
     if SourcePos `elem` opts then do
        spec <- specFromExtensionNames [x | Extension x <- opts]
@@ -196,41 +186,59 @@ specFromExtensionNames extnames = do
             else mconcat <$> mapM extFromName extnames
  return $ exts <> defaultSyntaxSpec
 
-highlightWith :: SourceMap -> [Tok] -> Html ()
-highlightWith sm ts =
-  htmlBlock "pre" $ Just $ mconcat (map (renderTok sm) ts)
+highlightWith :: SourceMap -> [Tok] -> IO ()
+highlightWith sm ts = evalStateT (mapM_ (hlTok sm) ts) mempty
 
-renderTok :: SourceMap -> Tok -> Html ()
-renderTok (SourceMap sm) (Tok _ pos t) =
+hlTok :: SourceMap -> Tok -> StateT (Seq.Seq T.Text) IO ()
+hlTok (SourceMap sm) (Tok _ pos t) =
   case M.lookup pos sm of
-       Nothing -> htmlText t
-       Just (starts, ends) ->
-         foldMap toEnd ends <> foldMap toStart starts <> htmlText t
-    where toStart x = htmlRaw $
-                      "<span class=\"" <> x <> "\"" <>
-                          (if x /= "str"
-                              then " title=\"" <> x <> "\""
-                              else "") <>
-                          ">"
-          toEnd   _ = htmlRaw "</span>"
+       Nothing -> liftIO $ TIO.putStr t
+       Just (starts, ends) -> do
+         xs <- get
+         let xsMinusEnds = foldr (\e s ->
+                             case Seq.viewr s of
+                               Seq.EmptyR -> s
+                               z Seq.:> x
+                                  | x == e -> z
+                                  | otherwise -> s) xs (Seq.reverse ends)
+         let xs' = xsMinusEnds <> starts
+         put xs'
+         liftIO $
+            if xs == xs'
+               then TIO.putStr t
+               else do
+                 setSGR []
+                 setSGR (sgrFrom xs')
+                 TIO.putStr t
 
-styles :: Builder
-styles = "<style>\n" <> fromText (T.unlines
-  [ ".code { color: black; background-color: #eeeeee; }"
-  , ".str { }"
-  , ".emph { font-style: italic; }"
-  , ".strong { font-weight: bold; }"
-  , ".link .str { text-decoration: underline; color: magenta; }"
-  , ".image .str { text-decoration: underline; color: blue; }"
-  , ".heading1 { font-weight: bold; color: purple; }"
-  , ".heading2 { font-weight: bold; color: purple; }"
-  , ".heading3 { font-weight: bold; color: purple; }"
-  , ".heading4 { font-weight: bold; color: purple; }"
-  , ".heading5 { font-weight: bold; color: purple; }"
-  , ".codeBlock { color: black; background-color: #eeeeee; }"
-  , ".rawInline { color: coral; }"
-  , ".rawBlock { color: coral; }"
-  , ".escapedChar { color: gray; }"
-  , ".entity { color: gray; }"
-  ]
-  ) <> "</style>\n"
+sgrFrom :: Seq.Seq T.Text -> [SGR]
+sgrFrom xs =
+  (if xs `has` "link"
+      then (SetUnderlining SingleUnderline :)
+      else id) $
+  case () of
+   _ | xs `has` "str" ->
+          SetColor Foreground Vivid Black : normalSGRs
+     | xs `has` "entity" ->
+          SetColor Foreground Vivid Magenta : normalSGRs
+     | xs `has` "escapedChar" ->
+          SetColor Foreground Vivid Magenta : normalSGRs
+     | xs `has` "code" || xs `has` "codeBlock" ->
+          [SetColor Foreground Vivid White,
+           SetColor Background Dull Cyan]
+     | xs `has` "rawInline" || xs `has` "rawBlock" ->
+          [SetColor Foreground Vivid Green]
+     | otherwise -> [SetColor Foreground Dull Cyan]
+   where normalSGRs =
+          [SetConsoleIntensity BoldIntensity | xs `has` "strong"] <>
+          [SetItalicized True | xs `has` "emph"] <>
+          [SetColor Foreground Vivid Magenta | xs `has` "image"] <>
+          [SetColor Foreground Vivid Blue |
+             xs `has` "heading1" || xs `has` "heading2" ||
+             xs `has` "heading3" || xs `has` "heading4" ||
+             xs `has` "heading5" || xs `has` "heading6"] <>
+          [SetColor Foreground Dull Cyan | xs `has` "blockQuote"]
+
+
+has :: Seq.Seq T.Text -> T.Text -> Bool
+has xs t = isJust $ t `Seq.elemIndexL` xs

@@ -37,6 +37,7 @@ executable commonmark
                , mtl
                , bytestring
                , text
+               , ansi-terminal
   other-modules:
       Paths_commonmark_cli
   default-language: Haskell2010

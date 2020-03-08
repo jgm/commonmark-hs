@@ -84,7 +84,7 @@ footnoteBlockSpec = BlockSpec
              pos <- getPosition
              return $! (pos, n)
      , blockConstructor    = \node ->
-          (addRange node . mconcat) <$> mapM (\n ->
+          mconcat <$> mapM (\n ->
               blockConstructor (blockSpec (rootLabel n)) n)
             (reverse (subForest node))
      , blockFinalize       = \(Node root children) parent -> do

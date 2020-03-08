@@ -459,8 +459,8 @@ renderChildren node = mapM renderC $ subForest node
       let attrs = blockAttributes (rootLabel n)
       (if null attrs
           then id
-          else addAttributes attrs) <$>
-        blockConstructor (blockSpec (rootLabel n)) n
+          else addAttributes attrs) .
+        addRange n <$> blockConstructor (blockSpec (rootLabel n)) n
 
 docSpec :: (Monad m, IsBlock il bl, Monoid bl) => BlockSpec m il bl
 docSpec = BlockSpec
@@ -603,8 +603,7 @@ paraSpec = BlockSpec
              notFollowedBy lineEnd
              return $! (pos, n)
      , blockConstructor    = \node ->
-         (addRange node . paragraph)
-             <$> runInlineParser (getBlockText node)
+         paragraph <$> runInlineParser (getBlockText node)
      , blockFinalize       = \child parent -> do
          (mbchild, mbrefdefs) <- extractReferenceLinks child
          case (mbchild, mbrefdefs) of
@@ -621,8 +620,7 @@ plainSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl
 plainSpec = paraSpec{
     blockConstructor    = \node ->
-         (addRange node . plain)
-             <$> runInlineParser (getBlockText node)
+         plain <$> runInlineParser (getBlockText node)
   }
 
 
@@ -690,7 +688,7 @@ atxHeadingSpec = BlockSpec
      , blockConstructor    = \node -> do
          let level = fromDyn (blockData (rootLabel node)) 1
          ils <- runInlineParser (getBlockText node)
-         return $! (addRange node . heading level) ils
+         return $! heading level ils
      , blockFinalize       = \node@(Node cdata children) parent -> do
          let oldAttr = blockAttributes cdata
          let toks = getBlockText node
@@ -744,7 +742,7 @@ setextHeadingSpec = BlockSpec
      , blockConstructor    = \node -> do
          let level = fromDyn (blockData (rootLabel node)) 1
          ils <- runInlineParser (getBlockText node)
-         return $! (addRange node . heading level) ils
+         return $! heading level ils
      , blockFinalize       = \node@(Node cdata children) parent -> do
          let oldAttr = blockAttributes cdata
          let toks = getBlockText node
@@ -793,7 +791,7 @@ blockQuoteSpec = BlockSpec
              _ <- gobbleUpToSpaces 1
              return $! (pos, n)
      , blockConstructor    = \node ->
-          (addRange node . blockQuote . mconcat) <$> renderChildren node
+           (blockQuote . mconcat) <$> renderChildren node
      , blockFinalize       = defaultFinalizer
      }
 
@@ -915,7 +913,7 @@ listSpec = BlockSpec
      , blockConstructor    = \node -> do
           let ListData lt ls = fromDyn (blockData (rootLabel node))
                                  (ListData (BulletList '*') TightList)
-          (addRange node . list lt ls) <$> renderChildren node
+          list lt ls <$> renderChildren node
      , blockFinalize       = \(Node cdata children) parent -> do
           let ListData lt _ = fromDyn (blockData cdata)
                                  (ListData (BulletList '*') TightList)
@@ -973,8 +971,7 @@ thematicBreakSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = const mzero
-     , blockConstructor    = \node ->
-             return $! (addRange node thematicBreak)
+     , blockConstructor    = \_ -> return thematicBreak
      , blockFinalize       = defaultFinalizer
      }
 
@@ -1001,9 +998,7 @@ indentedCodeSpec = BlockSpec
              return $! (pos, node)
 
      , blockConstructor    = \node ->
-             return $! (addRange node
-                        (codeBlock mempty
-                           (untokenize (getBlockText node))))
+             return $! codeBlock mempty (untokenize (getBlockText node))
      , blockFinalize       = \(Node cdata children) parent -> do
          -- strip off blank lines at end:
          let cdata' = cdata{ blockLines =
@@ -1072,7 +1067,7 @@ fencedCodeSpec = BlockSpec
            let ((_, _, _, info, attrs) :: (Char, Int, Int, Text, Attributes)) =
                    fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty, mempty)
            let codetext = untokenize $ drop 1 (getBlockText node)
-           return $! addRange node $!
+           return $!
               if null attrs
                  then codeBlock info codetext
                  else addAttributes attrs $ codeBlock info codetext
@@ -1126,9 +1121,8 @@ rawHtmlSpec = BlockSpec
                                   , blockLines = (toks ++ le) : blockLines ndata
                                   } children)) <|> (return $! (pos, node))
      , blockConstructor    = \node ->
-             return $! (addRange node
-                        (rawBlock (Format "html")
-                           (untokenize (getBlockText node))))
+             return $! rawBlock (Format "html")
+                           (untokenize (getBlockText node))
      , blockFinalize       = defaultFinalizer
      }
 

@@ -98,7 +98,7 @@ fencedDivBlockSpec = BlockSpec
      , blockConstructor    = \node -> do
            let ((_, _, attrs) :: (Int, Int, Attributes)) =
                    fromDyn (blockData (rootLabel node)) (3, 0, mempty)
-           (addRange node . addAttributes attrs . div_ . mconcat)
+           (addAttributes attrs . div_ . mconcat)
              <$> renderChildren node
      , blockFinalize       = defaultFinalizer
      }
@@ -203,7 +203,7 @@ rawAttributeBlockSpec = BlockSpec
                      ('`', 3, 0, Format mempty)
            let codetext = untokenize $ drop 1 (getBlockText node)
            -- drop 1 initial lineend token
-           return $! addRange node $ rawBlock fmt codetext
+           return $! rawBlock fmt codetext
      , blockFinalize       = defaultFinalizer
      }
 

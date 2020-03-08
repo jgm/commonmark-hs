@@ -73,6 +73,7 @@ import qualified Data.Text.Read            as TR
 import           Data.Tree
 import           Text.Parsec
 
+
 mkBlockParser
   :: (Monad m, IsBlock il bl)
   => [BlockSpec m il bl] -- ^ Defines block syntax
@@ -484,10 +485,12 @@ refLinkDefSpec = BlockSpec
      , blockContinue       = const mzero
      , blockConstructor    = \node -> do
          let linkdefs = fromDyn (blockData (rootLabel node))
-                  [] :: [((SourceRange, Text), (Text, Text))]
-         return $! mconcat $ map (\((range, lab), (dest, tit)) ->
+                  undefined :: [((SourceRange, Text), LinkInfo)]
+         return $! mconcat $ map (\((range, lab), linkinfo) ->
             (ranged range
-              (referenceLinkDefinition lab (dest, tit)))) linkdefs
+              (addAttributes (linkAttributes linkinfo)
+                (referenceLinkDefinition lab (linkDestination linkinfo,
+                                            linkTitle linkinfo))))) linkdefs
      , blockFinalize       = defaultFinalizer
      }
 

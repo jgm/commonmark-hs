@@ -6,6 +6,7 @@
 module Commonmark.Tokens
   ( Tok(..)
   , TokType(..)
+  , SourcePos
   , tokenize
   , untokenize
   ) where

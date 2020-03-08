@@ -86,6 +86,8 @@ main = catch (do
            Right ((_ :: Html ()), sm) -> do
              TLIO.putStr $
                "<!DOCTYPE html>\n<head>\n" <>
+               "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">\n" <>
+              "<meta charset=\"utf-8\">" <>
                "<title>" <> (case files of
                                  (x:_) -> TL.pack x
                                  _     -> "stdin") <> "</title>\n" <>

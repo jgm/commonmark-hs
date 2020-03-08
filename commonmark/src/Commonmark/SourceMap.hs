@@ -49,7 +49,7 @@ combine (s1,e1) (s2,e2) = (s1 <> s2, e1 <> e2)
 -- | Use this when you want to extract a source map as well
 -- as the parsed content.
 newtype WithSourceMap a =
-        WithSourceMap { unWithSourceMap :: (State (Text, SourceMap) a) }
+        WithSourceMap { unWithSourceMap :: (State (Maybe Text, SourceMap) a) }
         deriving (Functor, Applicative, Monad)
 
 instance (Show a, Semigroup a) => Semigroup (WithSourceMap a) where
@@ -72,7 +72,7 @@ runWithSourceMap (WithSourceMap x) = (v, sm)
 
 addName :: Text -> WithSourceMap ()
 addName name =
-  WithSourceMap $ modify (\(_,sm) -> (name,sm))
+  WithSourceMap $ modify (\(_,sm) -> (Just name,sm))
 
 instance (IsInline a, Semigroup a) => IsInline (WithSourceMap a) where
   lineBreak = lineBreak <$ addName "lineBreak"
@@ -107,24 +107,27 @@ instance (Rangeable a, Monoid a, Show a)
   ranged (SourceRange rs) (WithSourceMap x) =
     WithSourceMap $
       do res <- x
-         (t, SourceMap sm) <- get
-         let (starts, ends) = unzip rs
-         let addStart = M.alter (\v ->
-                                 case v of
-                                      Nothing    ->
-                                        Just (Seq.singleton t, mempty)
-                                      Just (s,e) ->
-                                        Just (t Seq.<| s, e))
-         let addEnd = M.alter (\v ->
-                                 case v of
-                                      Nothing    ->
-                                        Just (mempty, Seq.singleton t)
-                                      Just (s,e) ->
-                                        Just (s, e Seq.|> t))
-         let sm' = foldr addStart sm starts
-         let sm'' = foldr addEnd sm' ends
-         put (mempty, SourceMap sm'')
-         return $! res
+         (mbt, SourceMap sm) <- get
+         case mbt of
+           Just t -> do
+             let (starts, ends) = unzip rs
+             let addStart = M.alter (\v ->
+                                     case v of
+                                          Nothing    ->
+                                            Just (Seq.singleton t, mempty)
+                                          Just (s,e) ->
+                                            Just (t Seq.<| s, e))
+             let addEnd = M.alter (\v ->
+                                     case v of
+                                          Nothing    ->
+                                            Just (mempty, Seq.singleton t)
+                                          Just (s,e) ->
+                                            Just (s, e Seq.|> t))
+             let sm' = foldr addStart sm starts
+             let sm'' = foldr addEnd sm' ends
+             put (mempty, SourceMap sm'')
+             return $! res
+           Nothing -> return $! res
 
 instance ToPlainText a => ToPlainText (WithSourceMap a) where
   toPlainText (WithSourceMap x) =

@@ -72,7 +72,6 @@ import qualified Data.Text.Read            as TR
 import           Data.Tree
 import           Text.Parsec
 
-
 mkBlockParser
   :: (Monad m, IsBlock il bl)
   => [BlockSpec m il bl] -- ^ Defines block syntax
@@ -167,7 +166,9 @@ processLine specs = do
   -- add line contents
   let curdata = rootLabel cur
   when (blockParagraph (bspec cur)) $ skipMany spaceTok
-  (toks, endpos) <- {-# SCC restOfLine #-} restOfLine
+  pos <- getPosition
+  toks <- {-# SCC restOfLine #-} restOfLine
+  endpos <- getPosition
   updateState $ \st -> st{
       nodeStack = map (addEndPos endpos) $
         cur{ rootLabel =
@@ -175,7 +176,7 @@ processLine specs = do
                   then curdata{ blockLines = toks : blockLines curdata }
                   else
                     if isblank
-                       then curdata{ blockBlanks = sourceLine endpos :
+                       then curdata{ blockBlanks = sourceLine pos :
                                         blockBlanks curdata }
                        else curdata
            } : rest

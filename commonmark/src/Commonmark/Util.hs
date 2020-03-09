@@ -200,17 +200,14 @@ tokensWhile1 f = do
 -- | Efficiently parse the remaining tokens on a line,
 -- return them plus the source position of the line end
 -- (if there is one).
-restOfLine :: Monad m => ParsecT [Tok] s m ([Tok], SourcePos)
+restOfLine :: Monad m => ParsecT [Tok] s m [Tok]
 restOfLine =
    (do ts <- tokensWhile1 (not . hasType LineEnd)
-       (do le@(Tok LineEnd pos _) <- lineEnd
-           return $! (ts ++ [le], pos))
-        <|> (do pos <- getPosition
-                return $! (ts, pos)))
+       option ts $ do
+         le <- lineEnd
+         return $! ts ++ [le])
   <|>
-   (do le@(Tok _ pos _) <- lineEnd
-       return $! ([le], pos))
+   ((:[]) <$> lineEnd)
   <|>
-   (do pos <- getPosition
-       return $! ([], pos))
+   return []
 {-# INLINE restOfLine #-}

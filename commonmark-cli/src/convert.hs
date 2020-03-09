@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                 #-}
+{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
@@ -190,7 +191,7 @@ highlightWith :: SourceMap -> [Tok] -> IO ()
 highlightWith sm ts = evalStateT (mapM_ (hlTok sm) ts) mempty
 
 hlTok :: SourceMap -> Tok -> StateT (Seq.Seq T.Text) IO ()
-hlTok (SourceMap sm) (Tok _ pos t) =
+hlTok (SourceMap !sm) (Tok _ !pos !t) =
   case M.lookup pos sm of
        Nothing -> liftIO $ TIO.putStr t
        Just (starts, ends) -> do
@@ -207,28 +208,28 @@ hlTok (SourceMap sm) (Tok _ pos t) =
             if xs == xs'
                then TIO.putStr t
                else do
-                 setSGR []
                  setSGR (sgrFrom xs')
                  TIO.putStr t
 
 sgrFrom :: Seq.Seq T.Text -> [SGR]
 sgrFrom xs =
+  Reset :
   (if xs `has` "link"
       then (SetUnderlining SingleUnderline :)
-      else id) $
-  case () of
-   _ | xs `has` "str" ->
-          SetColor Foreground Vivid Black : normalSGRs
-     | xs `has` "entity" ->
-          SetColor Foreground Vivid Magenta : normalSGRs
-     | xs `has` "escapedChar" ->
-          SetColor Foreground Vivid Magenta : normalSGRs
-     | xs `has` "code" || xs `has` "codeBlock" ->
-          [SetColor Foreground Vivid White,
-           SetColor Background Dull Cyan]
-     | xs `has` "rawInline" || xs `has` "rawBlock" ->
-          [SetColor Foreground Vivid Green]
-     | otherwise -> [SetColor Foreground Dull Cyan]
+      else id)
+  (case () of
+     _ | xs `has` "str" ->
+            SetColor Foreground Vivid Black : normalSGRs
+       | xs `has` "entity" ->
+            SetColor Foreground Vivid Magenta : normalSGRs
+       | xs `has` "escapedChar" ->
+            SetColor Foreground Vivid Magenta : normalSGRs
+       | xs `has` "code" || xs `has` "codeBlock" ->
+            [SetColor Foreground Vivid White,
+             SetColor Background Dull Cyan]
+       | xs `has` "rawInline" || xs `has` "rawBlock" ->
+            [SetColor Foreground Vivid Green]
+       | otherwise -> [SetColor Foreground Dull Cyan])
    where normalSGRs =
           [SetConsoleIntensity BoldIntensity | xs `has` "strong"] <>
           [SetItalicized True | xs `has` "emph"] <>

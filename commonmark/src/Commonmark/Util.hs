@@ -22,7 +22,6 @@ module Commonmark.Util
   , nonindentSpaces
   , skipManyTill
   , skipWhile
-  , tokensWhile1
   )
   where
 import           Control.Monad   (mzero, void)
@@ -182,30 +181,15 @@ blankLine = try $ do
   void lineEnd
 {-# INLINE blankLine #-}
 
--- | Efficiently parse one or more tokens meeting a
--- condition.
-tokensWhile1 :: Monad m => (Tok -> Bool) -> ParsecT [Tok] s m [Tok]
-tokensWhile1 f = do
-  t <- satisfyTok f
-  toks <- getInput
-  case span f toks of
-    (ts, rest@(Tok _ pos _ : _)) -> do
-      setInput rest
-      setPosition pos
-      return $! (t:ts)
-    (ts, []) -> do
-      skipWhile f
-      return $! (t:ts)
-
 -- | Efficiently parse the remaining tokens on a line,
 -- return them plus the source position of the line end
 -- (if there is one).
 restOfLine :: Monad m => ParsecT [Tok] s m [Tok]
-restOfLine =
-  let go = option [] $ do
-       !tok <- anyTok
-       case tokType tok of
-         LineEnd -> return [tok]
-         _       -> (tok:) <$> go
-  in  go
+restOfLine = go
+  where
+   go = option [] $ do
+     !tok <- anyTok
+     case tokType tok of
+       LineEnd -> return [tok]
+       _       -> (tok:) <$> go
 {-# INLINE restOfLine #-}

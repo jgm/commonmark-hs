@@ -35,8 +35,8 @@ instance HasMath (Html a) where
     htmlInline "span" $ Just $ htmlRaw "\\[" <> htmlText t <> htmlRaw "\\]"
 
 instance (HasMath i, Monoid i) => HasMath (WithSourceMap i) where
-  inlineMath t = (inlineMath t) <* addName "inlineMath"
-  displayMath t = (displayMath t) <* addName "displayMath"
+  inlineMath t = (inlineMath t) <$ addName "inlineMath"
+  displayMath t = (displayMath t) <$ addName "displayMath"
 
 parseMath :: (Monad m, HasMath a) => InlineParser m a
 parseMath = pDisplayMath <|> pInlineMath

@@ -138,7 +138,7 @@ used to run the benchmarks.
  | cmark                     |        18 |
  | cheapskate                |       123 |
  | commonmark.js             |       188 |
- | **commonmark-hs**         |       285 |
+ | **commonmark-hs**         |       277 |
  | pandoc -f commonmark      |      1060 |
 
 It would be good to improve performance.  I'd welcome suggestions about how

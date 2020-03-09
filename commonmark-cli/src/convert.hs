@@ -188,14 +188,14 @@ specFromExtensionNames extnames = do
  return $ exts <> defaultSyntaxSpec
 
 highlightWith :: SourceMap -> [Tok] -> IO ()
-highlightWith sm ts = evalStateT (mapM_ (hlTok sm) ts) mempty
+highlightWith sm ts = evalStateT (mapM_ (hlTok sm) ts) (mempty, [])
 
-hlTok :: SourceMap -> Tok -> StateT (Seq.Seq T.Text) IO ()
+hlTok :: SourceMap -> Tok -> StateT (Seq.Seq T.Text, [SGR]) IO ()
 hlTok (SourceMap !sm) (Tok _ !pos !t) =
   case M.lookup pos sm of
        Nothing -> liftIO $ TIO.putStr t
        Just (starts, ends) -> do
-         xs <- get
+         (xs, sgrs) <- get
          let xsMinusEnds = foldr (\e s ->
                              case Seq.viewr s of
                                Seq.EmptyR -> s
@@ -203,43 +203,52 @@ hlTok (SourceMap !sm) (Tok _ !pos !t) =
                                   | x == e -> z
                                   | otherwise -> s) xs (Seq.reverse ends)
          let xs' = xsMinusEnds <> starts
-         put xs'
+         let isStr = xs' `has` "str"
+         let sgrs' = if xs == xs'
+                        then sgrs
+                        else Reset :
+                             SetConsoleIntensity
+                               (if isStr
+                                   then NormalIntensity
+                                   else FaintIntensity) :
+                             foldMap sgrFrom xs'
+         put (xs', sgrs')
          liftIO $ do
-            if xs == xs'
+            if sgrs == sgrs'
                then TIO.putStr t
                else do
-                 setSGR (sgrFrom xs')
+                 setSGR sgrs'
                  TIO.putStr t
 
-sgrFrom :: Seq.Seq T.Text -> [SGR]
-sgrFrom xs =
-  Reset :
-  (if xs `has` "link"
-      then (SetUnderlining SingleUnderline :)
-      else id)
-  (case () of
-     _ | xs `has` "str" ->
-            SetColor Foreground Vivid Black : normalSGRs
-       | xs `has` "entity" ->
-            SetColor Foreground Vivid Magenta : normalSGRs
-       | xs `has` "escapedChar" ->
-            SetColor Foreground Vivid Magenta : normalSGRs
-       | xs `has` "code" || xs `has` "codeBlock" ->
-            [SetColor Foreground Vivid White,
-             SetColor Background Dull Cyan]
-       | xs `has` "rawInline" || xs `has` "rawBlock" ->
-            [SetColor Foreground Vivid Green]
-       | otherwise -> [SetColor Foreground Dull Cyan])
-   where normalSGRs =
-          [SetConsoleIntensity BoldIntensity | xs `has` "strong"] <>
-          [SetItalicized True | xs `has` "emph"] <>
-          [SetColor Foreground Vivid Magenta | xs `has` "image"] <>
-          [SetColor Foreground Vivid Blue |
-             xs `has` "heading1" || xs `has` "heading2" ||
-             xs `has` "heading3" || xs `has` "heading4" ||
-             xs `has` "heading5" || xs `has` "heading6"] <>
-          [SetColor Foreground Dull Cyan | xs `has` "blockQuote"]
-
+sgrFrom :: T.Text -> [SGR]
+sgrFrom t =
+  case t of
+     "link"          -> [SetUnderlining SingleUnderline]
+     "image"         -> [SetColor Foreground Vivid Magenta]
+     "entity"        -> [SetColor Foreground Vivid Magenta]
+     "escapedChar"   -> [SetColor Foreground Vivid Magenta]
+     "code"          -> [SetColor Foreground Vivid White,
+                         SetColor Background Dull Cyan]
+     "codeBlock"     -> [SetColor Foreground Vivid White,
+                         SetColor Background Dull Cyan]
+     "rawInline"     -> [SetColor Foreground Vivid Green]
+     "rawBlock"      -> [SetColor Foreground Vivid Green]
+     "heading1"      -> [SetColor Foreground Vivid Blue]
+     "heading2"      -> [SetColor Foreground Vivid Blue]
+     "heading3"      -> [SetColor Foreground Vivid Blue]
+     "heading4"      -> [SetColor Foreground Vivid Blue]
+     "heading5"      -> [SetColor Foreground Vivid Blue]
+     "heading6"      -> [SetColor Foreground Vivid Blue]
+     "blockQuote"    -> [SetColor Foreground Dull Cyan]
+     "referenceLinkDefinition"
+                     -> [SetColor Foreground Dull Cyan,
+                         SetUnderlining SingleUnderline]
+     "emoji"         -> [SetColor Foreground Vivid Magenta]
+     "math"          -> [SetColor Foreground Vivid Magenta]
+     "strikethrough" -> [SetColor Foreground Vivid Magenta]
+     "superscript"   -> [SetColor Foreground Vivid Magenta]
+     "subscript"     -> [SetColor Foreground Vivid Magenta]
+     _               -> []
 
 has :: Seq.Seq T.Text -> T.Text -> Bool
 has xs t = isJust $ t `Seq.elemIndexL` xs

@@ -190,9 +190,11 @@ highlightWith :: SourceMap -> [Tok] -> IO ()
 highlightWith sm ts = evalStateT (mapM_ (hlTok sm) ts) mempty
 
 hlTok :: SourceMap -> Tok -> StateT (Seq.Seq T.Text) IO ()
-hlTok (SourceMap sm) (Tok _ pos t) =
+hlTok (SourceMap sm) (Tok toktype pos t) =
   case M.lookup pos sm of
-       Nothing -> liftIO $ TIO.putStr t
+       Nothing -> liftIO $ do
+         when (toktype == LineEnd) $ setSGR []
+         TIO.putStr t
        Just (starts, ends) -> do
          xs <- get
          let xsMinusEnds = foldr (\e s ->
@@ -203,12 +205,12 @@ hlTok (SourceMap sm) (Tok _ pos t) =
                                   | otherwise -> s) xs (Seq.reverse ends)
          let xs' = xsMinusEnds <> starts
          put xs'
-         liftIO $
+         liftIO $ do
             if xs == xs'
                then TIO.putStr t
                else do
                  setSGR []
-                 setSGR (sgrFrom xs')
+                 unless (toktype == LineEnd) $ setSGR (sgrFrom xs')
                  TIO.putStr t
 
 sgrFrom :: Seq.Seq T.Text -> [SGR]

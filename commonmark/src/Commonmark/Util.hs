@@ -202,12 +202,10 @@ tokensWhile1 f = do
 -- (if there is one).
 restOfLine :: Monad m => ParsecT [Tok] s m [Tok]
 restOfLine =
-   (do ts <- tokensWhile1 (not . hasType LineEnd)
-       option ts $ do
-         le <- lineEnd
-         return $! ts ++ [le])
-  <|>
-   ((:[]) <$> lineEnd)
-  <|>
-   return []
+  let go = option [] $ do
+       !tok <- anyTok
+       case tokType tok of
+         LineEnd -> return [tok]
+         _       -> (tok:) <$> go
+  in  go
 {-# INLINE restOfLine #-}

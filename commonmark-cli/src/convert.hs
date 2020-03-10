@@ -248,6 +248,8 @@ sgrFrom t =
      "strikethrough" -> [SetColor Foreground Vivid Magenta]
      "superscript"   -> [SetColor Foreground Vivid Magenta]
      "subscript"     -> [SetColor Foreground Vivid Magenta]
+     "footnote"      -> [SetColor Foreground Vivid Magenta]
+     "footnoteRef"   -> [SetColor Foreground Vivid Magenta]
      _               -> []
 
 has :: Seq.Seq T.Text -> T.Text -> Bool

@@ -171,5 +171,5 @@ instance Rangeable (Html a) => HasFootnote (Html a) (Html a) where
 instance (HasFootnote il bl, Semigroup bl, Semigroup il)
         => HasFootnote (WithSourceMap il) (WithSourceMap bl) where
   footnote num lab' x = (footnote num lab' <$> x) <* addName "footnote"
-  footnoteList items = footnoteList items
+  footnoteList items = footnoteList <$> sequence items
   footnoteRef x y z = (footnoteRef x y <$> z) <* addName "footnoteRef"

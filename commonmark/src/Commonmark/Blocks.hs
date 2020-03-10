@@ -168,9 +168,8 @@ processLine specs = do
   when (blockParagraph (bspec cur)) $ skipMany spaceTok
   pos <- getPosition
   toks <- {-# SCC restOfLine #-} restOfLine
-  endpos <- getPosition
   updateState $ \st -> st{
-      nodeStack = map (addEndPos endpos) $
+      nodeStack =
         cur{ rootLabel =
                if blockContainsLines (bspec cur)
                   then curdata{ blockLines = toks : blockLines curdata }
@@ -185,10 +184,6 @@ processLine specs = do
 
 addStartPos :: SourcePos -> BlockNode m il bl -> BlockNode m il bl
 addStartPos sp (Node bd cs) = Node bd{ blockStartPos = sp : blockStartPos bd } cs
-
-addEndPos :: SourcePos -> BlockNode m il bl -> BlockNode m il bl
-addEndPos endpos (Node bdata children) =
-  Node bdata{ blockEndPos = endpos : blockEndPos bdata } children
 
 doBlockStarts :: Monad m => [BlockSpec m il bl] -> BlockParser m il bl ()
 doBlockStarts specs = do
@@ -232,15 +227,8 @@ checkContinue nd (matched, unmatched) = do
            -- so it's not to be counted as blank:
            unless matched' $
              updateState $ \st -> st{ maybeBlank = False }
-           pos' <- if matched'
-                      then return $! startpos
-                      else getPosition
            let new = Node bdata{ blockStartPos =
-                      startpos : blockStartPos bdata,
-                      blockEndPos =
-                         if matched'
-                            then blockEndPos bdata
-                            else pos' : blockEndPos bdata
+                      startpos : blockStartPos bdata
                       } children
            return $!
              if matched'
@@ -263,7 +251,6 @@ showNodeStack = do
    unlines [ "-----"
            , show (blockSpec bdata)
            , show (blockStartPos bdata)
-           , show (blockEndPos bdata)
            , show (length  children) ]
 -}
 
@@ -346,7 +333,6 @@ data BlockData m il bl = BlockData
      { blockSpec       :: BlockSpec m il bl
      , blockLines      :: [[Tok]]  -- in reverse order
      , blockStartPos   :: [SourcePos]  -- in reverse order
-     , blockEndPos     :: [SourcePos]  -- reverse order
      , blockData       :: !Dynamic
      , blockBlanks     :: [Int]  -- non-content blank lines in block
      , blockAttributes :: !Attributes
@@ -358,7 +344,6 @@ defBlockData spec = BlockData
     { blockSpec     = spec
     , blockLines    = []
     , blockStartPos = []
-    , blockEndPos   = []
     , blockData     = toDyn ()
     , blockBlanks   = []
     , blockAttributes = mempty
@@ -411,11 +396,14 @@ addRange :: (Monad m, IsBlock il bl)
          => BlockNode m il bl -> bl -> bl
 addRange (Node b _)
  = ranged (SourceRange
-            (go . reverse $ zip (blockStartPos b) (blockEndPos b)))
+            (go . reverse $ map (\pos ->
+                                  (pos, setSourceColumn
+                                         (incSourceLine pos 1) 1))
+                                (blockStartPos b)))
    where
      go [] = []
-     go ((!startpos1, _):(!startpos2, !endpos2):rest)
-       | sourceColumn startpos2 == 1 = go ((startpos1, endpos2):rest)
+     go ((!startpos1, !endpos1):(!startpos2, !endpos2):rest)
+       | endpos1 == startpos2 = go ((startpos1, endpos2):rest)
      go (!x:xs) = x : go xs
 
 -- Add a new node to the block stack.  If current tip can contain
@@ -523,9 +511,7 @@ extractReferenceLinks node = do
                               (rootLabel node){
                                 blockLines = [toks'],
                                 blockStartPos = dropWhile isRefPos
-                                   (blockStartPos (rootLabel node)),
-                                blockEndPos = dropWhile isRefPos
-                                   (blockEndPos (rootLabel node))
+                                   (blockStartPos (rootLabel node))
                                 }
                            }
           let refnode = node{ rootLabel =
@@ -534,8 +520,6 @@ extractReferenceLinks node = do
                        (blockLines (rootLabel node))
                    , blockStartPos = takeWhile isRefPos
                        (blockStartPos (rootLabel node))
-                   , blockEndPos = takeWhile isRefPos
-                       (blockEndPos (rootLabel node))
                    , blockData = toDyn linkdefs
                    , blockSpec = refLinkDefSpec
                  }}
@@ -1007,8 +991,7 @@ indentedCodeSpec = BlockSpec
                                 drop numblanks $ blockLines cdata
                            , blockStartPos =
                                 drop numblanks $ blockStartPos cdata
-                           , blockEndPos =
-                                drop numblanks $ blockEndPos cdata }
+                           }
          defaultFinalizer (Node cdata' children) parent
      }
 

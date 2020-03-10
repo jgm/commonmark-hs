@@ -188,14 +188,22 @@ specFromExtensionNames extnames = do
  return $ exts <> defaultSyntaxSpec
 
 highlightWith :: SourceMap -> [Tok] -> IO ()
-highlightWith sm ts = evalStateT (mapM_ (hlTok sm) ts) (mempty, [])
+highlightWith sm ts = evalStateT (mapM_ (hlTok sm) ts) (Nothing, mempty, [])
 
-hlTok :: SourceMap -> Tok -> StateT (Seq.Seq T.Text, [SGR]) IO ()
-hlTok (SourceMap !sm) (Tok _ !pos !t) =
+hlTok :: SourceMap -> Tok
+      -> StateT (Maybe T.Text, Seq.Seq T.Text, [SGR]) IO ()
+hlTok (SourceMap !sm) (Tok toktype !pos !t) = do
+  (mbLineEnd, xs, sgrs) <- get
+  -- When we encounter a line end, we store it in mbLineEnd
+  -- and output it after the formatting codes at the beginning
+  -- of the next line.  Otherwise the wrong lines are affected.
   case M.lookup pos sm of
-       Nothing -> liftIO $ TIO.putStr t
+       Nothing
+         | toktype == LineEnd -> modify $ \(_,x,y) -> (Just t,x,y)
+         | otherwise          -> do
+             modify $ \(_,x,y) -> (Nothing,x,y)
+             liftIO $ TIO.putStr t
        Just (starts, ends) -> do
-         (xs, sgrs) <- get
          let xsMinusEnds = foldr (\e s ->
                              case Seq.viewr s of
                                Seq.EmptyR -> s
@@ -212,13 +220,11 @@ hlTok (SourceMap !sm) (Tok _ !pos !t) =
                                    then NormalIntensity
                                    else FaintIntensity) :
                              foldMap sgrFrom xs'
-         put (xs', sgrs')
+         put (if toktype == LineEnd then Just t else Nothing, xs', sgrs')
          liftIO $ do
-            if sgrs == sgrs'
-               then TIO.putStr t
-               else do
-                 setSGR sgrs'
-                 TIO.putStr t
+            when (sgrs /= sgrs') $ setSGR sgrs'
+            maybe (return ()) TIO.putStr mbLineEnd
+            when (toktype /= LineEnd) $ TIO.putStr t
 
 sgrFrom :: T.Text -> [SGR]
 sgrFrom t =

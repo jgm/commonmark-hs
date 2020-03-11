@@ -190,5 +190,10 @@ definitionListItem spacing (term, defns) =
 
 instance (HasDefinitionList il bl, Semigroup bl, Semigroup il)
         => HasDefinitionList (WithSourceMap il) (WithSourceMap bl) where
-  definitionList spacing items = definitionList spacing items
-                                   <* addName "definitionList"
+  definitionList spacing items = do
+    let (terms, defs) = unzip items
+    terms' <- sequence terms
+    defs' <- mapM sequence defs
+    let res = definitionList spacing (zip terms' defs')
+    addName "definitionList"
+    return res

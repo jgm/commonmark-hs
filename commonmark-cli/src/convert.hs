@@ -188,7 +188,11 @@ specFromExtensionNames extnames = do
  return $ exts <> defaultSyntaxSpec
 
 highlightWith :: SourceMap -> [Tok] -> IO ()
-highlightWith sm ts = evalStateT (mapM_ (hlTok sm) ts) (Nothing, mempty, [])
+highlightWith sm ts = do
+  ((), (mbLineEnd, _, _)) <- runStateT (mapM_ (hlTok sm) ts)
+                                 (Nothing, mempty, [])
+  maybe (return ()) TIO.putStr mbLineEnd
+
 
 hlTok :: SourceMap -> Tok
       -> StateT (Maybe T.Text, Seq.Seq T.Text, [SGR]) IO ()
@@ -202,7 +206,9 @@ hlTok (SourceMap !sm) (Tok toktype !pos !t) = do
          | toktype == LineEnd -> modify $ \(_,x,y) -> (Just t,x,y)
          | otherwise          -> do
              modify $ \(_,x,y) -> (Nothing,x,y)
-             liftIO $ TIO.putStr t
+             liftIO $ do
+               maybe (return ()) TIO.putStr mbLineEnd
+               TIO.putStr t
        Just (starts, ends) -> do
          let xsMinusEnds = foldr (\e s ->
                              case Seq.viewr s of

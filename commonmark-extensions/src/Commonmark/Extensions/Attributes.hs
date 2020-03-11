@@ -42,7 +42,7 @@ instance HasDiv (Html a) where
 
 instance (HasDiv bl, Semigroup bl)
         => HasDiv (WithSourceMap bl) where
-  div_ bs = div_ bs <* addName "div"
+  div_ bs = (div_ <$> bs) <* addName "div"
 
 fencedDivSpec
              :: (Monad m, IsInline il, IsBlock il bl, HasDiv bl)

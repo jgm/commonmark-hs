@@ -188,27 +188,22 @@ specFromExtensionNames extnames = do
  return $ exts <> defaultSyntaxSpec
 
 highlightWith :: SourceMap -> [Tok] -> IO ()
-highlightWith sm ts = do
-  ((), (mbLineEnd, _, _)) <- runStateT (mapM_ (hlTok sm) ts)
-                                 (Nothing, mempty, [])
-  maybe (return ()) TIO.putStr mbLineEnd
-
+highlightWith sm ts = evalStateT (mapM_ (hlTok sm) ts) (mempty, [])
 
 hlTok :: SourceMap -> Tok
-      -> StateT (Maybe T.Text, Seq.Seq T.Text, [SGR]) IO ()
+      -> StateT (Seq.Seq T.Text, [SGR]) IO ()
 hlTok (SourceMap !sm) (Tok toktype !pos !t) = do
-  (mbLineEnd, xs, sgrs) <- get
+  (xs, sgrs) <- get
   -- When we encounter a line end, we store it in mbLineEnd
   -- and output it after the formatting codes at the beginning
   -- of the next line.  Otherwise the wrong lines are affected.
   case M.lookup pos sm of
-       Nothing
-         | toktype == LineEnd -> modify $ \(_,x,y) -> (Just t,x,y)
-         | otherwise          -> do
-             modify $ \(_,x,y) -> (Nothing,x,y)
-             liftIO $ do
-               maybe (return ()) TIO.putStr mbLineEnd
-               TIO.putStr t
+       Nothing -> liftIO $ do
+         when (toktype == LineEnd) $
+           -- This escape sequence paints rest of line with current
+           -- background color; otherwise we get bad results with scrolling.
+           TIO.putStr "\27[K"
+         TIO.putStr t
        Just (starts, ends) -> do
          let xsMinusEnds = foldr (\e s ->
                              case Seq.viewr s of
@@ -226,11 +221,12 @@ hlTok (SourceMap !sm) (Tok toktype !pos !t) = do
                                    then NormalIntensity
                                    else FaintIntensity) :
                              foldMap sgrFrom xs'
-         put (if toktype == LineEnd then Just t else Nothing, xs', sgrs')
+         put (xs', sgrs')
          liftIO $ do
             when (sgrs /= sgrs') $ setSGR sgrs'
-            maybe (return ()) TIO.putStr mbLineEnd
-            when (toktype /= LineEnd) $ TIO.putStr t
+            when (toktype == LineEnd) $
+              TIO.putStr "\27[K"
+            TIO.putStr t
 
 sgrFrom :: T.Text -> [SGR]
 sgrFrom t =

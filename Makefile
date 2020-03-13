@@ -48,6 +48,9 @@ flamegraph:
 $(LOGS):
 	mkdir -p $(LOGS)
 
+benchmark:
+	sudo nice -n -20 bench "commonmark ${PROFTARGET}"
+
 bench: $(LOGS)
 	stack bench --benchmark-arguments=$(BENCHARGS) commonmark 2>&1 \
 	    | tee $(LOGS)/benchmark-$(DATE).out
@@ -68,4 +71,4 @@ clean:
 pathologicaltest:
 	python3 test/pathological_tests.py --prog commonmark
 
-.PHONY: quick ghci spectest pathologicaltest test bench prof clean all reformat lint haddock profheap flamegraph
+.PHONY: quick ghci spectest pathologicaltest test bench prof clean all reformat lint haddock profheap flamegraph benchmark

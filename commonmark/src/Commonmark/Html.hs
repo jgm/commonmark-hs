@@ -39,9 +39,9 @@ data ElementType =
   | BlockElement
 
 data Html a =
-    HtmlElement !ElementType !Text [Attribute] (Maybe (Html a))
-  | HtmlText !Text
-  | HtmlRaw !Text
+    HtmlElement !ElementType {-# UNPACK #-} !Text [Attribute] (Maybe (Html a))
+  | HtmlText {-# UNPACK #-} !Text
+  | HtmlRaw {-# UNPACK #-} !Text
   | HtmlNull
   | HtmlConcat (Html a) (Html a)
 

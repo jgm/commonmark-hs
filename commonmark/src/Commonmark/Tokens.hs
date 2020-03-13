@@ -44,26 +44,26 @@ tokenize name = go (initialPos name) . T.groupBy f
 
     go _pos [] = []
     go !pos (t:ts) = -- note that t:ts are guaranteed to be nonempty
-      let !thead = T.head t in
-      if | thead == ' ' ->
-            Tok Spaces pos t :
-            go (incSourceColumn pos (T.length t)) ts
-         | t == "\t" ->
-            Tok Spaces pos t :
-            go (incSourceColumn pos (4 - (sourceColumn pos - 1) `mod` 4)) ts
-         | t == "\r" || t == "\n" || t == "\r\n" ->
-            Tok LineEnd pos t :
-            go (incSourceLine (setSourceColumn pos 1) 1) ts
-         | isAlphaNum thead ->
-           Tok WordChars pos t :
-           go (incSourceColumn pos (T.length t)) ts
-         | isSpace thead ->
-           Tok UnicodeSpace pos t :
-           go (incSourceColumn pos (T.length t)) ts
-         | T.length t == 1 ->
-           Tok (Symbol thead) pos t :
-           go (incSourceColumn pos 1) ts
-         | otherwise -> error $ "Don't know what to do with" ++ show t
+      case T.head t of
+         ' ' ->  Tok Spaces pos t :
+                 go (incSourceColumn pos (T.length t)) ts
+         '\t' -> Tok Spaces pos t :
+                 go (incSourceColumn pos
+                       (4 - (sourceColumn pos - 1) `mod` 4)) ts
+         '\r' -> Tok LineEnd pos t :
+                 go (incSourceLine (setSourceColumn pos 1) 1) ts
+         '\n' -> Tok LineEnd pos t :
+                 go (incSourceLine (setSourceColumn pos 1) 1) ts
+         thead
+           | isAlphaNum thead ->
+                 Tok WordChars pos t :
+                 go (incSourceColumn pos (T.length t)) ts
+           | isSpace thead ->
+                 Tok UnicodeSpace pos t :
+                 go (incSourceColumn pos 1) ts
+           | otherwise ->
+                 Tok (Symbol thead) pos t :
+                 go (incSourceColumn pos 1) ts
 {-# SCC tokenize #-}
 
 -- | Reverses 'tokenize'.  @untokenize . tokenize@ should be

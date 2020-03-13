@@ -25,7 +25,7 @@ import           Data.Text (Text)
 commonmark :: IsBlock il bl
            => String      -- ^ Name or path of input
            -> Text        -- ^ Commonmark text input
-           -> (Either ParseError bl) -- ^ Result or error
+           -> Either ParseError bl -- ^ Result or error
 commonmark sourcename =
  runIdentity .
  parseCommonmarkWith defaultSyntaxSpec .

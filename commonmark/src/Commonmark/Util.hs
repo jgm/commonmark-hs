@@ -133,11 +133,11 @@ withRaw parser = do
   toks <- getInput
   res <- parser
   newpos <- getPosition
-  let getrawtoks (!t:ts)
+  let getrawtoks (t:ts)
         | tokPos t < newpos = t : getrawtoks ts
       getrawtoks _ = []
   let rawtoks = getrawtoks toks
-  return $! (res, rawtoks)
+  return (res, rawtoks)
 {-# INLINE withRaw #-}
 
 -- | Filters tokens of a certain type.

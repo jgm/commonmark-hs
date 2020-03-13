@@ -60,7 +60,7 @@ reformat:
 	for f in $(SOURCEFILES); do echo $$f; stylish-haskell -i $$f ; done
 
 lint:
-	for f in $(SOURCEFILES); do echo $$f; hlint --verbose --cpp-simple --refactor --refactor-options='-i -s' $$f; done
+	for f in $(SOURCEFILES); do echo $$f; hlint --verbose --refactor --refactor-options='-s -o -' $$f; done
 
 clean:
 	stack clean

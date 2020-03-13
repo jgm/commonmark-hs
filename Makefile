@@ -49,6 +49,7 @@ $(LOGS):
 	mkdir -p $(LOGS)
 
 benchmark:
+	commonmark ${PROFTARGET} +RTS -s >/dev/null
 	sudo nice -n -20 bench "commonmark ${PROFTARGET}"
 
 bench: $(LOGS)

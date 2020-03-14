@@ -10,8 +10,9 @@
 module Commonmark.Inlines
   ( mkInlineParser
   , defaultInlineParser
-  , IPState(..)
+  , IPState
   , InlineParser
+  , getReferenceMap
   , FormattingSpec(..)
   , defaultFormattingSpecs
   , BracketedSpec(..)
@@ -450,6 +451,9 @@ rangeFromToks (!z:zs) !endpos
                case ys of
                  (Tok _ !pos _ : _) | sourceColumn pos == 1 -> go (x:ys)
                  _ -> (tokPos x, tokPos y) : go ys
+
+getReferenceMap :: Monad m => InlineParser m ReferenceMap
+getReferenceMap = ipReferenceMap <$> getState
 
 pBacktickSpan :: Monad m
               => Tok -> InlineParser m (Either [Tok] [Tok])

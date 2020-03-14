@@ -115,7 +115,7 @@ pFootnoteRef :: (Monad m, Typeable m, Typeable a,
              => InlineParser m a
 pFootnoteRef = try $ do
   lab <- pFootnoteLabel
-  rm <- ipReferenceMap <$> getState
+  rm <- getReferenceMap
   case lookupReference lab rm of
         Just (FootnoteDef num _ mkContents) -> do
           res <- lift . lift $ mkContents rm

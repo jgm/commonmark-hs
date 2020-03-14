@@ -16,8 +16,14 @@ Usage example:
 
 The parser is highly polymorphic: in this example, we use
 the type annotation @'Html' ()@ to indicate that we want it
-to produce basic HTML without source location attributes
-(for that we would use @'Html' 'SourceRange'@).
+to produce basic HTML without source location attributes.
+And we return a value in the IO monad.  But we could have used a different
+output format (e.g. @'Html' 'SourceRange'@ for HTML with source location
+attributes).  And we could have used the Identity monad to get a
+pure value. (The default parsers work the same way in any monad, but it is
+possible to define extensions that constrain the monad. For
+example, an extension for include files might only work in IO,
+or might have different behavior in IO and Identity.)
 
 Extensibility is emphasized throughout. To change the output
 for a given format, or support an alternate output format,

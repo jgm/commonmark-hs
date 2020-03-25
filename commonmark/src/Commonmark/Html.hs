@@ -177,8 +177,7 @@ addAttribute :: Attribute -> Html a -> Html a
 addAttribute attr (HtmlElement eltType tagname attrs mbcontents) =
   HtmlElement eltType tagname (incorporateAttribute attr attrs) mbcontents
 addAttribute attr (HtmlText t)
-  | T.all (==' ') t = HtmlText t
-  | otherwise       = HtmlElement InlineElement "span" [attr] $ Just (HtmlText t)
+  = HtmlElement InlineElement "span" [attr] $ Just (HtmlText t)
 addAttribute _ elt = elt
 
 incorporateAttribute :: Attribute -> [Attribute] -> [Attribute]

@@ -119,8 +119,10 @@ xyz
 <pre id="foo"><code class="language-bar">xyz
 </code></pre>
 ````````````````````````````````
-Attributes have the syntax described in heading_attributes.txt.
-They must immediately follow a code span (with no space).
+
+**Attributes on inline elements must immediately follow the element to
+which they belong.**  If they follow a space, then they belong
+to the space.
 
 ```````````````````````````````` example
 `hi`{#ident .class key=value}
@@ -131,7 +133,7 @@ They must immediately follow a code span (with no space).
 ```````````````````````````````` example
 `hi` {#ident .class key=value}
 .
-<p><code>hi</code> </p>
+<p><code>hi</code><span id="ident" class="class" key="value"> </span></p>
 ````````````````````````````````
 
 The attributes can wrap:

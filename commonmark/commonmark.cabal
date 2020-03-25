@@ -30,6 +30,7 @@ description:
 
 homepage:       https://github.com/jgm/commonmark-hs
 bug-reports:    https://github.com/jgm/commonmark-hs/issues
+stability:      experimental
 author:         John MacFarlane
 maintainer:     jgm@berkeley.edu
 copyright:      2018-2020 John MacFarlane

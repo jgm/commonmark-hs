@@ -330,9 +330,15 @@ pChunk specmap attrParser ilParsers isDelimChar =
     (res, ts) <- withRaw $
          {-# SCC attrParser #-} (AddAttributes <$> attrParser)
          <|>
-         {-# SCC pInline #-} (Parsed <$> pInline ilParsers isDelimChar)
+         {-# SCC pInline #-} (Parsed <$> pInline ilParsers)
     return $! Chunk res pos ts
   <|> {-# SCC pDelimChunk #-} pDelimChunk specmap isDelimChar
+  <|> (do t <- anyTok
+          endpos <- getPosition
+          return $! Chunk
+            (Parsed $ ranged (SourceRange [(tokPos t,endpos)])
+              (str $ tokContents t))
+            (tokPos t) [t])
 
 pDelimChunk :: (IsInline a, Monad m)
             => FormattingSpecMap a
@@ -413,26 +419,17 @@ withAttributes p = do
 
 pInline :: (IsInline a, Monad m)
         => [InlineParser m a]
-        -> (Char -> Bool)
         -> InlineParser m a
-pInline ilParsers isDelimChar =
+pInline ilParsers =
   mconcat <$> many1 oneInline
     where
      oneInline = withAttributes $ do
        toks <- getInput
-       res <- choice ilParsers <|> pSymbol isDelimChar
+       res <- choice ilParsers
        endpos <- getPosition
        let range = rangeFromToks
                  (takeWhile ((< endpos) . tokPos) toks) endpos
        return $! ranged range res
-
-pSymbol :: (IsInline a, Monad m)
-        => (Char -> Bool) -> ParsecT [Tok] s m a
-pSymbol isDelimChar = {-# SCC pSymbol #-} do
-  str . tokContents <$>
-    satisfyTok (\case
-                  Tok (Symbol c) _ _ -> not (isDelimChar c)
-                  _ -> True)
 
 rangeFromToks :: [Tok] -> SourcePos -> SourceRange
 rangeFromToks [] _ = SourceRange mempty

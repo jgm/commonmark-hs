@@ -7,7 +7,7 @@ where
 import Commonmark.Types
 import Commonmark.Syntax
 import Commonmark.Inlines
-import Commonmark.Util (symbol)
+import Commonmark.TokParsers (symbol)
 import Text.Parsec
 #if !MIN_VERSION_base(4,11,0)
 import Data.Monoid

@@ -48,7 +48,7 @@ module Commonmark.Blocks
 where
 
 import           Commonmark.Tag
-import           Commonmark.Util
+import           Commonmark.TokParsers
 import           Commonmark.ReferenceMap
 import           Commonmark.Inlines        (pEscaped, pLinkDestination,
                                             pLinkLabel, pLinkTitle)

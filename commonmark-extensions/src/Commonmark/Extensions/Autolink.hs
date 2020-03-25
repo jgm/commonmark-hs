@@ -8,7 +8,7 @@ import Commonmark.Types
 import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.Inlines
-import Commonmark.Util
+import Commonmark.TokParsers
 import Control.Monad (guard)
 import Data.List (dropWhileEnd)
 import Text.Parsec

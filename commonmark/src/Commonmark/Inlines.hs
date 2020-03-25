@@ -33,7 +33,7 @@ where
 
 import           Commonmark.Tag             (htmlTag, Enders, defaultEnders)
 import           Commonmark.Tokens
-import           Commonmark.Util
+import           Commonmark.TokParsers
 import           Commonmark.ReferenceMap
 import           Commonmark.Types
 import           Control.Monad              (guard, mzero)

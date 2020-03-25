@@ -21,7 +21,7 @@ import Commonmark.Tag (htmlAttributeName, htmlDoubleQuotedAttributeValue)
 import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.Inlines
-import Commonmark.Util
+import Commonmark.TokParsers
 import Commonmark.SourceMap
 import Commonmark.Blocks
 import Commonmark.Entity (unEntity)

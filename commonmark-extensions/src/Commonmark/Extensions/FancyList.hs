@@ -13,7 +13,7 @@ where
 import Commonmark.Types
 import Commonmark.Tokens
 import Commonmark.Syntax
-import Commonmark.Util
+import Commonmark.TokParsers
 import Commonmark.Blocks
 import qualified Data.Text as T
 import Control.Monad (mzero, guard, when)

@@ -14,7 +14,7 @@ import Commonmark.Types
 import Commonmark.Syntax
 import Commonmark.Blocks
 import Commonmark.SourceMap
-import Commonmark.Util
+import Commonmark.TokParsers
 import Commonmark.Html
 import Control.Monad (mzero)
 #if !MIN_VERSION_base(4,11,0)

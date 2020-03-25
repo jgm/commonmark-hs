@@ -70,7 +70,7 @@ library
       Commonmark.Tokens
       Commonmark.Inlines
       Commonmark.Blocks
-      Commonmark.Util
+      Commonmark.TokParsers
       Commonmark.SourceMap
       Commonmark.Tag
       Commonmark.Entity

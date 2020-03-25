@@ -10,7 +10,7 @@ import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.SourceMap
-import Commonmark.Util
+import Commonmark.TokParsers
 import Commonmark.Html
 import Text.Parsec
 import Data.Text (Text)

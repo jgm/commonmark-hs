@@ -17,7 +17,7 @@ import Control.Monad (guard)
 import Commonmark.Syntax
 import Commonmark.Types
 import Commonmark.Tokens
-import Commonmark.Util
+import Commonmark.TokParsers
 import Commonmark.Blocks
 import Commonmark.SourceMap
 import Commonmark.Html

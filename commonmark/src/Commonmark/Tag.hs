@@ -10,7 +10,7 @@ module Commonmark.Tag
   , defaultEnders )
 where
 import           Commonmark.Tokens
-import           Commonmark.Util
+import           Commonmark.TokParsers
 import           Control.Monad     (liftM2, guard)
 import           Control.Monad.Trans.State.Strict
 import           Control.Monad.Trans.Class (lift)

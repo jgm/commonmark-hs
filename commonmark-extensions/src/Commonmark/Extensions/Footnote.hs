@@ -16,7 +16,7 @@ import Commonmark.Syntax
 import Commonmark.Blocks
 import Commonmark.Inlines
 import Commonmark.SourceMap
-import Commonmark.Util
+import Commonmark.TokParsers
 import Commonmark.ReferenceMap
 import Control.Monad.Trans.Class (lift)
 import Control.Monad (mzero)

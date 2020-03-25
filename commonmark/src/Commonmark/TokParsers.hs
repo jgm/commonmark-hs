@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
-module Commonmark.Util
+module Commonmark.TokParsers
   ( satisfyTok
   , satisfyWord
   , anyTok

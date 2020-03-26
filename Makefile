@@ -64,7 +64,7 @@ reformat:
 	for f in $(SOURCEFILES); do echo $$f; stylish-haskell -i $$f ; done
 
 lint:
-	for f in $(SOURCEFILES); do echo $$f; hlint --verbose --refactor --refactor-options='-s -o -' $$f; done
+	for f in $(SOURCEFILES); do echo $$f; hlint --verbose $$f; done
 
 clean:
 	stack clean
@@ -72,4 +72,11 @@ clean:
 pathologicaltest:
 	python3 test/pathological_tests.py --prog commonmark
 
-.PHONY: quick ghci spectest pathologicaltest test bench prof clean all reformat lint haddock profheap flamegraph benchmark
+check:
+	cd commonmark && cabal check && packdeps commonmark.cabal
+	cd commonmark-extensions && cabal check && packdeps commonmark-extensions.cabal
+	cd commonmark-pandoc && cabal check && packdeps commonmark-pandoc.cabal
+	cd commonmark-cli && cabal check && packdeps commonmark-cli.cabal
+
+
+.PHONY: quick ghci spectest pathologicaltest test bench prof clean all reformat lint haddock profheap flamegraph benchmark check

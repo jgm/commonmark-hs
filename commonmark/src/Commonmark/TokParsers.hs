@@ -182,8 +182,7 @@ blankLine = try $ do
 {-# INLINE blankLine #-}
 
 -- | Efficiently parse the remaining tokens on a line,
--- return them plus the source position of the line end
--- (if there is one).
+-- including the LineEnd (if any).
 restOfLine :: Monad m => ParsecT [Tok] s m [Tok]
 restOfLine = go
   where

@@ -62,7 +62,7 @@ usageMessage programName = usageInfo (programName ++ " [OPTIONS] [FILES]")
 main :: IO ()
 main = catch (do
   (opts, files, errs) <- getOpt Permute options <$> getArgs
-  when (not (null errs)) $ do
+  unless (null errs) $ do
     mapM_ (hPutStrLn stderr) errs
     exitWith (ExitFailure 1)
   prg <- getProgName
@@ -86,7 +86,7 @@ main = catch (do
       case runWithSourceMap <$>
               runIdentity (parseCommonmarkWith spec toks) of
            Left e -> errExit e
-           Right ((_ :: Html ()), sm) -> highlightWith sm toks
+           Right (_ :: Html (), sm) -> highlightWith sm toks
   else
     if SourcePos `elem` opts then do
        spec <- specFromExtensionNames [x | Extension x <- opts]

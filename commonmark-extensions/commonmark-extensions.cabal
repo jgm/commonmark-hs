@@ -6,6 +6,7 @@ description:
    syntax: smart quotes, definition lists, tables, footnotes, math,
    and more.
 
+category:       Text
 homepage:       https://github.com/jgm/commonmark-hs
 bug-reports:    https://github.com/jgm/commonmark-hs/issues
 author:         John MacFarlane

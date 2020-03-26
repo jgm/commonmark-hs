@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase                 #-}
 module Commonmark.SourceMap
   ( SourceMap(..)
   , WithSourceMap(..)
@@ -49,7 +50,7 @@ combine (s1,e1) (s2,e2) = (s1 <> s2, e1 <> e2)
 -- | Use this when you want to extract a source map as well
 -- as the parsed content.
 newtype WithSourceMap a =
-        WithSourceMap { unWithSourceMap :: (State (Maybe Text, SourceMap) a) }
+        WithSourceMap { unWithSourceMap :: State (Maybe Text, SourceMap) a }
         deriving (Functor, Applicative, Monad)
 
 instance (Show a, Semigroup a) => Semigroup (WithSourceMap a) where
@@ -111,18 +112,16 @@ instance (Rangeable a, Monoid a, Show a)
          case mbt of
            Just t -> do
              let (starts, ends) = unzip rs
-             let addStart = M.alter (\v ->
-                                     case v of
-                                          Nothing    ->
-                                            Just (Seq.singleton t, mempty)
-                                          Just (s,e) ->
-                                            Just (t Seq.<| s, e))
-             let addEnd = M.alter (\v ->
-                                     case v of
-                                          Nothing    ->
-                                            Just (mempty, Seq.singleton t)
-                                          Just (s,e) ->
-                                            Just (s, e Seq.|> t))
+             let addStart = M.alter (\case
+                                       Nothing    ->
+                                         Just (Seq.singleton t, mempty)
+                                       Just (s,e) ->
+                                         Just (t Seq.<| s, e))
+             let addEnd = M.alter (\case
+                                     Nothing    ->
+                                       Just (mempty, Seq.singleton t)
+                                     Just (s,e) ->
+                                       Just (s, e Seq.|> t))
              let sm' = foldr addStart sm starts
              let sm'' = foldr addEnd sm' ends
              put (mempty, SourceMap sm'')

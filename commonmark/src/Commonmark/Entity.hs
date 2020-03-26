@@ -11,7 +11,6 @@ module Commonmark.Entity
   )
 where
 
-import Data.Char (chr)
 import Data.Functor.Identity (Identity)
 import qualified Data.Map.Strict as Map
 import Commonmark.TokParsers
@@ -21,7 +20,7 @@ import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.Text.Read as TR
 import Control.Monad (guard, mzero)
-import Data.Char (isDigit, isHexDigit)
+import Data.Char (isDigit, isHexDigit, chr)
 import Data.Maybe (isJust)
 #if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup (Semigroup(..))
@@ -71,7 +70,7 @@ lookupNumericEntity = f
 -- > lookupNamedEntity "amp" == Just "&"
 -- > lookupNamedEntity "haskell" == Nothing
 lookupNamedEntity :: Text -> Maybe Text
-lookupNamedEntity = \x -> Map.lookup x htmlEntityMap
+lookupNamedEntity x = Map.lookup x htmlEntityMap
 
 htmlEntityMap :: Map.Map Text Text
 htmlEntityMap = Map.fromList htmlEntities

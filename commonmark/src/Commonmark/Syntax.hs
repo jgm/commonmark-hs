@@ -46,7 +46,7 @@ instance Monoid (SyntaxSpec m il bl) where
 removeDuplicateBlockSpecs :: [BlockSpec m il bl] -> [BlockSpec m il bl]
 removeDuplicateBlockSpecs []     = []
 removeDuplicateBlockSpecs (b:bs) =
-  b : removeDuplicateBlockSpecs (filter ((/= (blockType b)) . blockType) bs)
+  b : removeDuplicateBlockSpecs (filter ((/= blockType b) . blockType) bs)
 
 -- | Standard commonmark syntax.
 defaultSyntaxSpec :: (Monad m, IsBlock il bl, IsInline il)

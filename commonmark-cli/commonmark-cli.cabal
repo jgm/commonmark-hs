@@ -3,6 +3,7 @@ version:        0.1.0.0
 synopsis:       Command-line commonmark converter and highlighter.
 description:    This package provides a command-line tool, `commonmark`,
                 for converting and syntax-highlighting commonmark documents.
+category:       Text
 homepage:       https://github.com/jgm/commonmark-hs
 bug-reports:    https://github.com/jgm/commonmark-hs/issues
 author:         John MacFarlane

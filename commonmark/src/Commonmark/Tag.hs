@@ -37,7 +37,7 @@ defaultEnders = Enders { scannedForCDATA = False
 -- letters, digits, or hyphens (-).
 htmlTagName :: Monad m => ParsecT [Tok] s m [Tok]
 htmlTagName = try $ do
-  let isTagText t' = T.all isAscii t'
+  let isTagText = T.all isAscii
   let startsWithLetter t' = not (T.null t') && isLetter (T.head t')
   t <- satisfyWord (isTagText .&&. startsWithLetter)
   rest <- many (symbol '-' <|> satisfyWord isTagText)

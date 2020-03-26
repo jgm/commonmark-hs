@@ -29,6 +29,7 @@ description:
      syntax-highlighting commonmark documents)
 
 homepage:       https://github.com/jgm/commonmark-hs
+category:       Text
 bug-reports:    https://github.com/jgm/commonmark-hs/issues
 stability:      experimental
 author:         John MacFarlane

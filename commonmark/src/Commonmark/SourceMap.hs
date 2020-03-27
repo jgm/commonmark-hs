@@ -100,8 +100,7 @@ instance (IsBlock b a, IsInline b, IsInline (WithSourceMap b), Semigroup a)
   rawBlock f t = rawBlock f t <$ addName "rawBlock"
   referenceLinkDefinition k x = referenceLinkDefinition k x <$
                addName "referenceLinkDefinition"
-  list lt ls items = (do xs <- sequence items
-                         return $! list lt ls xs) <* addName "list"
+  list lt ls items = (list lt ls <$> sequence items) <* addName "list"
 
 instance (Rangeable a, Monoid a, Show a)
          => Rangeable (WithSourceMap a) where

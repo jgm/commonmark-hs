@@ -1,3 +1,5 @@
+## Definition lists
+
 The term is given on a line by itself, followed by
 one or more definitions. Each definition must begin
 with `:` (after 0-2 spaces); subsequent lines must

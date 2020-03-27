@@ -72,6 +72,7 @@ library
       Commonmark.Extensions.Attributes
       Commonmark.Extensions.AutoIdentifiers
       Commonmark.Extensions.FancyList
+      -- Commonmark.Extensions.TaskList
       Commonmark.Extensions.ImplicitHeadingReferences
   ghc-options: -Wall -fno-warn-unused-do-bind -funbox-small-strict-fields
   default-language: Haskell2010

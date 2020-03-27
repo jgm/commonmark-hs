@@ -1,0 +1,186 @@
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+module Commonmark.Extensions.TaskList
+  ( taskListSpec
+  , HasTaskList (..)
+  )
+where
+import Commonmark.Types
+import Commonmark.Syntax
+import Commonmark.Blocks
+import Commonmark.SourceMap
+import Commonmark.TokParsers
+import Commonmark.Html
+import Control.Monad (mzero)
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup)
+import Data.Monoid
+#endif
+import Data.Dynamic
+import Data.Tree
+import Text.Parsec
+
+
+taskListSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
+                       Typeable il, Typeable bl, HasTaskList il bl)
+                   => SyntaxSpec m il bl
+taskListSpec = mempty
+  { syntaxBlockSpecs = [taskListtaskBlockSpec]
+  }
+
+data ListData = ListData
+     { listType    :: !ListType
+     , listSpacing :: !ListSpacing
+     } deriving (Show, Eq)
+
+data ListItemData = ListItemData
+     { listItemType         :: !ListType
+     , listItemChecked      :: !Bool
+     , listItemIndent       :: !Int
+     , listItemBlanksInside :: !Bool
+     , listItemBlanksAtEnd  :: !Bool
+     } deriving (Show, Eq)
+
+taskListBlockSpec :: (Monad m, IsBlock il bl) => BlockSpec m il bl
+taskListBlockSpec = BlockSpec
+     { blockType           = "TaskList"
+     , blockStart          = mzero
+     , blockCanContain     = \sp -> blockType sp == "TaskListItem"
+     , blockContainsLines  = False
+     , blockParagraph      = False
+     , blockContinue       = \n -> (,n) <$> getPosition
+     , blockConstructor    = \node -> do
+          let ListData lt ls = fromDyn (blockData (rootLabel node))
+                                 (ListData (BulletList '*') TightList)
+          list lt ls <$> renderChildren node
+     , blockFinalize       = \(Node cdata children) parent -> do
+          let ListData lt _ = fromDyn (blockData cdata)
+                                 (ListData (BulletList '*') TightList)
+          let getListItemData (Node d _) =
+                fromDyn (blockData d)
+                  (ListItemData (BulletList '*') 0 False False)
+          let childrenData = map getListItemData children
+          let ls = case childrenData of
+                          c:cs | any listItemBlanksInside (c:cs) ||
+                                 (not (null cs) &&
+                                  any listItemBlanksAtEnd cs)
+                               -> LooseList
+                          _    -> TightList
+          blockBlanks' <- case childrenData of
+                             c:_ | listItemBlanksAtEnd c -> do
+                                 curline <- sourceLine <$> getPosition
+                                 return $! curline - 1 : blockBlanks cdata
+                             _ -> return $! blockBlanks cdata
+          let ldata' = toDyn (ListData lt ls)
+          -- need to transform paragraphs on tight lists
+          let totight (Node nd cs)
+                | blockType (blockSpec nd) == "Paragraph"
+                            = Node nd{ blockSpec = plainSpec } cs
+                | otherwise = Node nd cs
+          let childrenToTight (Node nd cs) = Node nd (map totight cs)
+          let children' =
+                 if ls == TightList
+                    then map childrenToTight children
+                    else children
+          defaultFinalizer (Node cdata{ blockData = ldata'
+                                      , blockBlanks = blockBlanks' } children')
+                           parent
+     }
+
+taskListItemBlockSpec :: (Monad m, IsBlock il bl)
+                      => BlockParser m il bl ListType
+                      -> BlockSpec m il bl
+taskListItemBlockSpec parseListMarker = BlockSpec
+     { blockType           = "TaskListItem"
+     , blockStart          = do
+             (pos, lidata) <- itemStart parseListMarker
+             let linode = Node (defBlockData $ listItemSpec parseListMarker){
+                             blockData = toDyn lidata,
+                             blockStartPos = [pos] } []
+             let listdata = ListData{
+                    listType = listItemType lidata
+                  , listSpacing = TightList }
+                  -- spacing gets set in finalize
+             let listnode = Node (defBlockData listSpec){
+                              blockData = toDyn listdata,
+                              blockStartPos = [pos] } []
+             -- list can only interrupt paragraph if bullet
+             -- list or ordered list w/ startnum == 1,
+             -- and not followed by blank
+             (cur:_) <- nodeStack <$> getState
+             when (blockParagraph (bspec cur)) $ do
+               guard $ case listType listdata of
+                            BulletList _            -> True
+                            OrderedList 1 Decimal _ -> True
+                            _                       -> False
+               notFollowedBy blankLine
+             let curdata = fromDyn (blockData (rootLabel cur))
+                                (ListData (BulletList '*') TightList)
+             let matchesList (BulletList c) (BulletList d)       = c == d
+                 matchesList (OrderedList _ e1 d1)
+                             (OrderedList _ e2 d2) = e1 == e2 && d1 == d2
+                 matchesList _ _                                 = False
+             case blockType (bspec cur) of
+                  "List" | listType curdata `matchesList`
+                           listItemType lidata
+                    -> addNodeToStack linode
+                  _ -> addNodeToStack listnode >> addNodeToStack linode
+             return BlockStartMatch
+     , blockCanContain     = const True
+     , blockContainsLines  = False
+     , blockParagraph      = False
+     , blockContinue       = \node@(Node ndata children) -> do
+             let lidata = fromDyn (blockData ndata)
+                             (ListItemData (BulletList '*') 0 False False)
+             -- a marker followed by two blanks is just an empty item:
+             guard $ null (blockBlanks ndata) ||
+                     not (null children)
+             pos <- getPosition
+             gobbleSpaces (listItemIndent lidata) <|> 0 <$ lookAhead blankLine
+             return $! (pos, node)
+     , blockConstructor    = fmap mconcat . renderChildren
+     , blockFinalize       = \(Node cdata children) parent -> do
+          let lidata = fromDyn (blockData cdata)
+                                 (ListItemData (BulletList '*')
+                                   0 False False)
+          let blanks = removeConsecutive $ sort $
+                         concat $ blockBlanks cdata :
+                                  map (blockBlanks . rootLabel)
+                                  (filter ((== "List") . blockType .
+                                   blockSpec . rootLabel) children)
+          curline <- sourceLine <$> getPosition
+          let blanksAtEnd = case blanks of
+                                   (l:_) -> l >= curline - 1
+                                   _     -> False
+          let blanksInside = case length blanks of
+                                n | n > 1     -> True
+                                  | n == 1    -> not blanksAtEnd
+                                  | otherwise -> False
+          let lidata' = toDyn $ lidata{ listItemBlanksInside = blanksInside
+                                      , listItemBlanksAtEnd  = blanksAtEnd }
+          defaultFinalizer (Node cdata{ blockData = lidata' } children)
+                           parent
+     }
+
+class IsBlock il bl => HasTaskList il bl where
+  taskList :: ListSpacing -> [[bl]] -> bl
+
+instance Rangeable (Html a) => HasTaskList (Html a) (Html a) where
+  taskList spacing items =
+    addAttribute ("class","task-list")
+    $ taskList spacing
+    $ map addCheckbox items
+
+addCheckbox :: [Html a] -> [Html a]
+addCheckbox = undefined
+
+instance (HasTaskList il bl, Semigroup bl)
+        => HasTaskList (WithSourceMap il) (WithSourceMap bl) where
+   taskList spacing items = (do
+     xs <- sequence items
+     return $! taskList spacing xs) <* addName "taskList"

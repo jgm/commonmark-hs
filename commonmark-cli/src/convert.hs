@@ -152,6 +152,7 @@ extensions =
   ,("fenced_divs", fencedDivSpec)
   ,("auto_identifiers", autoIdentifiersSpec)
   ,("implicit_heading_references", implicitHeadingReferencesSpec)
+  ,("gfm", gfmExtensions)
   ]
 
 extensionList :: [String]

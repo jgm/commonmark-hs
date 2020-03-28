@@ -37,6 +37,7 @@ module Commonmark.Extensions
     , module Commonmark.Extensions.FancyList
     , module Commonmark.Extensions.TaskList
     , module Commonmark.Extensions.ImplicitHeadingReferences
+    , gfmExtensions
     ) where
 
 import           Commonmark.Extensions.Smart
@@ -54,4 +55,16 @@ import           Commonmark.Extensions.AutoIdentifiers
 import           Commonmark.Extensions.FancyList
 import           Commonmark.Extensions.TaskList
 import           Commonmark.Extensions.ImplicitHeadingReferences
+import           Commonmark
+import           Data.Typeable
+
+-- | Standard extensions for GitHub-flavored Markdown.
+gfmExtensions :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
+                  Typeable il, Typeable bl, HasEmoji il,
+                  HasStrikethrough il, HasPipeTable il bl,
+                  HasTaskList il bl, ToPlainText il)
+              => SyntaxSpec m il bl
+gfmExtensions =
+  emojiSpec <> strikethroughSpec <> pipeTableSpec <> autolinkSpec <>
+    autoIdentifiersSpec <> taskListSpec
 

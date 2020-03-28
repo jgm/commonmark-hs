@@ -130,6 +130,7 @@ extensions :: (Monad m, Typeable m,
                HasSubscript il,
                HasDefinitionList il bl,
                HasDiv bl,
+               HasTaskList il bl,
                HasFootnote il bl)
            => [(String, SyntaxSpec m il bl)]
 extensions =
@@ -144,6 +145,7 @@ extensions =
   ,("footnotes", footnoteSpec)
   ,("definition_lists", definitionListSpec)
   ,("fancy_lists", fancyListSpec)
+  ,("task_lists", taskListSpec)
   ,("attributes", attributesSpec)
   ,("raw_attribute", rawAttributeSpec)
   ,("bracketed_spans", bracketedSpanSpec)
@@ -172,6 +174,7 @@ specFromExtensionNames ::
   HasSubscript il,
   HasDefinitionList il bl,
   HasDiv bl,
+  HasTaskList il bl,
   HasFootnote il bl)
   => [String] -> IO (SyntaxSpec m il bl)
 specFromExtensionNames extnames = do

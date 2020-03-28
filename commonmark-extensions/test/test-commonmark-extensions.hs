@@ -41,6 +41,7 @@ main = do
              , ("test/autolinks.md", autolinkSpec)
              , ("test/definition_lists.md", definitionListSpec)
              , ("test/fancy_lists.md", fancyListSpec)
+             , ("test/task_lists.md", taskListSpec)
              , ("test/attributes.md", attributesSpec)
              , ("test/raw_attribute.md", rawAttributeSpec)
              , ("test/bracketed_spans.md", bracketedSpanSpec)

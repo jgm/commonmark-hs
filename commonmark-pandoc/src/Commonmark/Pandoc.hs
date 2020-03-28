@@ -29,6 +29,7 @@ import Commonmark.Extensions.Subscript
 import Commonmark.Extensions.DefinitionList
 import Commonmark.Extensions.Attributes
 import Commonmark.Extensions.Footnote
+import Commonmark.Extensions.TaskList
 import Data.Char (isSpace)
 import Data.Coerce (coerce)
 #if !MIN_VERSION_base(4,11,0)
@@ -78,22 +79,11 @@ instance (Rangeable (Cm a B.Inlines),
   heading level ils = Cm $ B.header level $ unCm ils
   rawBlock (C.Format f) t = Cm $ B.rawBlock f t
   referenceLinkDefinition _ _ = Cm mempty
-  list (C.BulletList _) lSpacing items = Cm $ B.bulletList items'
-    where items' = if lSpacing == TightList
-                      then map (B.fromList . map paraToPlain . B.toList. unCm)
-                           items
-                      else map unCm items
-          paraToPlain (Para xs) = Plain xs
-          paraToPlain x = x
+  list (C.BulletList _) lSpacing items =
+    Cm . B.bulletList . handleSpacing lSpacing . map unCm $ items
   list (C.OrderedList startnum enumtype delimtype) lSpacing items =
-    Cm $ B.orderedListWith attr items'
-    where items' = if lSpacing == TightList
-                      then map (B.fromList . map paraToPlain . B.toList. unCm)
-                           items
-                      else map unCm items
-          paraToPlain (Para xs) = Plain xs
-          paraToPlain x = x
-          sty = case enumtype of
+    Cm . B.orderedListWith attr . handleSpacing lSpacing . map unCm $ items
+    where sty = case enumtype of
                   C.Decimal    -> B.Decimal
                   C.UpperAlpha -> B.UpperAlpha
                   C.LowerAlpha -> B.LowerAlpha
@@ -133,6 +123,27 @@ instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
   => HasDefinitionList (Cm a B.Inlines) (Cm a B.Blocks) where
   definitionList _ items =
     Cm $ B.definitionList $ map coerce items
+
+instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
+  => HasTaskList (Cm a B.Inlines) (Cm a B.Blocks) where
+  taskList _ spacing items =
+    Cm $ B.bulletList $ handleSpacing spacing $ map toTaskListItem items
+
+handleSpacing :: ListSpacing -> [B.Blocks] -> [B.Blocks]
+handleSpacing TightList = map (B.fromList . map paraToPlain . B.toList)
+handleSpacing LooseList = id
+
+paraToPlain :: Block -> Block
+paraToPlain (Para xs) = Plain xs
+paraToPlain x = x
+
+toTaskListItem :: (Bool, Cm a B.Blocks) -> B.Blocks
+toTaskListItem (checked, item) = B.fromList $
+  case B.toList $ coerce item of
+    (Plain ils : rest) -> Plain (checkbox : Space : ils) : rest
+    (Para  ils : rest) -> Plain (checkbox : Space : ils) : rest
+    bs                 -> Plain [checkbox] : bs
+    where checkbox = Str (if checked then "\9746" else "\9744")
 
 instance Rangeable (Cm a B.Blocks)
   => HasDiv (Cm a B.Blocks) where

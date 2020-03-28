@@ -14,6 +14,7 @@ commonmark package:
 - [`footnotes`] (footnotes)
 - [`definition_lists`] (definition lists)
 - [`fancy_lists`] (fancy ordered list markers (parentheses, alpha, roman)
+- [`task_lists`] (task lists)
 - [`attributes`] (attributes for all inline and block elements)
 - [`raw_attribute`] (special raw block and inline elements in any format)
 - [`bracketed_spans`] (spans of inline elements with attributes)
@@ -32,6 +33,7 @@ commonmark package:
 [`footnotes`]: test/footnotes.md
 [`definition_lists`]: test/definition_lists.md
 [`fancy_lists`]: test/fancy_lists.md
+[`task_lists`]: test/task_lists.md
 [`attributes`]: test/attributes.md
 [`raw_attribute`]: test/raw_attribute.md
 [`bracketed_spans`]: test/bracketed_spans.md

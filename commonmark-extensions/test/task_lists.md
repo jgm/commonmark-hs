@@ -7,10 +7,8 @@ As in GitHub-flavored Markdown.
 - [x] checked item
 .
 <ul class="task-list">
-<li><input type="checkbox" disabled="" />
-an unchecked task list item</li>
-<li><input type="checkbox" disabled="" checked="" />
-checked item</li>
+<li><input type="checkbox" disabled="" />an unchecked task list item</li>
+<li><input type="checkbox" disabled="" checked="" />checked item</li>
 </ul>
 ````````````````````````````````
 
@@ -18,13 +16,15 @@ checked item</li>
 * [ ] an unchecked task list item
 
   with two paragraphs
+
 * [x] checked item
 .
 <ul class="task-list">
-<li><p><input type="checkbox" disabled="" />
-an unchecked task list item</p><p>with two paragraphs</p></li>
-<li><p><input type="checkbox" disabled="" checked="" />
-checked item</p></li>
+<li><input type="checkbox" disabled="" /><p>an unchecked task list item</p>
+<p>with two paragraphs</p>
+</li>
+<li><input type="checkbox" disabled="" checked="" /><p>checked item</p>
+</li>
 </ul>
 ````````````````````````````````
 

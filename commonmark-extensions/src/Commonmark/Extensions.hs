@@ -35,6 +35,7 @@ module Commonmark.Extensions
     , module Commonmark.Extensions.Attributes
     , module Commonmark.Extensions.AutoIdentifiers
     , module Commonmark.Extensions.FancyList
+    , module Commonmark.Extensions.TaskList
     , module Commonmark.Extensions.ImplicitHeadingReferences
     ) where
 
@@ -51,5 +52,6 @@ import           Commonmark.Extensions.DefinitionList
 import           Commonmark.Extensions.Attributes
 import           Commonmark.Extensions.AutoIdentifiers
 import           Commonmark.Extensions.FancyList
+import           Commonmark.Extensions.TaskList
 import           Commonmark.Extensions.ImplicitHeadingReferences
 

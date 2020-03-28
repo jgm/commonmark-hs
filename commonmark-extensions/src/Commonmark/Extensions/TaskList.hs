@@ -10,6 +10,7 @@ module Commonmark.Extensions.TaskList
   , HasTaskList (..)
   )
 where
+import Commonmark.Tokens
 import Commonmark.Types
 import Commonmark.Syntax
 import Commonmark.Blocks
@@ -48,7 +49,8 @@ data ListItemData = ListItemData
      , listItemBlanksAtEnd  :: !Bool
      } deriving (Show, Eq)
 
-taskListBlockSpec :: (Monad m, IsBlock il bl) => BlockSpec m il bl
+taskListBlockSpec :: (Monad m, IsBlock il bl,
+                      HasTaskList il bl) => BlockSpec m il bl
 taskListBlockSpec = BlockSpec
      { blockType           = "TaskList"
      , blockStart          = mzero
@@ -59,7 +61,12 @@ taskListBlockSpec = BlockSpec
      , blockConstructor    = \node -> do
           let ListData lt ls = fromDyn (blockData (rootLabel node))
                                  (ListData (BulletList '*') TightList)
-          list lt ls <$> renderChildren node
+          let getCheckedStatus n =
+               listItemChecked $
+                      fromDyn (blockData (rootLabel n))
+                         (ListItemData (BulletList '*') False 0 False False)
+          let checkedStatus = map getCheckedStatus $ subForest node
+          taskList lt ls . zip checkedStatus <$> renderChildren node
      , blockFinalize       = \(Node cdata children) parent -> do
           let ListData lt _ = fromDyn (blockData cdata)
                                  (ListData (BulletList '*') TightList)
@@ -94,7 +101,7 @@ taskListBlockSpec = BlockSpec
                            parent
      }
 
-taskListItemBlockSpec :: (Monad m, IsBlock il bl)
+taskListItemBlockSpec :: (Monad m, IsBlock il bl, HasTaskList il bl)
                       => BlockSpec m il bl
 taskListItemBlockSpec = BlockSpec
      { blockType           = "TaskListItem"
@@ -127,8 +134,8 @@ taskListItemBlockSpec = BlockSpec
                              (OrderedList _ e2 d2) = e1 == e2 && d1 == d2
                  matchesList _ _                                 = False
              case blockType (bspec cur) of
-                  "List" | listType curdata `matchesList`
-                           listItemType lidata
+                  "TaskList" | listType curdata `matchesList`
+                               listItemType lidata
                     -> addNodeToStack linode
                   _ -> addNodeToStack listnode >> addNodeToStack linode
              return BlockStartMatch
@@ -181,8 +188,8 @@ itemStart = do
   gobbleUpToSpaces 3
   pos <- getPosition
   ty <- bulletListMarker
-  checked <- return undefined -- TODO parse checkbox
   aftercol <- sourceColumn <$> getPosition
+  checked <- parseCheckbox
   lookAhead whitespace
   numspaces <- try (gobbleUpToSpaces 4 <* notFollowedBy whitespace)
            <|> gobbleSpaces 1
@@ -195,20 +202,34 @@ itemStart = do
           , listItemBlanksAtEnd = False
           })
 
+parseCheckbox :: Monad m => BlockParser m il bl Bool
+parseCheckbox = do
+  gobbleUpToSpaces 3
+  symbol '['
+  checked <- (False <$ satisfyTok (hasType Spaces))
+         <|> (True  <$ satisfyTok (textIs (\t -> t == "x" || t == "X")))
+  symbol ']'
+  return checked
 
 class IsBlock il bl => HasTaskList il bl where
-  taskList :: ListSpacing -> [bl] -> bl
+  taskList :: ListType -> ListSpacing -> [(Bool, bl)] -> bl
 
 instance Rangeable (Html a) => HasTaskList (Html a) (Html a) where
-  taskList spacing items =
+  taskList lt spacing items =
     addAttribute ("class","task-list")
-    $ taskList spacing
+    $ list lt spacing
     $ map addCheckbox items
 
-addCheckbox :: Html a -> Html a
-addCheckbox = undefined
+addCheckbox :: (Bool, Html a) -> Html a
+addCheckbox (checked, x) =
+  (addAttribute ("type", "checkbox") $
+   addAttribute ("disabled", "") $
+   (if checked then addAttribute ("checked","") else id) $
+   htmlInline "input" Nothing) <> x
 
 instance (HasTaskList il bl, Semigroup bl)
         => HasTaskList (WithSourceMap il) (WithSourceMap bl) where
-   taskList spacing items =
-     (taskList spacing <$> sequence items) <* addName "taskList"
+   taskList lt spacing items =
+     (do let (checks, xs) = unzip items
+         taskList lt spacing . zip checks <$> sequence xs
+      ) <* addName "taskList"

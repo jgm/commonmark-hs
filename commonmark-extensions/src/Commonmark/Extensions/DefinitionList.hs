@@ -74,10 +74,6 @@ definitionListItemBlockSpec = BlockSpec
      , blockConstructor    = \_ -> mzero
      , blockFinalize       = \(Node cdata children) parent -> do
          let listSpacing   = fromDyn (blockData cdata) LooseList
-         let plainSpec = paraSpec{
-               blockConstructor    = \node ->
-                   plain <$> runInlineParser (getBlockText node)
-               }
          let totight (Node nd cs)
                | blockType (blockSpec nd) == "Paragraph"
                            = Node nd{ blockSpec = plainSpec } cs

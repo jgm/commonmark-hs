@@ -21,6 +21,8 @@ import Control.Monad (mzero)
 import Data.Semigroup (Semigroup)
 import Data.Monoid
 #endif
+import Control.Monad (when, guard)
+import Data.List (sort)
 import Data.Dynamic
 import Data.Tree
 import Text.Parsec
@@ -30,7 +32,7 @@ taskListSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
                        Typeable il, Typeable bl, HasTaskList il bl)
                    => SyntaxSpec m il bl
 taskListSpec = mempty
-  { syntaxBlockSpecs = [taskListtaskBlockSpec]
+  { syntaxBlockSpecs = [taskListItemBlockSpec]
   }
 
 data ListData = ListData
@@ -63,7 +65,7 @@ taskListBlockSpec = BlockSpec
                                  (ListData (BulletList '*') TightList)
           let getListItemData (Node d _) =
                 fromDyn (blockData d)
-                  (ListItemData (BulletList '*') 0 False False)
+                  (ListItemData (BulletList '*') False 0 False False)
           let childrenData = map getListItemData children
           let ls = case childrenData of
                           c:cs | any listItemBlanksInside (c:cs) ||
@@ -93,20 +95,19 @@ taskListBlockSpec = BlockSpec
      }
 
 taskListItemBlockSpec :: (Monad m, IsBlock il bl)
-                      => BlockParser m il bl ListType
-                      -> BlockSpec m il bl
-taskListItemBlockSpec parseListMarker = BlockSpec
+                      => BlockSpec m il bl
+taskListItemBlockSpec = BlockSpec
      { blockType           = "TaskListItem"
      , blockStart          = do
-             (pos, lidata) <- itemStart parseListMarker
-             let linode = Node (defBlockData $ listItemSpec parseListMarker){
+             (pos, lidata) <- itemStart
+             let linode = Node (defBlockData taskListItemBlockSpec){
                              blockData = toDyn lidata,
                              blockStartPos = [pos] } []
              let listdata = ListData{
                     listType = listItemType lidata
                   , listSpacing = TightList }
                   -- spacing gets set in finalize
-             let listnode = Node (defBlockData listSpec){
+             let listnode = Node (defBlockData taskListBlockSpec){
                               blockData = toDyn listdata,
                               blockStartPos = [pos] } []
              -- list can only interrupt paragraph if bullet
@@ -136,7 +137,8 @@ taskListItemBlockSpec parseListMarker = BlockSpec
      , blockParagraph      = False
      , blockContinue       = \node@(Node ndata children) -> do
              let lidata = fromDyn (blockData ndata)
-                             (ListItemData (BulletList '*') 0 False False)
+                             (ListItemData (BulletList '*') False 0
+                              False False)
              -- a marker followed by two blanks is just an empty item:
              guard $ null (blockBlanks ndata) ||
                      not (null children)
@@ -146,7 +148,7 @@ taskListItemBlockSpec parseListMarker = BlockSpec
      , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = \(Node cdata children) parent -> do
           let lidata = fromDyn (blockData cdata)
-                                 (ListItemData (BulletList '*')
+                                 (ListItemData (BulletList '*') False
                                    0 False False)
           let blanks = removeConsecutive $ sort $
                          concat $ blockBlanks cdata :
@@ -167,8 +169,35 @@ taskListItemBlockSpec parseListMarker = BlockSpec
                            parent
      }
 
+removeConsecutive :: [Int] -> [Int]
+removeConsecutive (x:y:zs)
+  | x == y + 1 = removeConsecutive (y:zs)
+removeConsecutive xs = xs
+
+itemStart :: Monad m
+          => BlockParser m il bl (SourcePos, ListItemData)
+itemStart = do
+  beforecol <- sourceColumn <$> getPosition
+  gobbleUpToSpaces 3
+  pos <- getPosition
+  ty <- bulletListMarker
+  checked <- return undefined -- TODO parse checkbox
+  aftercol <- sourceColumn <$> getPosition
+  lookAhead whitespace
+  numspaces <- try (gobbleUpToSpaces 4 <* notFollowedBy whitespace)
+           <|> gobbleSpaces 1
+           <|> 1 <$ lookAhead lineEnd
+  return $! (pos, ListItemData{
+            listItemType = ty
+          , listItemChecked = checked
+          , listItemIndent = (aftercol - beforecol) + numspaces
+          , listItemBlanksInside = False
+          , listItemBlanksAtEnd = False
+          })
+
+
 class IsBlock il bl => HasTaskList il bl where
-  taskList :: ListSpacing -> [[bl]] -> bl
+  taskList :: ListSpacing -> [bl] -> bl
 
 instance Rangeable (Html a) => HasTaskList (Html a) (Html a) where
   taskList spacing items =
@@ -176,11 +205,10 @@ instance Rangeable (Html a) => HasTaskList (Html a) (Html a) where
     $ taskList spacing
     $ map addCheckbox items
 
-addCheckbox :: [Html a] -> [Html a]
+addCheckbox :: Html a -> Html a
 addCheckbox = undefined
 
 instance (HasTaskList il bl, Semigroup bl)
         => HasTaskList (WithSourceMap il) (WithSourceMap bl) where
-   taskList spacing items = (do
-     xs <- sequence items
-     return $! taskList spacing xs) <* addName "taskList"
+   taskList spacing items =
+     (taskList spacing <$> sequence items) <* addName "taskList"

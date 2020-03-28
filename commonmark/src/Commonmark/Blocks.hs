@@ -44,6 +44,7 @@ module Commonmark.Blocks
   , rawHtmlSpec
   , attributeSpec
   , paraSpec
+  , plainSpec
   )
 where
 

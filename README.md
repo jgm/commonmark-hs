@@ -3,7 +3,7 @@
 [![CI
 tests](https://github.com/jgm/commonmark-hs/workflows/CI%20tests/badge.svg)](https://github.com/jgm/commonmark-hs/actions)
 
-This repository contains three packages:
+This repository contains four packages:
 
 - [`commonmark`](commonmark/):
   a pure Haskell library for parsing commonmark,

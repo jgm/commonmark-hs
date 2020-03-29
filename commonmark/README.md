@@ -25,7 +25,12 @@ pathological cases that tend to cause stack overflows or
 exponential slowdowns in other parsers, with parsing speed that
 varies linearly with input length.
 
-The following optional extensions are provided:
+## Related libraries
+
+**[`commonmark-extensions`](commonmark-extensions/)**
+provides a set of useful extensions to core commonmark syntax,
+including all GitHub-flavored Markdown extensions and many
+pandoc extensions:
 
 - [`pipe_tables`] (pipe tables)
 - [`smart`] (smart quotes, dashes, and ellipses)
@@ -62,6 +67,16 @@ The following optional extensions are provided:
 [`fenced_divs`]: test/fenced_divs.md
 [`auto_identifiers`]: test/auto_identifiers.md
 [`implicit_heading_references`]: test/implicit_heading_references.md
+
+For convenience, the package of extensions
+defining GitHub-flavored Markdown is exported as `gfmExtensions`.
+
+**[`commonmark-pandoc`](commonmark-pandoc/)** defines
+type instances for parsing commonmark as a Pandoc AST.
+
+**[`commonmark-cli`](commonmark-cli/)** is a
+command-line program that uses this library to convert
+and syntax-highlight commonmark documents.
 
 
 ## Simple usage example

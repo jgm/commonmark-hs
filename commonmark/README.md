@@ -1,9 +1,9 @@
 # commonmark
 
 This package provides the core parsing functionality
-for commonmark, without any renderers.
+for commonmark, together with HTML renderers.
 
-:construction: This library is still in an experimental state.
+:construction: This library is still in an **experimental state**.
 Comments on the API and implementation are very much welcome.
 Further changes should be expected.
 

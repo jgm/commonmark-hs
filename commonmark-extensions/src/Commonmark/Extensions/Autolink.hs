@@ -9,7 +9,7 @@ import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.TokParsers
-import Control.Monad (guard)
+import Control.Monad (guard, void)
 import Data.List (dropWhileEnd)
 import Text.Parsec
 import Data.Text (Text)
@@ -25,6 +25,11 @@ autolinkSpec = mempty
 
 parseAutolink :: (Monad m, IsInline a) => InlineParser m a
 parseAutolink = do
+  void $ lookAhead $ satisfyTok $ \t ->
+    case tokType t of
+      WordChars -> True
+      Symbol c  -> c == '.' || c == '-' || c == '_' || c == '+'
+      _         -> False
   (prefix, linktext) <- withRaw $ wwwAutolink <|> urlAutolink <|> emailAutolink
   return $! link (prefix <> untokenize linktext) "" (str . untokenize $ linktext)
 

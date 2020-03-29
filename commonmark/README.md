@@ -27,56 +27,18 @@ varies linearly with input length.
 
 ## Related libraries
 
-**[`commonmark-extensions`](commonmark-extensions/)**
-provides a set of useful extensions to core commonmark syntax,
-including all GitHub-flavored Markdown extensions and many
-pandoc extensions:
+- **[`commonmark-extensions`](commonmark-extensions/)**
+  provides a set of useful extensions to core commonmark syntax,
+  including all GitHub-flavored Markdown extensions and many
+  pandoc extensions.  For convenience, the package of extensions
+  defining GitHub-flavored Markdown is exported as `gfmExtensions`.
 
-- [`pipe_tables`] (pipe tables)
-- [`smart`] (smart quotes, dashes, and ellipses)
-- [`strikethrough`] (strikethrough)
-- [`superscript`] (superscript)
-- [`subscript`] (subscript)
-- [`math`] (LaTeX math)
-- [`emoji`] (emoji)
-- [`autolinks`] (autolink bare URLs and email addresses)
-- [`footnotes`] (footnotes)
-- [`definition_lists`] (definition lists)
-- [`fancy_lists`] (fancy ordered list markers (parentheses, alpha, roman)
-- [`attributes`] (attributes for all inline and block elements)
-- [`raw_attribute`] (special raw block and inline elements in any format)
-- [`bracketed_spans`] (spans of inline elements with attributes)
-- [`fenced_divs`] (groups of block elements with attributes)
-- [`auto_identifiers`] (automatic generation of identifiers for headings)
-- [`implicit_heading_references`] (headings implicitly define link references)
+- **[`commonmark-pandoc`](commonmark-pandoc/)** defines
+  type instances for parsing commonmark as a Pandoc AST.
 
-[`pipe_tables`]: test/pipe_tables.md
-[`smart`]: test/smart.md
-[`strikethrough`]: test/strikethrough.md
-[`superscript`]: test/superscript.md
-[`subscript`]: test/subscript.md
-[`math`]: test/math.md
-[`emoji`]: test/emoji.md
-[`autolinks`]: test/autolinks.md
-[`footnotes`]: test/footnotes.md
-[`definition_lists`]: test/definition_lists.md
-[`fancy_lists`]: test/fancy_lists.md
-[`attributes`]: test/attributes.md
-[`raw_attribute`]: test/raw_attribute.md
-[`bracketed_spans`]: test/bracketed_spans.md
-[`fenced_divs`]: test/fenced_divs.md
-[`auto_identifiers`]: test/auto_identifiers.md
-[`implicit_heading_references`]: test/implicit_heading_references.md
-
-For convenience, the package of extensions
-defining GitHub-flavored Markdown is exported as `gfmExtensions`.
-
-**[`commonmark-pandoc`](commonmark-pandoc/)** defines
-type instances for parsing commonmark as a Pandoc AST.
-
-**[`commonmark-cli`](commonmark-cli/)** is a
-command-line program that uses this library to convert
-and syntax-highlight commonmark documents.
+- **[`commonmark-cli`](commonmark-cli/)** is a
+  command-line program that uses this library to convert
+  and syntax-highlight commonmark documents.
 
 
 ## Simple usage example

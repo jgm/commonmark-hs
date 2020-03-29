@@ -19,8 +19,8 @@ import Commonmark.TokParsers
 import Commonmark.Html
 import Control.Monad (mzero)
 #if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup
-import Data.Monoid
+import Data.Semigroup (Semigroup)
+import Data.Monoid ((<>))
 #endif
 import Control.Monad (when, guard)
 import Data.List (sort)

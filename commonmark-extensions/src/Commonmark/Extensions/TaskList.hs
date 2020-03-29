@@ -227,7 +227,7 @@ addCheckbox (checked, x) =
    (if checked then addAttribute ("checked","") else id) $
    htmlInline "input" Nothing) <> x
 
-instance (HasTaskList il bl, Semigroup bl)
+instance (HasTaskList il bl, Semigroup bl, Semigroup il)
         => HasTaskList (WithSourceMap il) (WithSourceMap bl) where
    taskList lt spacing items =
      (do let (checks, xs) = unzip items

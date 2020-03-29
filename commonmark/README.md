@@ -27,16 +27,16 @@ varies linearly with input length.
 
 ## Related libraries
 
-- **[`commonmark-extensions`](commonmark-extensions/)**
+- **[`commonmark-extensions`](https://github.com/jgm/commonmark-extensions/)**
   provides a set of useful extensions to core commonmark syntax,
   including all GitHub-flavored Markdown extensions and many
   pandoc extensions.  For convenience, the package of extensions
   defining GitHub-flavored Markdown is exported as `gfmExtensions`.
 
-- **[`commonmark-pandoc`](commonmark-pandoc/)** defines
+- **[`commonmark-pandoc`](https://github.com/jgm/commonmark-pandoc/)** defines
   type instances for parsing commonmark as a Pandoc AST.
 
-- **[`commonmark-cli`](commonmark-cli/)** is a
+- **[`commonmark-cli`](https://github.com/jgm//commonmark-cli/)** is a
   command-line program that uses this library to convert
   and syntax-highlight commonmark documents.
 

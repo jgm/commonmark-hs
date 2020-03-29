@@ -3,9 +3,9 @@
 This package provides the core parsing functionality
 for commonmark, without any renderers.
 
-:construction: **Work in progress!**  The interface is in flux, and
-the library is not ready for use yet, but comments on the
-API and implementation are very much welcome.
+:construction: This library is still in an experimental state.
+Comments on the API and implementation are very much welcome.
+Further changes should be expected.
 
 The library is **fully commonmark-compliant** and passes the
 test suite.  It is designed to be **customizable and easily
@@ -64,6 +64,22 @@ The following optional extensions are provided:
 [`implicit_heading_references`]: test/implicit_heading_references.md
 
 
+## Simple usage example
+
+This program reads commonmark from stdin and renders HTML to stdout:
+
+``` haskell
+{-# LANGUAGE ScopedTypeVariables #-}
+import Commonmark
+import Data.Text.IO as TIO
+import Data.Text.Lazy.IO as TLIO
+
+main = do
+  res <- commonmark "stdin" <$> TIO.getContents
+  case res of
+    Left e                  -> error (show e)
+    Right (html :: Html ()) -> TLIO.putStr $ renderHtml html
+```
 
 ## Notes on the design
 

@@ -84,14 +84,15 @@ defaultInlineParser =
   {-# SCC defaultInlineParser #-} try $ do
     tok@(Tok toktype _ t) <- anyTok
     case toktype of
-        WordChars   -> return $ str t
-        LineEnd     -> return softBreak
-        Spaces      -> doBreak (T.length t) <|> return (str t)
-        Symbol '\\' -> option (str "\\") doEscape
-        Symbol '`'  -> doCodeSpan tok
-        Symbol '&'  -> option (str "&") doEntity
-        Symbol '<'  -> option (str "<") (doAutolink <|> doHtml tok)
-        _           -> mzero
+        WordChars    -> return $ str t
+        LineEnd      -> return softBreak
+        Spaces       -> doBreak (T.length t) <|> return (str t)
+        UnicodeSpace -> return $ str t
+        Symbol '\\'  -> option (str "\\") doEscape
+        Symbol '`'   -> doCodeSpan tok
+        Symbol '&'   -> option (str "&") doEntity
+        Symbol '<'   -> option (str "<") (doAutolink <|> doHtml tok)
+        _            -> mzero
     where
      doBreak len = do
        _ <- satisfyTok (hasType LineEnd)

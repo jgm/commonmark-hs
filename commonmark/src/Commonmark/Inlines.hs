@@ -539,7 +539,7 @@ data DState a = DState
 processEmphasis :: IsInline a => [Chunk a] -> [Chunk a]
 processEmphasis xs =
   case break (\case
-               (Chunk Delim{} _ _) -> True
+               (Chunk Delim{ delimCanOpen = True } _ _) -> True
                _ -> False) xs of
        (_,[]) -> xs
        (ys,z:zs) ->

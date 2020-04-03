@@ -20,6 +20,7 @@ import Text.Pandoc.Definition
 import Text.Pandoc.Walk
 import qualified Text.Pandoc.Builder as B
 import Commonmark.Types as C
+import Commonmark.Entity (lookupEntity)
 import Commonmark.Extensions.Math
 import Commonmark.Extensions.Emoji
 import Commonmark.Extensions.PipeTable
@@ -48,7 +49,7 @@ instance Rangeable (Cm b B.Inlines) => IsInline (Cm b B.Inlines) where
   str t = Cm $ B.text t
   entity t
     | illegalCodePoint t = Cm $ B.str "\xFFFD"
-    | otherwise = Cm $ B.str t
+    | otherwise = Cm $ B.str $ fromMaybe t $ lookupEntity (T.drop 1 t)
   escapedChar c = Cm $ B.str $ T.singleton c
   emph ils = B.emph <$> ils
   strong ils = B.strong <$> ils

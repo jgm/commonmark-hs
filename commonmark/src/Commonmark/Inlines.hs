@@ -94,12 +94,9 @@ defaultInlineParser =
         Symbol '<'   -> option (str "<") (doAutolink <|> doHtml tok)
         _            -> mzero
     where
-     doBreak len = do
-       _ <- satisfyTok (hasType LineEnd)
-       return $
-         if len >= 2
-            then lineBreak
-            else softBreak
+     doBreak len
+       | len >= 2  = lineBreak <$ satisfyTok (hasType LineEnd)
+       | otherwise = mempty <$ lookAhead (satisfyTok (hasType LineEnd))
      doEscape = do
        tok <- satisfyTok
                     (\case

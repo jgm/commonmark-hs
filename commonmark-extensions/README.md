@@ -3,7 +3,7 @@
 This package provides some syntax extensions for the
 commonmark package:
 
-- [`pipe_tables`] (pipe tables)
+- [`hard_line_breaks`] (treat new lines as hard breaks)
 - [`smart`] (smart quotes, dashes, and ellipses)
 - [`strikethrough`] (strikethrough)
 - [`superscript`] (superscript)
@@ -11,6 +11,7 @@ commonmark package:
 - [`math`] (LaTeX math)
 - [`emoji`] (emoji)
 - [`autolinks`] (autolink bare URLs and email addresses)
+- [`pipe_tables`] (pipe tables)
 - [`footnotes`] (footnotes)
 - [`definition_lists`] (definition lists)
 - [`fancy_lists`] (fancy ordered list markers (parentheses, alpha, roman)
@@ -23,6 +24,7 @@ commonmark package:
 - [`implicit_heading_references`] (headings implicitly define link references)
 
 [`pipe_tables`]: test/pipe_tables.md
+[`hard_line_breaks`]: test/hard_line_breaks.md
 [`smart`]: test/smart.md
 [`strikethrough`]: test/strikethrough.md
 [`superscript`]: test/superscript.md

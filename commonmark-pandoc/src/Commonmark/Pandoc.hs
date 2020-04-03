@@ -106,8 +106,8 @@ instance HasMath (Cm b B.Inlines) where
   displayMath t = Cm $ B.displayMath t
 
 instance HasEmoji (Cm b B.Inlines) where
-  emoji kw t = Cm $ B.spanWith ("",["emoji"],[("emoji",t)])
-                  $ B.text kw
+  emoji kw t = Cm $ B.spanWith ("",["emoji"],[("emoji",kw)])
+                  $ B.text t
 
 instance HasPipeTable (Cm a B.Inlines) (Cm a B.Blocks) where
   pipeTable aligns headerCells rows =

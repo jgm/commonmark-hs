@@ -24,6 +24,7 @@ Usage example:
 
 module Commonmark.Extensions
     ( module Commonmark.Extensions.Smart
+    , module Commonmark.Extensions.HardLineBreaks
     , module Commonmark.Extensions.Strikethrough
     , module Commonmark.Extensions.Superscript
     , module Commonmark.Extensions.Subscript
@@ -42,6 +43,7 @@ module Commonmark.Extensions
     ) where
 
 import           Commonmark.Extensions.Smart
+import           Commonmark.Extensions.HardLineBreaks
 import           Commonmark.Extensions.Strikethrough
 import           Commonmark.Extensions.Superscript
 import           Commonmark.Extensions.Subscript

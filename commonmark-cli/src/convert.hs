@@ -136,6 +136,7 @@ extensions :: (Monad m, Typeable m,
 extensions =
   [ ("autolinks", autolinkSpec)
   ,("pipe_tables", pipeTableSpec)
+  ,("hard_line_breaks", hardLineBreaksSpec)
   ,("strikethrough", strikethroughSpec)
   ,("superscript", superscriptSpec)
   ,("subscript", subscriptSpec)

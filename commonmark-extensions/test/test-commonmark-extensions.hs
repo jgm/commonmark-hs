@@ -31,6 +31,7 @@ main :: IO ()
 main = do
   tests <- mapM (uncurry getSpecTestTree)
              [ ("test/smart.md", smartPunctuationSpec)
+             , ("test/hard_line_breaks.md", hardLineBreaksSpec)
              , ("test/strikethrough.md", strikethroughSpec)
              , ("test/superscript.md", superscriptSpec)
              , ("test/subscript.md", subscriptSpec)

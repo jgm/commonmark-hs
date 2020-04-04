@@ -25,7 +25,6 @@ import Data.Dynamic
 import Data.Tree
 import Text.Parsec
 
-
 definitionListSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
                        Typeable il, Typeable bl, HasDefinitionList il bl)
                    => SyntaxSpec m il bl
@@ -144,10 +143,10 @@ definitionListDefinitionBlockSpec = BlockSpec
                                              (rootLabel linode) } []
              (Node bdata' children' : rest') <- nodeStack <$> getState
              -- if last child was DefinitionList, set that to current
-             case reverse children' of
+             case children' of
                m:ms | blockType (blockSpec (rootLabel m)) == "DefinitionList"
                    -> updateState $ \st -> st{ nodeStack =
-                        m : Node bdata' (reverse ms) : rest' }
+                        m : Node bdata' ms : rest' }
                _ -> return ()
              (Node bdata'' _ : _) <- nodeStack <$> getState
              case blockType (blockSpec bdata'') of

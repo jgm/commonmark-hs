@@ -259,3 +259,25 @@ c</dt>
 </dl>
 ````````````````````````````````
 
+Definition list with preceding paragraph
+(<https://github.com/jgm/commonmark-hs/issues/35>):
+
+```````````````````````````````` example
+Foo
+
+bar
+:   baz
+
+bim
+:   bor
+.
+<p>Foo</p>
+<dl>
+<dt>bar</dt>
+<dd>baz
+</dd>
+<dt>bim</dt>
+<dd>bor
+</dd>
+</dl>
+````````````````````````````````

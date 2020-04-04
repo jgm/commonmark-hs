@@ -74,7 +74,8 @@ instance (Rangeable (Cm a B.Inlines),
   plain ils = Cm $ B.plain $ unCm ils
   thematicBreak = Cm B.horizontalRule
   blockQuote bs = B.blockQuote <$> bs
-  codeBlock info t = Cm $ B.codeBlockWith attr t
+  codeBlock info t =
+    Cm $ B.codeBlockWith attr $ fromMaybe t $ T.stripSuffix "\n" t
     where attr = ("", [lang | not (T.null lang)], [])
           lang = T.takeWhile (not . isSpace) info
   heading level ils = Cm $ B.header level $ unCm ils

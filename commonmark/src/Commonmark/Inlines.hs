@@ -53,8 +53,6 @@ import           Commonmark.Entity          (unEntity, charEntity, numEntity)
 import           Text.Parsec                hiding (State, space)
 import           Text.Parsec.Pos
 
--- import Debug.Trace
-
 mkInlineParser :: (Monad m, IsInline a)
                => [BracketedSpec a]
                -> [FormattingSpec a]
@@ -134,12 +132,18 @@ unChunks = {-# SCC unChunks #-} foldl' mappend mempty . go
                _ -> (id, cs) in
         case chunkType c of
           AddAttributes _ -> go rest
-          Delim{} -> x : go rest
-              where !x = f (ranged range (str t))
-                    t = untokenize (chunkToks c)
+          Delim{ delimType = ch, delimSpec = mbspec } -> x : go rest
+              where !x = f (ranged range (str txt))
+                    txt = untokenize $ alterToks $ chunkToks c
+                    alterToks =
+                      case formattingWhenUnmatched <$> mbspec of
+                        Just ch' | ch' /= ch ->
+                           map (\t -> t{ tokContents =
+                                         T.map (const ch') (tokContents t) })
+                        _ -> id
                     range = SourceRange
                              [(chunkPos c,
-                               incSourceColumn (chunkPos c) (T.length t))]
+                               incSourceColumn (chunkPos c) (T.length txt))]
           Parsed ils -> x : go rest
               where !x = f ils
 
@@ -391,23 +395,14 @@ pDelimChunk specmap isDelimChar = do
           (maybe True formattingIntraWord mbspec ||
            not leftFlanking ||
            followedByPunctuation)
-  let toks' = case mbspec of
-                    Nothing -> toks
-                    -- change tokens to unmatched fallback
-                    -- this is mainly for quotes
-                    Just spec
-                      | formattingWhenUnmatched spec /= c ->
-                         map (\t -> t{ tokContents =
-                               T.map (\_ -> formattingWhenUnmatched spec)
-                                  (tokContents t) }) toks
-                    _ -> toks
-  let !len = length toks'
+
+  let !len = length toks
   return $! Chunk Delim{ delimType = c
                        , delimCanOpen = canOpen
                        , delimCanClose = canClose
                        , delimSpec = mbspec
                        , delimLength = len
-                       } pos toks'
+                       } pos toks
 
 withAttributes :: (IsInline a, Monad m) => InlineParser m a -> InlineParser m a
 withAttributes p = do
@@ -533,6 +528,7 @@ data DState a = DState
      , stackBottoms   :: M.Map Text SourcePos
      , absoluteBottom :: SourcePos
      }
+
 
 processEmphasis :: IsInline a => [Chunk a] -> [Chunk a]
 processEmphasis xs =

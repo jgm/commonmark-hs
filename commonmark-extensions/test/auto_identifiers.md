@@ -14,7 +14,7 @@ different from legacy pandoc auto identifiers):
 - Remove all punctuation except `-`, `_`, and punctuation in
   the categories NonSpacingMark, SpacingCombiningMark,
   EnclosingMark, and ConnectorPunctuation.
-- Replace emojis with their textual descriptions
+- Replace emojis with their textual aliases
 
 ```````````````````````````````` example
 #   Heading  with_two_spaces! 

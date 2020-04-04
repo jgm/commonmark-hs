@@ -25,7 +25,7 @@ import Data.Dynamic
 import Data.Tree
 import Text.Parsec
 
-definitionListSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
+definitionListSpec :: (Monad m, IsBlock il bl, IsInline il,
                        Typeable il, Typeable bl, HasDefinitionList il bl)
                    => SyntaxSpec m il bl
 definitionListSpec = mempty

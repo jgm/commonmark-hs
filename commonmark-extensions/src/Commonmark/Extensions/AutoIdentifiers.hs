@@ -6,6 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE BangPatterns #-}
 module Commonmark.Extensions.AutoIdentifiers
   ( autoIdentifiersSpec
   )
@@ -13,6 +14,7 @@ where
 import Commonmark.Types
 import Commonmark.Syntax
 import Commonmark.Blocks
+import Text.Emoji (emojis)
 import Data.Char (isSpace, toLower, isAlphaNum,
                   generalCategory, GeneralCategory(NonSpacingMark,
                   SpacingCombiningMark, EnclosingMark, ConnectorPunctuation))
@@ -66,9 +68,17 @@ addId bd
 makeIdentifier :: T.Text -> T.Text
 makeIdentifier = toIdent
   where
-    toIdent = filterPunct . spaceToDash . T.map toLower
-    spaceToDash = T.map (\c -> if isSpace c then '-' else c)
-    filterPunct = T.filter (\c -> isSpace c || isAlphaNum c || isAllowedPunct c)
+    toIdent = T.concatMap
+       (\c -> if isAlphaNum c || isAllowedPunct c
+                 then T.singleton (toLower c)
+                 else if isSpace c
+                      then "-"
+                      else case M.lookup (T.singleton c) emojiAliasMap of
+                              Just t' -> t'
+                              Nothing -> mempty)
     isAllowedPunct c = c == '-' || c == '_' ||
           generalCategory c `elem` [NonSpacingMark, SpacingCombiningMark,
                                     EnclosingMark, ConnectorPunctuation]
+
+emojiAliasMap :: M.Map T.Text T.Text
+emojiAliasMap = M.fromList $ map (\(x,y) -> (y,x)) emojis

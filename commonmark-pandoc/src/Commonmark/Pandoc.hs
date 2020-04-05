@@ -180,6 +180,8 @@ addBlockAttrs attrs (Header n curattrs ils) =
   Header n (addToPandocAttr attrs curattrs) ils
 addBlockAttrs attrs (CodeBlock curattrs s) =
   CodeBlock (addToPandocAttr attrs curattrs) s
+addBlockAttrs attrs (Div curattrs bs) =
+  Div (addToPandocAttr attrs curattrs) bs
 addBlockAttrs attrs x =
   Div (addToPandocAttr attrs nullAttr) [x]
 

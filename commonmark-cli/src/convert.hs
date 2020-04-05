@@ -152,6 +152,7 @@ extensions =
   ,("bracketed_spans", bracketedSpanSpec)
   ,("fenced_divs", fencedDivSpec)
   ,("auto_identifiers", autoIdentifiersSpec)
+  ,("auto_identifiers_ascii", autoIdentifiersAsciiSpec)
   ,("implicit_heading_references", implicitHeadingReferencesSpec)
   ,("gfm", gfmExtensions)
   ]

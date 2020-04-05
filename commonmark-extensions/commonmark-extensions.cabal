@@ -24,6 +24,7 @@ extra-source-files:
     test/fancy_lists.md
     test/autolinks.md
     test/auto_identifiers.md
+    test/auto_identifiers_ascii.md
     test/implicit_heading_references.md
     test/pipe_tables.md
     test/attributes.md

@@ -21,6 +21,7 @@ commonmark package:
 - [`bracketed_spans`] (spans of inline elements with attributes)
 - [`fenced_divs`] (groups of block elements with attributes)
 - [`auto_identifiers`] (automatic generation of identifiers for headings)
+- [`auto_identifiers_ascii`] (automatic generation of ASCII identifiers for headings)
 - [`implicit_heading_references`] (headings implicitly define link references)
 
 [`pipe_tables`]: test/pipe_tables.md
@@ -41,5 +42,6 @@ commonmark package:
 [`bracketed_spans`]: test/bracketed_spans.md
 [`fenced_divs`]: test/fenced_divs.md
 [`auto_identifiers`]: test/auto_identifiers.md
+[`auto_identifiers_ascii`]: test/auto_identifiers_ascii.md
 [`implicit_heading_references`]: test/implicit_heading_references.md
 

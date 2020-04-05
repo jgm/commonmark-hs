@@ -142,6 +142,7 @@ pipeTableBlockSpec = BlockSpec
      , blockStart          = try $ do -- :: BlockParser m il bl ()
          interruptsParagraph >>= guard . not
          nonindentSpaces
+         notFollowedBy whitespace
          pos <- getPosition
          (cells, toks) <- withRaw pCells
          nl <- lookAhead lineEnd

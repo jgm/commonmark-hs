@@ -238,3 +238,29 @@ Here are some non-tables:
 <p>| ---- | --- |</p>
 ````````````````````````````````
 
+A table may be indented up to three spaces:
+
+```````````````````````````````` example
+   a | b | c
+   - | - | -
+.
+<table>
+<thead>
+<tr>
+<th>a</th>
+<th>b</th>
+<th>c</th>
+</tr>
+</thead>
+</table>
+````````````````````````````````
+
+```````````````````````````````` example
+    a | b | c
+    - | - | -
+.
+<pre><code>a | b | c
+- | - | -
+</code></pre>
+````````````````````````````````
+

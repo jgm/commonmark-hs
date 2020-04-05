@@ -65,6 +65,10 @@ instance HasAttributes (Html a) where
 instance ToPlainText (Html a) where
   toPlainText h =
     case h of
+      HtmlElement InlineElement "span" attr (Just x)
+        -> case lookup "data-emoji" attr of
+              Just alias -> ":" <> alias <> ":"
+              Nothing    -> toPlainText x
       HtmlElement _ _ _ (Just x) -> toPlainText x
       HtmlElement _ _ attrs Nothing
                                  -> fromMaybe mempty $ lookup "alt" attrs

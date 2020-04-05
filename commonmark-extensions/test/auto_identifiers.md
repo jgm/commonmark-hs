@@ -29,12 +29,6 @@ Heading  with_two_spaces!
 <h2 id="heading--with_two_spaces">Heading  with_two_spaces!</h2>
 ````````````````````````````````
 
-```````````````````````````````` example
-#   Heading with emoji 💎
-.
-<h1 id="heading-with-emoji-gem">Heading with emoji 💎</h1>
-````````````````````````````````
-
 Auto identifiers are not assigned to headings
 that have explicit identifiers:
 

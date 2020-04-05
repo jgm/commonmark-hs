@@ -14,10 +14,8 @@ where
 import Commonmark.Types
 import Commonmark.Syntax
 import Commonmark.Blocks
-import Text.Emoji (emojis)
-import Data.Char (isSpace, toLower, isAlphaNum,
-                  generalCategory, GeneralCategory(NonSpacingMark,
-                  SpacingCombiningMark, EnclosingMark, ConnectorPunctuation))
+import Data.Char (isSpace, isAlphaNum, isAscii, isMark,
+                  generalCategory, GeneralCategory(ConnectorPunctuation))
 import Data.Dynamic
 import qualified Data.Map as M
 import qualified Data.Text as T
@@ -29,28 +27,28 @@ import Data.Semigroup
 autoIdentifiersSpec :: (Monad m, IsBlock il bl, IsInline il, ToPlainText il)
                     => SyntaxSpec m il bl
 autoIdentifiersSpec = mempty
-  { syntaxFinalParsers = [addAutoIdentifiers]
+  { syntaxFinalParsers = [addAutoIdentifiers False]
   }
 
 -- Go through the node stack and add identifiers where they
 -- are missing.
 addAutoIdentifiers :: (Monad m, IsBlock il bl, IsInline il, ToPlainText il)
-                   => BlockParser m il bl bl
-addAutoIdentifiers = do
+                   => Bool -> BlockParser m il bl bl
+addAutoIdentifiers ascii = do
   nodes <- nodeStack <$> getState
-  nodes' <- mapM (traverse addId) nodes
+  nodes' <- mapM (traverse $ addId ascii) nodes
   updateState $ \st -> st{ nodeStack = nodes' }
   return $! mempty
 
 addId :: (Monad m, IsBlock il bl, IsInline il, ToPlainText il)
-       => BlockData m il bl -> BlockParser m il bl (BlockData m il bl)
-addId bd
+       => Bool -> BlockData m il bl -> BlockParser m il bl (BlockData m il bl)
+addId ascii bd
   | blockType (blockSpec bd) `elem` ["ATXHeading", "SetextHeading"] = do
     case lookup "id" (blockAttributes bd) of
       Nothing  -> do
         contents <- runInlineParser
                     (removeIndent . mconcat . reverse . blockLines $ bd)
-        let ident = makeIdentifier (toPlainText contents)
+        let ident = makeIdentifier ascii (toPlainText contents)
         counterMap <- counters <$> getState
         let key = "identifier:" <> ident
         cnt <- case M.lookup key counterMap of
@@ -65,20 +63,18 @@ addId bd
       Just _ -> return $! bd
   | otherwise = return $! bd
 
-makeIdentifier :: T.Text -> T.Text
-makeIdentifier = toIdent
+makeIdentifier :: Bool -> T.Text -> T.Text
+makeIdentifier ascii = toIdent . T.toLower
   where
-    toIdent = T.concatMap
-       (\c -> if isAlphaNum c || isAllowedPunct c
-                 then T.singleton (toLower c)
-                 else if isSpace c
-                      then "-"
-                      else case M.lookup (T.singleton c) emojiAliasMap of
-                              Just t' -> t'
-                              Nothing -> mempty)
-    isAllowedPunct c = c == '-' || c == '_' ||
-          generalCategory c `elem` [NonSpacingMark, SpacingCombiningMark,
-                                    EnclosingMark, ConnectorPunctuation]
-
-emojiAliasMap :: M.Map T.Text T.Text
-emojiAliasMap = M.fromList $ map (\(x,y) -> (y,x)) emojis
+    toIdent = T.concatMap f
+    f '-' = "-"
+    f '_' = "_"
+    f c | isSpace c = "-"
+    f c | isAlphaNum c || isMark c ||
+          generalCategory c == ConnectorPunctuation
+                    = fromchar c
+        | otherwise = mempty
+    fromchar c
+      | ascii
+      , not (isAscii c) = mempty
+      | otherwise       = T.singleton c

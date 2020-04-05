@@ -65,7 +65,12 @@ instance Rangeable (Cm SourceRange B.Inlines) where
   ranged r = addAttributes [("data-pos", T.pack (show r))]
 
 instance Walkable Inline b => ToPlainText (Cm a b) where
-  toPlainText = stringify . unCm
+  toPlainText = stringify . walk unemoji . unCm
+
+unemoji :: Inline -> Inline
+unemoji (Span ("",["emoji"],[("data-emoji",alias)]) _)
+          = Str (":" <> alias <> ":")
+unemoji x = x
 
 instance (Rangeable (Cm a B.Inlines),
           Rangeable (Cm a B.Blocks))

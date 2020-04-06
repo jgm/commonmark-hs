@@ -90,7 +90,7 @@ mkBlockParser specs finalParsers ilParser attrParsers ts =
                  , inlineParser     = ilParser
                  , nodeStack        = [Node (defBlockData docSpec) []]
                  , blockMatched     = False
-                 , maybeLazy        = False
+                 , maybeLazy        = True
                  , maybeBlank       = True
                  , counters         = M.empty
                  , failurePositions = M.empty
@@ -125,17 +125,17 @@ processLine specs = do
   -- check block continuations for each node in stack
   st' <- getState
   putState $  st'{ blockMatched = True
-                 , maybeLazy = False
+                 , maybeLazy = True
                  , maybeBlank = True
                  , failurePositions = M.empty }
   (matched, unmatched) <-  foldrM checkContinue ([],[]) (nodeStack st')
 
   -- if not everything matched, and last unmatched is paragraph,
   -- then we may have a lazy paragraph continuation
-  updateState $ \st -> st{ maybeLazy =
-    case unmatched of
-         m:_ -> blockParagraph (bspec m)
-         _   -> False }
+  updateState $ \st -> st{ maybeLazy = maybeLazy st &&
+     case unmatched of
+          m:_ -> blockParagraph (bspec m)
+          _   -> False }
 
   -- close unmatched blocks
   if null unmatched
@@ -147,9 +147,9 @@ processLine specs = do
                 m' <- collapseNodeStack (unmatched ++ [m])
                 updateState $ \st -> st{ nodeStack = m':ms }
 
-  isblank <- option False $ True <$ (do getState >>= guard . maybeBlank
-                                        lookAhead blankLine)
-  {-# SCC block_starts #-} unless isblank $
+  restBlank <- option False $ True <$ lookAhead blankLine
+
+  {-# SCC block_starts #-} unless restBlank $
     (do skipMany1 (doBlockStarts specs)
         optional (try (blockStart paraSpec)))
       <|>
@@ -175,7 +175,7 @@ processLine specs = do
                if blockContainsLines (bspec cur)
                   then curdata{ blockLines = toks : blockLines curdata }
                   else
-                    if isblank
+                    if maybeBlank st && restBlank
                        then curdata{ blockBlanks = sourceLine pos :
                                         blockBlanks curdata }
                        else curdata
@@ -227,7 +227,8 @@ checkContinue nd (matched, unmatched) = do
            -- because of characters on the line closing the block,
            -- so it's not to be counted as blank:
            unless matched' $
-             updateState $ \st -> st{ maybeBlank = False }
+             updateState $ \st -> st{ maybeBlank = False,
+                                      maybeLazy = False }
            let new = Node bdata{ blockStartPos =
                       startpos : blockStartPos bdata
                       } children

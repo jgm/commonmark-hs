@@ -76,16 +76,26 @@ fencedDivBlockSpec = BlockSpec
      , blockContainsLines  = False
      , blockParagraph      = False
      , blockContinue       = \node -> try (do
-             let ((fencelength, _, _)
-                    :: (Int, Int, Attributes)) = fromDyn
-                                   (blockData (rootLabel node))
-                                   (3, 0, mempty)
              nonindentSpaces
              pos <- getPosition
              ts <- many1 (symbol ':')
-             guard $ length ts >= fencelength
+             let closelength = length ts
              skipWhile (hasType Spaces)
              lookAhead $ void lineEnd <|> eof
+             let fencelength = getFenceLength node
+             guard $ closelength >= fencelength
+             -- ensure that there aren't subordinate open fenced divs
+             -- with fencelength <= closelength:
+             ns <- nodeStack <$> getState
+             guard $ not $ any
+               (\n ->
+                 (blockType (blockSpec (rootLabel n))) == "FencedDiv" &&
+                 (getFenceLength n) <= closelength) $
+               takeWhile (\n -> not
+                    (blockType (blockSpec (rootLabel n)) == "FencedDiv" &&
+                     blockStartPos (rootLabel n) ==
+                     blockStartPos (rootLabel node)))
+               ns
              endOfBlock
              return $! (pos, node))
                <|> (do let ((_, indentspaces, _)
@@ -103,6 +113,14 @@ fencedDivBlockSpec = BlockSpec
      , blockFinalize       = defaultFinalizer
      }
 
+getFenceLength :: (Monad m, IsBlock il bl, HasDiv bl)
+               => BlockNode m il bl -> Int
+getFenceLength node =
+  let ((fencelength, _, _)
+         :: (Int, Int, Attributes)) = fromDyn
+                        (blockData (rootLabel node))
+                        (3, 0, mempty)
+  in fencelength
 
 bracketedSpanSpec
              :: (Monad m, IsInline il, HasSpan il)

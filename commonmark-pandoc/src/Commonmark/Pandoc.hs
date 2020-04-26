@@ -118,13 +118,21 @@ instance HasEmoji (Cm b B.Inlines) where
 
 instance HasPipeTable (Cm a B.Inlines) (Cm a B.Blocks) where
   pipeTable aligns headerCells rows =
-    Cm $ B.table mempty colspecs (map (B.plain . unCm) headerCells)
-                     (map (map (B.plain . unCm)) rows)
-    where toPandocAlignment LeftAlignedCol = AlignLeft
-          toPandocAlignment CenterAlignedCol = AlignCenter
-          toPandocAlignment RightAlignedCol = AlignRight
-          toPandocAlignment DefaultAlignedCol = AlignDefault
-          colspecs = map (\al -> (toPandocAlignment al, 0.0)) aligns
+    Cm $ B.table B.emptyCaption colspecs
+           (TableHead nullAttr (toHeaderRow headerCells))
+           [TableBody nullAttr 0 [] $ map toRow rows]
+           (TableFoot nullAttr [])
+    where
+     toHeaderRow cells
+       | null cells  = []
+       | otherwise   = [toRow cells]
+     toRow = Row nullAttr . map (B.simpleCell . B.plain . unCm)
+     toPandocAlignment LeftAlignedCol = AlignLeft
+     toPandocAlignment CenterAlignedCol = AlignCenter
+     toPandocAlignment RightAlignedCol = AlignRight
+     toPandocAlignment DefaultAlignedCol = AlignDefault
+     colspecs = map (\al -> (toPandocAlignment al, ColWidthDefault))
+                 aligns
 
 instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
   => HasDefinitionList (Cm a B.Inlines) (Cm a B.Blocks) where

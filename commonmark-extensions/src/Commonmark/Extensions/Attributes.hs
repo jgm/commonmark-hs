@@ -245,11 +245,13 @@ pAttributes = mconcat <$> many1 pattr
       as <- many $ try (whitespace *> (pIdentifier <|> pClass <|> pKeyValue))
       optional whitespace
       symbol '}'
-      return $! case a of
-                  ("class",cls) ->
-                    ("class", T.unwords (cls : [c | ("class",c) <- as]))
-                    : [(k,v) | (k,v) <- as, k /= "class"]
-                  _ -> (a:as)
+      return $! foldr
+        (\x xs ->
+          case x of
+               ("class",cls) ->
+                 ("class", T.unwords (cls : [c | ("class",c) <- xs]))
+                 : [(k,v) | (k,v) <- xs, k /= "class"]
+               _ -> x:xs) [] (a:as)
 
 pRawAttribute :: Monad m => ParsecT [Tok] u m Format
 pRawAttribute = try $ do

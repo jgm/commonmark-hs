@@ -250,14 +250,11 @@ either for blocks or for inlines.**
 ````````````````````````````````
 
 ```````````````````````````````` example
-{#foo}
 {.special}
-{.other key=val}
-{key=val2}
-{otherkey="hello"}
+{#foo}
 * * * *
 .
-<hr id="foo" class="special other" key="val2" otherkey="hello" />
+<hr class="special" id="foo" />
 ````````````````````````````````
 
 **Entities can be used in attribute values.**

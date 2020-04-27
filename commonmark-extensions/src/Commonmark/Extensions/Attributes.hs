@@ -30,7 +30,6 @@ import Data.Dynamic
 import Data.Tree
 import Control.Monad (mzero, guard, void)
 import Text.Parsec
-import qualified Data.Text as T
 #if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup
 #endif
@@ -245,11 +244,7 @@ pAttributes = mconcat <$> many1 pattr
       as <- many $ try (whitespace *> (pIdentifier <|> pClass <|> pKeyValue))
       optional whitespace
       symbol '}'
-      return $! case a of
-                  ("class",cls) ->
-                    ("class", T.unwords (cls : [c | ("class",c) <- as]))
-                    : [(k,v) | (k,v) <- as, k /= "class"]
-                  _ -> (a:as)
+      return $! (a:as)
 
 pRawAttribute :: Monad m => ParsecT [Tok] u m Format
 pRawAttribute = try $ do

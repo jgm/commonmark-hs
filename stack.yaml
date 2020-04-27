@@ -2,7 +2,7 @@ resolver: lts-14.6
 extra-deps:
 - emojis-0.1
 - git: https://github.com/jgm/pandoc-types
-  commit: 4acb0e50f10d8f41f94c0973384d63f06d0b9ffd
+  commit: dd50a6eaeaf63773bbf04d6ef34b86d6f92b7825
 ghc-options:
    "$locals": -fhide-source-paths
 packages:

@@ -206,17 +206,11 @@ addInlineAttrs attrs x =
   Span (addToPandocAttr attrs nullAttr) [x]
 
 addToPandocAttr :: Attributes -> Attr -> Attr
-addToPandocAttr attrs curattrs = (id'', classes'', kvs'')
+addToPandocAttr attrs attr = foldr go attr attrs
  where
-   (id', classes', kvs') = curattrs
-   id'' = fromMaybe id' $ lookup "id" attrs
-   classes'' = case lookup "class" attrs of
-                      Nothing  -> classes'
-                      Just cs  -> classes' ++ T.words cs
-   kvs'' = [(k, v) | (k, v) <- kvs' ++
-                              map (\(x,y) -> (x, y)) attrs
-                   , k /= "id"
-                   , k /= "class"]
+  go ("id", v) (_, cls, kvs) = (v, cls, kvs)
+  go ("class", v) (ident, cls, kvs) = (ident, v:cls, kvs)
+  go (k, v) (ident, cls, kvs) = (ident, cls, (k,v):kvs)
 
 instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
      => HasFootnote (Cm a B.Inlines) (Cm a B.Blocks) where

@@ -34,7 +34,7 @@ import Commonmark.Extensions.TaskList
 import Data.Char (isSpace)
 import Data.Coerce (coerce)
 #if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup       (Semigroup)
+import Data.Semigroup       (Semigroup, (<>))
 #endif
 
 newtype Cm b a = Cm { unCm :: a }

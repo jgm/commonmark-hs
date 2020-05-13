@@ -313,7 +313,7 @@ defaultBlockSpecs =
     , setextHeadingSpec
     , thematicBreakSpec
     , listItemSpec (bulletListMarker <|> orderedListMarker)
-    , rawHtmlSpec
+    , rawHtmlSpec True
     , attributeSpec
     ]
 
@@ -1066,8 +1066,8 @@ fencedCodeSpec = BlockSpec
      }
 
 rawHtmlSpec :: (Monad m, IsBlock il bl)
-            => BlockSpec m il bl
-rawHtmlSpec = BlockSpec
+            => Bool -> BlockSpec m il bl
+rawHtmlSpec allowArbitraryTags = BlockSpec
      { blockType           = "RawHTML"
      , blockStart          = do
          pos <- getPosition
@@ -1081,13 +1081,17 @@ rawHtmlSpec = BlockSpec
                  endCond ty
                  return True
               when (ty == 7) $ do
-                 -- type 7 blocks can't interrupt a paragraph
-                 (n:_) <- nodeStack <$> getState
-                 guard $ not $ blockParagraph (bspec n)
+                 if allowArbitraryTags
+                    then do
+                       -- type 7 blocks can't interrupt a paragraph
+                       (n:_) <- nodeStack <$> getState
+                       guard $ not $ blockParagraph (bspec n)
+                    else do
+                       guard False
               skipWhile (not . hasType LineEnd)
               -- we use 0 as a code to indicate that the block is closed
               return $! if finished then 0 else ty
-         addNodeToStack $ Node (defBlockData rawHtmlSpec){
+         addNodeToStack $ Node (defBlockData $ rawHtmlSpec allowArbitraryTags){
                       blockData = toDyn rawHtmlType,
                       blockLines = [toks],
                       blockStartPos = [pos] } []

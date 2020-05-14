@@ -10,7 +10,6 @@ import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.TokParsers
 import Control.Monad (guard, void)
-import Data.List (dropWhileEnd)
 import Text.Parsec
 import Data.Text (Text)
 #if !MIN_VERSION_base(4,11,0)
@@ -61,18 +60,17 @@ linkSuffix = try $ do
   let isDroppable (Tok (Symbol c) _ _) =
          c `elem` ['?','!','.',',',':','*','_','~']
       isDroppable _ = False
-  let chunk' = dropWhileEnd isDroppable $ takeWhile possibleSuffixTok toks
-  let chunk'' = case reverse chunk' of
+  let numToks = case dropWhile isDroppable $
+                    reverse (takeWhile possibleSuffixTok toks) of
                      (Tok (Symbol ')') _ _ : xs)
-                       | length [t | t@(Tok (Symbol '(') _ _) <- chunk'] <
-                         length [t | t@(Tok (Symbol ')') _ _) <- chunk']
-                       -> reverse xs
+                       | length [t | t@(Tok (Symbol '(') _ _) <- xs] <=
+                         length [t | t@(Tok (Symbol ')') _ _) <- xs]
+                       -> length xs
                      (Tok (Symbol ';') _ _
                         : Tok WordChars _ _
                         : Tok (Symbol '&') _ _
-                        : xs) -> reverse xs
-                     _ -> chunk'
-  let numToks = length chunk''
+                        : xs) -> length xs
+                     xs -> length xs
   count numToks anyTok
   return ()
 

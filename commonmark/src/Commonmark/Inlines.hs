@@ -793,7 +793,25 @@ processBs bracketedSpecs st =
                          eltchunk = Chunk (Parsed elt) openerPos elttoks
                          afterchunks = dropWhile ((< newpos) . chunkPos)
                                          (afters right)
-                     in case afterchunks of
+                         afterchunkpos = case afterchunks of
+                                           [] -> newpos
+                                           (ch:_) -> chunkPos ch
+                         -- in the event that newpos is not at the
+                         -- beginning of a chunk, we need to add
+                         -- some tokens from that chunk...
+                         missingtoks =
+                           [t | t <- suffixToks
+                              , tokPos t < afterchunkpos
+                              , tokPos t >= newpos]
+                         addMissing =
+                           if null missingtoks
+                              then id
+                              else (Chunk (Parsed (ranged
+                                       (rangeFromToks missingtoks newpos)
+                                       (str (untokenize missingtoks))))
+                                    newpos missingtoks :)
+
+                     in case addMissing afterchunks of
                            []     -> processBs bracketedSpecs
                                       st{ rightCursor = Cursor Nothing
                                           (eltchunk : befores left') [] }

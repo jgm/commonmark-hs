@@ -23,6 +23,10 @@ test:
 haddock:
 	stack haddock
 
+stan:
+	-cd commonmark; stan report --config-file=../.stan.toml
+	-cd commonmark-extensions; stan report --config-file=../.stan.toml
+
 prof:
 	cabal build --enable-profiling --ghc-options="${GHC_OPTS}" commonmark-cli
 	cabal run --enable-profiling --ghc-options="${GHC_OPTS}" commonmark-cli -- +RTS -hc -RTS ${PROFTARGET} >/dev/null
@@ -79,4 +83,4 @@ check:
 	cd commonmark-cli && cabal check && packdeps commonmark-cli.cabal
 
 
-.PHONY: quick ghci spectest pathologicaltest test bench prof clean all reformat lint haddock profheap flamegraph benchmark check
+.PHONY: quick ghci spectest pathologicaltest test bench prof clean all reformat lint haddock profheap flamegraph benchmark check stan

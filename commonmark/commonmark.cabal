@@ -1,3 +1,4 @@
+cabal-version:  2.2
 name:           commonmark
 version:        0.1.0.0
 synopsis:       Pure Haskell commonmark parser.
@@ -35,10 +36,9 @@ stability:      experimental
 author:         John MacFarlane
 maintainer:     jgm@berkeley.edu
 copyright:      2018-2020 John MacFarlane
-license:        BSD3
+license:        BSD-3-Clause
 license-file:   LICENSE
 build-type:     Simple
-cabal-version:  >= 1.10
 
 extra-source-files:
     changelog.md
@@ -76,6 +76,8 @@ library
       Commonmark.SourceMap
       Commonmark.Tag
       Commonmark.Entity
+  if impl(ghc >= 8.8)
+    ghc-options:  -fwrite-ide-info -hiedir=.hie
   ghc-options: -Wall -fno-warn-unused-do-bind -funbox-small-strict-fields
   default-language: Haskell2010
 

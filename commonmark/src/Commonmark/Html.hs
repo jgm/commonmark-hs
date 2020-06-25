@@ -43,7 +43,7 @@ data Html a =
   | HtmlText {-# UNPACK #-} !Text
   | HtmlRaw {-# UNPACK #-} !Text
   | HtmlNull
-  | HtmlConcat (Html a) (Html a)
+  | HtmlConcat !(Html a) !(Html a)
 
 instance Show (Html a) where
   show = TL.unpack . renderHtml

@@ -258,7 +258,7 @@ showNodeStack = do
 
 data BlockStartResult =
     BlockStartMatch
-  | BlockStartNoMatchBefore SourcePos
+  | BlockStartNoMatchBefore !SourcePos
   deriving (Show, Eq)
 
 -- | Defines a block-level element type.

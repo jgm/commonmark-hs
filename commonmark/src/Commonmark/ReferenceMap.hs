@@ -20,9 +20,9 @@ import Data.Typeable (Typeable)
 newtype ReferenceMap = ReferenceMap { unReferenceMap :: M.Map Text [Dynamic] }
   deriving (Show)
 
-data LinkInfo = LinkInfo{ linkDestination :: Text
-                        , linkTitle       :: Text
-                        , linkAttributes  :: Attributes }
+data LinkInfo = LinkInfo{ linkDestination :: !Text
+                        , linkTitle       :: !Text
+                        , linkAttributes  :: !Attributes }
      deriving (Show, Typeable)
 
 emptyReferenceMap :: ReferenceMap

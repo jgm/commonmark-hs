@@ -25,6 +25,8 @@ source-repository head
 executable commonmark
   main-is: convert.hs
   hs-source-dirs: src
+  if impl(ghc >= 8.8)
+    ghc-options:  -fwrite-ide-info -hiedir=.hie
   ghc-options: -threaded -rtsopts
   build-depends: base >=4.7 && <5
                , commonmark >= 0.1 && < 0.2

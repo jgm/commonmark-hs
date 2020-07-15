@@ -135,6 +135,6 @@ used to run the benchmarks.
  | **commonmark-hs**         |       229 |
  | pandoc -f commonmark      |       948 |
 
-It would be good to improve performance.  I'd welcome suggestions about how
-to accomplish this.
+It would be good to improve performance.  I'd welcome help
+with this.
 

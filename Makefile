@@ -24,7 +24,7 @@ haddock:
 	stack haddock
 
 stan:
-	for d in commonmark commonmark-extensions commonmark-pandoc commonmark-cli; do cd $d; stan report --config-file=../.stan.toml; cd ..; done
+	for d in commonmark commonmark-extensions commonmark-pandoc commonmark-cli; do cd $$d; stan report --config-file=../.stan.toml; cd ..; done
 
 prof:
 	cabal build --enable-profiling --ghc-options="${GHC_OPTS}" commonmark-cli

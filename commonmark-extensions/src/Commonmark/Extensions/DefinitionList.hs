@@ -2,7 +2,6 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Commonmark.Extensions.DefinitionList
@@ -45,12 +44,12 @@ definitionListBlockSpec = BlockSpec
          let listType = fromDyn (blockData bdata) LooseList
          let getItem item@(Node _ ds) = do
                term <- runInlineParser (getBlockText item)
-               defs <- mapM (\c -> (blockConstructor (bspec c)) c) ds
+               defs <- mapM (\c -> blockConstructor (bspec c) c) ds
                return $! (term, defs)
          definitionList listType <$> mapM getItem items
      , blockFinalize       = \(Node cdata children) parent -> do
           let spacing =
-                if any (== LooseList)
+                if elem LooseList
                      (map (\child ->
                             fromDyn (blockData (rootLabel child))
                               LooseList) children)

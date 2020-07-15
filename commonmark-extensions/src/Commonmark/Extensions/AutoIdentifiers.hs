@@ -4,9 +4,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE BangPatterns #-}
 module Commonmark.Extensions.AutoIdentifiers
   ( autoIdentifiersSpec
   , autoIdentifiersAsciiSpec
@@ -51,7 +48,7 @@ addAutoIdentifiers ascii = do
 addId :: (Monad m, IsBlock il bl, IsInline il, ToPlainText il)
        => Bool -> BlockData m il bl -> BlockParser m il bl (BlockData m il bl)
 addId ascii bd
-  | blockType (blockSpec bd) `elem` ["ATXHeading", "SetextHeading"] = do
+  | blockType (blockSpec bd) `elem` ["ATXHeading", "SetextHeading"] =
     case lookup "id" (blockAttributes bd) of
       Nothing  -> do
         contents <- runInlineParser

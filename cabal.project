@@ -1,6 +1,2 @@
 packages: commonmark*/*.cabal
 
-source-repository-package
-    type: git
-    location: https://github.com/jgm/pandoc-types
-    tag: dd50a6eaeaf63773bbf04d6ef34b86d6f92b7825

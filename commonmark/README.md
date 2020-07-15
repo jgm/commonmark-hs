@@ -120,19 +120,20 @@ so you can specify `myNewSyntaxSpec <> defaultSyntaxSpec`.
 
 ## Performance
 
-Here are some benchmarks on real-world commonmark documents.
-To get `benchmark.md`, we concatenated a number of
-real-world commonmark documents.  The resulting file was 355K.
-The [`bench`](http://hackage.haskell.org/package/bench) tool was
+Here are some benchmarks on real-world commonmark documents,
+using `make benchmark`.  To get `benchmark.md`, we concatenated
+a number of real-world commonmark documents.  The resulting file
+was 355K.  The
+[`bench`](http://hackage.haskell.org/package/bench) tool was
 used to run the benchmarks.
 
  | program                   | time (ms) |
  | -------                   | ---------:|
- | cmark                     |        18 |
- | cheapskate                |       123 |
- | commonmark.js             |       188 |
- | **commonmark-hs**         |       270 |
- | pandoc -f commonmark      |      1060 |
+ | cmark                     |        12 |
+ | cheapskate                |       105 |
+ | commonmark.js             |       217 |
+ | **commonmark-hs**         |       229 |
+ | pandoc -f commonmark      |       948 |
 
 It would be good to improve performance.  I'd welcome suggestions about how
 to accomplish this.

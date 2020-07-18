@@ -1,5 +1,7 @@
 # commonmark-extensions
 
+[![hackage release](https://img.shields.io/hackage/v/commonmark-extensions.svg?label=hackage)](http://hackage.haskell.org/package/commonmark-extensions)
+
 This package provides some syntax extensions for the
 commonmark package:
 

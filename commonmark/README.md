@@ -1,5 +1,7 @@
 # commonmark
 
+[![hackage release](https://img.shields.io/hackage/v/commonmark.svg?label=hackage)](http://hackage.haskell.org/package/commonmark)
+
 This package provides the core parsing functionality
 for commonmark, together with HTML renderers.
 

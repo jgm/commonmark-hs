@@ -193,6 +193,8 @@ addBlockAttrs attrs (Header n curattrs ils) =
   Header n (addToPandocAttr attrs curattrs) ils
 addBlockAttrs attrs (CodeBlock curattrs s) =
   CodeBlock (addToPandocAttr attrs curattrs) s
+addBlockAttrs attrs (Table curattrs capt colspecs thead tbody tfoot) =
+  Table (addToPandocAttr attrs curattrs) capt colspecs thead tbody tfoot
 addBlockAttrs attrs (Div curattrs bs) =
   Div (addToPandocAttr attrs curattrs) bs
 addBlockAttrs attrs x =

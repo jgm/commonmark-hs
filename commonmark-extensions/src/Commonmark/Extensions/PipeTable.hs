@@ -128,6 +128,11 @@ pDivider = try $ do
   skipMany $ satisfyTok (hasType Spaces)
   return $! align
 
+-- | Syntax for pipe tables.  Note that this should generally be
+-- placed AFTER the syntax spec for lists, headings, and other block-level
+-- constructs, to avoid bad results when non-table lines contain pipe
+-- characters:  use @defaultSyntaxSpec <> pipeTableSpec@ rather
+-- than @pipeTableSpec <> defaultSyntaxSpec@.
 pipeTableSpec :: (Monad m, IsBlock il bl, IsInline il, HasPipeTable il bl)
               => SyntaxSpec m il bl
 pipeTableSpec = mempty

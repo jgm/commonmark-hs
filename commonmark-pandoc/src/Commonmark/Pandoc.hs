@@ -31,6 +31,7 @@ import Commonmark.Extensions.DefinitionList
 import Commonmark.Extensions.Attributes
 import Commonmark.Extensions.Footnote
 import Commonmark.Extensions.TaskList
+import Commonmark.Extensions.Smart
 import Data.Char (isSpace)
 import Data.Coerce (coerce)
 #if !MIN_VERSION_base(4,11,0)
@@ -111,6 +112,10 @@ instance Rangeable (Cm SourceRange B.Blocks) where
 instance HasMath (Cm b B.Inlines) where
   inlineMath t = Cm $ B.math t
   displayMath t = Cm $ B.displayMath t
+
+instance Rangeable (Cm b B.Inlines) => HasQuoted (Cm b B.Inlines) where
+  singleQuoted x = B.singleQuoted <$> x
+  doubleQuoted x = B.doubleQuoted <$> x
 
 instance HasEmoji (Cm b B.Inlines) where
   emoji kw t = Cm $ B.spanWith ("",["emoji"],[("data-emoji",kw)])

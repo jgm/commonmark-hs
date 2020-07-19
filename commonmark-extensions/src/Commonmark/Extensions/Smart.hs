@@ -1,36 +1,48 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE UndecidableInstances #-}
 module Commonmark.Extensions.Smart
-  ( smartPunctuationSpec )
+  ( HasQuoted(..)
+  , smartPunctuationSpec )
 where
 
 import Commonmark.Types
 import Commonmark.Syntax
 import Commonmark.Inlines
+import Commonmark.Html
+import Commonmark.SourceMap
 import Commonmark.TokParsers (symbol)
 import Text.Parsec
 #if !MIN_VERSION_base(4,11,0)
 import Data.Monoid
 #endif
 
-smartPunctuationSpec :: (Monad m, IsBlock il bl, IsInline il)
+class IsInline il => HasQuoted il where
+  singleQuoted :: il -> il
+  doubleQuoted :: il -> il
+
+instance Rangeable (Html a) => HasQuoted (Html a) where
+  singleQuoted x = htmlText "‘" <> x <> htmlText "’"
+  doubleQuoted x = htmlText "“" <> x <> htmlText "”"
+
+instance (HasQuoted i, Monoid i)
+        => HasQuoted (WithSourceMap i) where
+  singleQuoted x = (singleQuoted <$> x) <* addName "singleQuoted"
+  doubleQuoted x = (doubleQuoted <$> x) <* addName "doubleQuoted"
+
+smartPunctuationSpec :: (Monad m, IsBlock il bl, IsInline il, HasQuoted il)
                      => SyntaxSpec m il bl
 smartPunctuationSpec = mempty
   { syntaxFormattingSpecs = [singleQuotedSpec, doubleQuotedSpec]
   , syntaxInlineParsers = [pEllipses, pDash]
   }
 
-singleQuotedSpec :: IsInline il => FormattingSpec il
+singleQuotedSpec :: (IsInline il, HasQuoted il) => FormattingSpec il
 singleQuotedSpec = FormattingSpec '\'' False False (Just singleQuoted) Nothing '’'
 
-doubleQuotedSpec :: IsInline il => FormattingSpec il
+doubleQuotedSpec :: (IsInline il, HasQuoted il) => FormattingSpec il
 doubleQuotedSpec = FormattingSpec '"' False False (Just doubleQuoted) Nothing '“'
-
-singleQuoted :: IsInline il => il -> il
-singleQuoted x = str "‘" <> x <> str "’"
-
-doubleQuoted :: IsInline il => il -> il
-doubleQuoted x = str "“" <> x <> str "”"
 
 pEllipses :: (Monad m, IsInline a) => InlineParser m a
 pEllipses = try $ do

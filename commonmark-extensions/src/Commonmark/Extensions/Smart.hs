@@ -26,7 +26,7 @@ instance Rangeable (Html a) => HasQuoted (Html a) where
   singleQuoted x = htmlText "‘" <> x <> htmlText "’"
   doubleQuoted x = htmlText "“" <> x <> htmlText "”"
 
-instance (HasQuoted i, Monoid i)
+instance (HasQuoted i, Monoid i, Semigroup i)
         => HasQuoted (WithSourceMap i) where
   singleQuoted x = (singleQuoted <$> x) <* addName "singleQuoted"
   doubleQuoted x = (doubleQuoted <$> x) <* addName "doubleQuoted"

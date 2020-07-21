@@ -563,7 +563,7 @@ processEm st =
   let left = leftCursor st
       right = rightCursor st
       bottoms = stackBottoms st
-  in case -- trace (prettyCursors left right)
+  in  {-# SCC processEm #-} case -- trace (prettyCursors left right)
           (center left, center right) of
        (_, Nothing) -> reverse $
                          case center (rightCursor st) of
@@ -646,7 +646,6 @@ processEm st =
        _ -> processEm
             st{ rightCursor = moveRight right
               , leftCursor  = moveRight left }
-{-# SCC processEm #-}
 
 -- This only applies to emph delims, not []:
 delimsMatch :: IsInline a
@@ -708,7 +707,7 @@ processBs bracketedSpecs st =
       bottoms = stackBottoms st
       bottom = absoluteBottom st
   -- trace (prettyCursors left right) $ return $! ()
-  in case (center left, center right) of
+  in  {-# SCC processBs #-} case (center left, center right) of
        (_, Nothing) -> reverse $
                          case center (rightCursor st) of
                             Nothing -> befores (rightCursor st)
@@ -843,7 +842,6 @@ processBs bracketedSpecs st =
 
        (_, _) -> processBs bracketedSpecs
                 st{ rightCursor = moveRight right }
-{-# SCC processBs #-}
 
 
 -- This just changes a single quote Delim that occurs

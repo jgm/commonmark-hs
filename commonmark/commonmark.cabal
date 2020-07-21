@@ -54,7 +54,7 @@ library
   hs-source-dirs:
       src
   build-depends:
-      base >=4.8 && <5
+      base >= 4.9 && <5
     , text
     , bytestring
     , containers
@@ -89,7 +89,7 @@ test-suite test-commonmark
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-K40K
   build-depends:
-      base >=4.8 && <5
+      base >= 4.9 && <5
     , commonmark
     , text
     , tasty
@@ -105,7 +105,7 @@ benchmark benchmark-commonmark
   hs-source-dirs:  benchmark
   build-depends:
        commonmark
-     , base >= 4.8 && < 5
+     , base >= 4.9 && < 5
      , text
      , transformers
      , containers

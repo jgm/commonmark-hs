@@ -106,7 +106,7 @@ processLines :: (Monad m, IsBlock il bl)
              => [BlockSpec m il bl]
              -> [BlockParser m il bl bl] -- ^ Parsers to run at end
              -> BlockParser m il bl bl
-processLines specs finalParsers = do
+processLines specs finalParsers = {-# SCC processLines #-} do
   let go = eof <|> (processLine specs >> go) in go
   tree <- (nodeStack <$> getState) >>= collapseNodeStack
   updateState $ \st -> st{ nodeStack = [reverseSubforests tree] }
@@ -114,7 +114,6 @@ processLines specs finalParsers = do
   tree':_ <- nodeStack <$> getState
   body <- blockConstructor (blockSpec (rootLabel tree')) tree'
   return $! body <> endContent
-{-# SCC processLines #-}
 
 reverseSubforests :: Tree a -> Tree a
 reverseSubforests (Node x cs) = Node x $ map reverseSubforests $ reverse cs
@@ -384,7 +383,7 @@ data ListItemData = ListItemData
 runInlineParser :: Monad m
                 => [Tok]
                 -> BlockParser m il bl il
-runInlineParser toks = do
+runInlineParser toks = {-# SCC runInlineParser #-} do
   refmap <- referenceMap <$> getState
   ilParser <- inlineParser <$> getState
   res <- lift $ ilParser refmap toks
@@ -392,7 +391,6 @@ runInlineParser toks = do
        Right ils -> return $! ils
        Left err  -> mkPT (\_ -> return (Empty (return (Error err))))
                     -- pass up ParseError
-{-# SCC runInlineParser #-}
 
 addRange :: (Monad m, IsBlock il bl)
          => BlockNode m il bl -> bl -> bl

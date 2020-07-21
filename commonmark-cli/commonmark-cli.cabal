@@ -28,7 +28,7 @@ executable commonmark
   if impl(ghc >= 8.8)
     ghc-options:  -fwrite-ide-info -hiedir=.hie
   ghc-options: -threaded -rtsopts
-  build-depends: base >=4.7 && <5
+  build-depends: base >= 4.8 && <5
                , commonmark >= 0.1 && < 0.2
                , commonmark-extensions >= 0.1 && < 0.3
                , commonmark-pandoc >= 0.1 && < 0.3

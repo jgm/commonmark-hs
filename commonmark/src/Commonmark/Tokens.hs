@@ -34,7 +34,7 @@ data TokType =
 -- | Convert a 'Text' into a list of 'Tok'. The first parameter
 -- species the source name.
 tokenize :: String -> Text -> [Tok]
-tokenize name = go (initialPos name) . T.groupBy f
+tokenize name = {-# SCC tokenize #-} go (initialPos name) . T.groupBy f
   where
     -- We group \r\n, consecutive spaces, and consecutive alphanums;
     -- everything else gets in a token by itself.
@@ -64,10 +64,9 @@ tokenize name = go (initialPos name) . T.groupBy f
            | otherwise ->
                  Tok (Symbol thead) pos t :
                  go (incSourceColumn pos 1) ts
-{-# SCC tokenize #-}
 
 -- | Reverses 'tokenize'.  @untokenize . tokenize@ should be
 -- the identity.
 untokenize :: [Tok] -> Text
-untokenize = mconcat . map tokContents
-{-# SCC untokenize #-}
+untokenize = {-# SCC untokenize #-} mconcat . map tokContents
+

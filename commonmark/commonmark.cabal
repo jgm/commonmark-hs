@@ -60,8 +60,6 @@ library
     , containers
     , transformers
     , parsec
-  if !impl(ghc >= 8.0)
-    build-depends: semigroups == 0.18.*
   exposed-modules:
       Commonmark
       Commonmark.Parser

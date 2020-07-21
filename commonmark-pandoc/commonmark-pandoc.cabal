@@ -32,8 +32,6 @@ library
     , pandoc-types >= 1.21 && < 1.22
     , text
     , containers
-  if !impl(ghc >= 8.0)
-    build-depends: semigroups == 0.18.*
   if impl(ghc >= 8.8)
     ghc-options:  -fwrite-ide-info -hiedir=.hie
   exposed-modules:

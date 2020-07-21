@@ -57,8 +57,6 @@ library
     , commonmark >= 0.1 && < 0.2
     -- for extensions:
     , emojis >= 0.1 && < 0.2
-  if !impl(ghc >= 8.0)
-    build-depends: semigroups == 0.18.*
   exposed-modules:
       Commonmark.Extensions
       Commonmark.Extensions.Smart

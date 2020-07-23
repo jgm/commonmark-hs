@@ -115,10 +115,11 @@ gobble' requireAll numspaces
          n | n < numspaces  -> (+ n) <$> gobble' requireAll (numspaces - n)
            | n == numspaces -> return $! n
            | otherwise      -> do
-               let newtok = Tok Spaces
-                      (incSourceColumn pos numspaces)
+               let newpos = incSourceColumn pos numspaces
+               let newtok = Tok Spaces newpos
                       (T.replicate (n - numspaces) " ")
                getInput >>= setInput . (newtok:)
+               setPosition $ newpos
                return $! numspaces)
     <|> if requireAll
            then mzero

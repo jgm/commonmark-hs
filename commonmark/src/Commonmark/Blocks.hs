@@ -829,6 +829,7 @@ listItemSpec parseListMarker = BlockSpec
                      not (null children)
              pos <- getPosition
              gobbleSpaces (listItemIndent lidata) <|> 0 <$ lookAhead blankLine
+             pos <- getPosition
              return $! (pos, node)
      , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = \(Node cdata children) parent -> do

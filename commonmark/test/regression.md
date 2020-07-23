@@ -154,3 +154,21 @@ Issue #289.
 .
 <p>[a](&lt;b) c&gt;</p>
 ````````````````````````````````
+
+Issue #54.
+
+```````````````````````````````` example
+1. Point 1
+    ```bash
+    date
+    pwd
+    ```
+.
+<ol>
+<li>Point 1
+<pre><code class="language-bash">date
+pwd
+</code></pre>
+</li>
+</ol>
+````````````````````````````````

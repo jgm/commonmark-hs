@@ -1,5 +1,9 @@
 # Changelog for commonmark-extensions
 
+## 0.2.0.1
+
+- Added a missing test file to extra-source-files (#55).
+
 ## 0.2.0.0
 
 - Add HasQuoted class in Smart extension, with singleQuoted

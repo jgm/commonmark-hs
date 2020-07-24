@@ -39,6 +39,7 @@ extra-source-files:
     test/superscript.md
     test/subscript.md
     test/hard_line_breaks.md
+    test/task_lists.md
 
 source-repository head
   type: git

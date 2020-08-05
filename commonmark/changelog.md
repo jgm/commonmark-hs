@@ -1,5 +1,9 @@
 # Changelog for commonmark
 
+## 0.1.0.2
+
+* Fix tight/loose list detection with multiple blank lines at end (#56).
+
 ## 0.1.0.1
 
 * Set source position when we add a token in gobbleSpaces (#54).

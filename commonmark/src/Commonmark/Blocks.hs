@@ -65,7 +65,6 @@ import           Data.Monoid
 #endif
 import           Data.Char                 (isAsciiUpper, isDigit, isSpace)
 import           Data.Dynamic
-import           Data.List                 (sort)
 import           Data.Text                 (Text)
 import qualified Data.Map.Strict           as M
 import qualified Data.Text                 as T
@@ -835,8 +834,7 @@ listItemSpec parseListMarker = BlockSpec
           let lidata = fromDyn (blockData cdata)
                                  (ListItemData (BulletList '*')
                                    0 False False)
-          let allblanks = reverse $ sort $
-                          concat $ blockBlanks cdata :
+          let allblanks = concat $ blockBlanks cdata :
                                   map (blockBlanks . rootLabel)
                                   (filter ((== "List") . blockType .
                                    blockSpec . rootLabel) children)

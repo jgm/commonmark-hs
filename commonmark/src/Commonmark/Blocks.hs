@@ -835,16 +835,16 @@ listItemSpec parseListMarker = BlockSpec
           let lidata = fromDyn (blockData cdata)
                                  (ListItemData (BulletList '*')
                                    0 False False)
-          let blanks = removeConsecutive $ sort $
-                         concat $ blockBlanks cdata :
+          let allblanks = reverse $ sort $
+                          concat $ blockBlanks cdata :
                                   map (blockBlanks . rootLabel)
                                   (filter ((== "List") . blockType .
                                    blockSpec . rootLabel) children)
           curline <- sourceLine <$> getPosition
-          let blanksAtEnd = case blanks of
+          let blanksAtEnd = case allblanks of
                                    (l:_) -> l >= curline - 1
                                    _     -> False
-          let blanksInside = case length blanks of
+          let blanksInside = case length (removeConsecutive allblanks) of
                                 n | n > 1     -> True
                                   | n == 1    -> not blanksAtEnd
                                   | otherwise -> False

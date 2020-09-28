@@ -29,8 +29,7 @@ import Data.Tree
 import Text.Parsec
 
 
-taskListSpec :: (Monad m, Typeable m, IsBlock il bl, IsInline il,
-                       Typeable il, Typeable bl, HasTaskList il bl)
+taskListSpec :: (Monad m, IsBlock il bl, IsInline il, HasTaskList il bl)
                    => SyntaxSpec m il bl
 taskListSpec = mempty
   { syntaxBlockSpecs = [taskListItemBlockSpec]

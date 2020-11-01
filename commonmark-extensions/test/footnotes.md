@@ -87,4 +87,48 @@ Hi!
 </section>
 ````````````````````````````````
 
+Issue #63 - Nested blocks in footnotes are rendered in reverse order
+```````````````````````````````` example
+Hello[^test]
 
+Footnote containing a list[^list]
+
+[^test]:
+    > first
+    >
+    > second
+    >
+    > third
+
+[^list]:
+    1. First element
+    1. Second element
+.
+<p>Hello<sup class="footnote-ref"><a href="#fn-test" id="fnref-test">1</a></sup></p>
+<p>Footnote containing a list<sup class="footnote-ref"><a href="#fn-list" id="fnref-list">2</a></sup></p>
+<section class="footnotes">
+<div class="footnote" id="fn-test">
+<div class="footnote-number">
+<a href="#fnref-test">1</a>
+</div>
+<div class="footnote-contents">
+<blockquote>
+<p>first</p>
+<p>second</p>
+<p>third</p>
+</blockquote>
+</div>
+</div>
+<div class="footnote" id="fn-list">
+<div class="footnote-number">
+<a href="#fnref-list">2</a>
+</div>
+<div class="footnote-contents">
+<ol>
+<li>First element</li>
+<li>Second element</li>
+</ol>
+</div>
+</div>
+</section>
+````````````````````````````````

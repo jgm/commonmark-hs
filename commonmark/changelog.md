@@ -1,5 +1,9 @@
 # Changelog for commonmark
 
+## 0.1.1
+
+* Export `reverseSubforests` from `Commonmark.Blocks` [API change] (#64).
+
 ## 0.1.0.2
 
 * Fix tight/loose list detection with multiple blank lines at end (#56).

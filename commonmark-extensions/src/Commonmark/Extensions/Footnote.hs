@@ -86,7 +86,7 @@ footnoteBlockSpec = BlockSpec
      , blockConstructor    = \node ->
           mconcat <$> mapM (\n ->
               blockConstructor (blockSpec (rootLabel n)) n)
-            (reverse (subForest node))
+           (subForest (reverseSubforests node))
      , blockFinalize       = \(Node root children) parent -> do
          let (num, lab') = fromDyn (blockData root) (1, mempty)
          st <- getState

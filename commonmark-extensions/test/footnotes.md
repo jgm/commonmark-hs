@@ -87,7 +87,9 @@ Hi!
 </section>
 ````````````````````````````````
 
-Issue #63 - Nested blocks in footnotes are rendered in reverse order
+Ensure that nested blocks in footnotes are rendered in the
+right order (#63).
+
 ```````````````````````````````` example
 Hello[^test]
 

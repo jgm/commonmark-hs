@@ -1,5 +1,15 @@
 # Changelog for commonmark-extensions
 
+## 0.2.0.2
+
+- Remove unnecessary Typeable constraint on `TaskList` and
+  `gfmExtensions` (#58).
+
+- Fix bug in `footnote` extension:  multiple blocks in
+  a block container (e.g. block quote or list) inside
+  a footnote were being rendered in reverse order (#63,
+  Harald Gliebe).
+
 ## 0.2.0.1
 
 - Added a missing test file to extra-source-files (#55).

@@ -55,7 +55,7 @@ linkSuffix :: Monad m => InlineParser m ()
 linkSuffix = try $ do
   toks <- getInput
   let possibleSuffixTok (Tok (Symbol c) _ _) =
-        c `notElem` ['<','>','{','}','|','\\','^','~','[',']','`']
+        c `notElem` ['<','>','{','}','|','\\','^','[',']','`']
       possibleSuffixTok (Tok WordChars _ _) = True
       possibleSuffixTok _ = False
   let isDroppable (Tok (Symbol c) _ _) =

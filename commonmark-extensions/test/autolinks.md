@@ -41,9 +41,12 @@ interior of the link:
 Visit www.commonmark.org.
 
 Visit www.commonmark.org/a.b.
+
+Visit www.commonmark.org/~jm/foo/bar.pdf.
 .
 <p>Visit <a href="http://www.commonmark.org">www.commonmark.org</a>.</p>
 <p>Visit <a href="http://www.commonmark.org/a.b">www.commonmark.org/a.b</a>.</p>
+<p>Visit <a href="http://www.commonmark.org/~jm/foo/bar.pdf">www.commonmark.org/~jm/foo/bar.pdf</a>.</p>
 ````````````````````````````````
 
 When an autolink ends in `)`, we scan the entire autolink for the total number

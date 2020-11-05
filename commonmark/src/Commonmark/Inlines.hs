@@ -42,7 +42,7 @@ import           Data.List                  (foldl')
 import           Data.Char                  (isAscii, isLetter)
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map.Strict            as M
-import           Data.Maybe                 (isJust, mapMaybe)
+import           Data.Maybe                 (isJust, mapMaybe, listToMaybe)
 import qualified Data.Set                   as Set
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid                ((<>))
@@ -792,16 +792,15 @@ processBs bracketedSpecs st =
                          eltchunk = Chunk (Parsed elt) openerPos elttoks
                          afterchunks = dropWhile ((< newpos) . chunkPos)
                                          (afters right)
-                         afterchunkpos = case afterchunks of
-                                           [] -> newpos
-                                           (ch:_) -> chunkPos ch
+                         firstAfterTokPos = tokPos <$> listToMaybe
+                                        (concatMap chunkToks afterchunks)
                          -- in the event that newpos is not at the
                          -- beginning of a chunk, we need to add
                          -- some tokens from that chunk...
                          missingtoks =
                            [t | t <- suffixToks
-                              , tokPos t < afterchunkpos
-                              , tokPos t >= newpos]
+                              , tokPos t >= newpos
+                              , maybe True (< newpos) firstAfterTokPos]
                          addMissing =
                            if null missingtoks
                               then id

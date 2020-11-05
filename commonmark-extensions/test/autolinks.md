@@ -158,3 +158,13 @@ a.b-c_d@a.b_
 <p>a.b-c_d@a.b-</p>
 <p>a.b-c_d@a.b_</p>
 ````````````````````````````````
+
+The autolinks extension should not interfere with regular links
+(#65).
+
+
+```````````````````````````````` example
+[a link](http://www.google.com/)stuff
+.
+<p><a href="http://www.google.com/">a link</a>stuff</p>
+````````````````````````````````

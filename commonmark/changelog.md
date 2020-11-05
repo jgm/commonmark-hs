@@ -1,5 +1,10 @@
 # Changelog for commonmark
 
+## 0.1.1.1
+
+* Fixed corner case with link suffix parsing, which could result
+  in dropped tokens in certain cases (#65).
+
 ## 0.1.1
 
 * Export `reverseSubforests` from `Commonmark.Blocks` [API change] (#64).

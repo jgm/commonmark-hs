@@ -1,5 +1,10 @@
 # Changelog for commonmark-extensions
 
+## 0.2.0.3
+
+- Add some new test examples to the autolinks extension spec (#65).
+- Allow interior `~` characters in autolinks (#65).
+
 ## 0.2.0.2
 
 - Remove unnecessary Typeable constraint on `TaskList` and

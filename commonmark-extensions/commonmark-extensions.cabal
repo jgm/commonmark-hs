@@ -1,5 +1,5 @@
 name:           commonmark-extensions
-version:        0.2.0.3
+version:        0.2.0.4
 synopsis:       Pure Haskell commonmark parser.
 description:
    This library provides some useful extensions to core commonmark
@@ -55,7 +55,7 @@ library
     , containers
     , transformers
     , parsec
-    , commonmark >= 0.1.1 && < 0.2
+    , commonmark >= 0.1.1.2 && < 0.2
     -- for extensions:
     , emojis >= 0.1 && < 0.2
   exposed-modules:
@@ -104,7 +104,7 @@ benchmark benchmark-commonmark-extensions
   main-is:         benchmark.hs
   hs-source-dirs:  benchmark
   build-depends:
-       commonmark >= 0.1 && < 0.2
+       commonmark >= 0.1.1.2 && < 0.2
      , commonmark-extensions
      , base >= 4.9 && < 5
      , text

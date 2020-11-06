@@ -1,5 +1,11 @@
 # Changelog for commonmark-extensions
 
+## 0.2.0.4
+
+- Add a test for autolinks (#66).
+- Require commonmark 0.1.1.2 (otherwise autolinks don't work
+  properly).
+
 ## 0.2.0.3
 
 - Add some new test examples to the autolinks extension spec (#65).

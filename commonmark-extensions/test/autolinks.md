@@ -164,7 +164,7 @@ The autolinks extension should not interfere with regular links
 
 
 ```````````````````````````````` example
-[a link](http://www.google.com/)stuff
+[a link](http://www.google.com/)stuff?
 .
-<p><a href="http://www.google.com/">a link</a>stuff</p>
+<p><a href="http://www.google.com/">a link</a>stuff?</p>
 ````````````````````````````````

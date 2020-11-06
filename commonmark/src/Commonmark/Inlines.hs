@@ -800,7 +800,7 @@ processBs bracketedSpecs st =
                          missingtoks =
                            [t | t <- suffixToks
                               , tokPos t >= newpos
-                              , maybe True (< newpos) firstAfterTokPos]
+                              , maybe True (tokPos t <) firstAfterTokPos]
                          addMissing =
                            if null missingtoks
                               then id

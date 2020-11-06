@@ -1,5 +1,9 @@
 # Changelog for commonmark
 
+## 0.1.1.2
+
+* Fix bug in fix to #65 (#66).
+
 ## 0.1.1.1
 
 * Fixed corner case with link suffix parsing, which could result

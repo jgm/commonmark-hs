@@ -1,0 +1,28 @@
+cradle:
+  cabal:
+    - path: "commonmark/src"
+      component: "lib:commonmark"
+
+    - path: "commonmark/test"
+      component: "commonmark:test:test-commonmark"
+
+    - path: "commonmark/benchmark/benchmark.hs"
+      component: "commonmark:bench:benchmark-commonmark"
+
+    - path: "commonmark-cli/src/convert.hs"
+      component: "commonmark-cli:exe:commonmark"
+
+    - path: "commonmark-cli/src/Paths_commonmark_cli.hs"
+      component: "commonmark-cli:exe:commonmark"
+
+    - path: "commonmark-extensions/src"
+      component: "lib:commonmark-extensions"
+
+    - path: "commonmark-extensions/test"
+      component: "commonmark-extensions:test:test-commonmark-extensions"
+
+    - path: "commonmark-extensions/benchmark/benchmark.hs"
+      component: "commonmark-extensions:bench:benchmark-commonmark-extensions"
+
+    - path: "commonmark-pandoc/src"
+      component: "lib:commonmark-pandoc"

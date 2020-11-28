@@ -315,10 +315,10 @@ getBacktickSpans = go 0 (initialPos "")
        Symbol '`'
          | n > 0     -> go (n+1) pos ts
          | otherwise -> go (n+1) (tokPos t) ts
-       _ | n > 0     -> IntMap.alter (\x ->
-                            case x of
-                                 Nothing -> Just [pos]
-                                 Just ps -> Just (pos:ps)) n $ go 0 pos ts
+       _ | n > 0     -> IntMap.alter (\case
+                                       Nothing -> Just [pos]
+                                       Just ps -> Just (pos:ps))
+                                     n (go 0 pos ts)
          | otherwise -> go 0 pos ts
 
 pChunk :: (IsInline a, Monad m)

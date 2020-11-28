@@ -76,6 +76,7 @@ library
       Commonmark.Extensions.FancyList
       Commonmark.Extensions.TaskList
       Commonmark.Extensions.ImplicitHeadingReferences
+      Commonmark.Extensions.Citations
   ghc-options: -Wall -fno-warn-unused-do-bind -funbox-small-strict-fields
   if impl(ghc >= 8.8)
     ghc-options:  -fwrite-ide-info -hiedir=.hie

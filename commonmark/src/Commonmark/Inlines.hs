@@ -728,8 +728,8 @@ processBs bracketedSpecs st =
                           , absoluteBottom = chunkPos chunk'
                           }
 
-       (Just opener@(Chunk Delim{ delimCanOpen = True, delimType = '[' } _ _),
-        Just closer@(Chunk Delim{ delimCanClose = True, delimType = ']'} closePos _)) ->
+       (Just opener@(Chunk Delim{ delimType = '[' } _ _),
+        Just closer@(Chunk Delim{ delimType = ']'} closePos _)) ->
           let chunksinside = takeWhile (\ch -> chunkPos ch /= closePos)
                                (afters left)
               isBracket (Chunk Delim{ delimType = c' } _ _) =
@@ -831,10 +831,10 @@ processBs bracketedSpecs st =
                                 }
 
 
-       (_, Just (Chunk Delim{ delimCanClose = True, delimType = ']' } _ _))
+       (_, Just (Chunk Delim{ delimType = ']' } _ _))
           -> processBs bracketedSpecs st{ leftCursor = moveLeft left }
 
-       (Just _, Just (Chunk Delim{ delimCanOpen = True, delimType = '[' } _ _))
+       (Just _, Just (Chunk Delim{ delimType = '[' } _ _))
           -> processBs bracketedSpecs
                 st{ leftCursor = right
                   , rightCursor = moveRight right }

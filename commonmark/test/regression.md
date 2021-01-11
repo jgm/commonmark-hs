@@ -194,3 +194,12 @@ Issue #56.
 </li>
 </ul>
 ````````````````````````````````
+
+Issue #67.
+```````````````````````````````` example
+[test ](http://www.example.com/)
+[ test](http://www.example.com/)
+.
+<p><a href="http://www.example.com/">test </a>
+<a href="http://www.example.com/"> test</a></p>
+````````````````````````````````

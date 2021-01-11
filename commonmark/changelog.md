@@ -1,5 +1,11 @@
 # Changelog for commonmark
 
+## 0.1.1.3
+
+* Fix bug in links with spaces at the beginning or end of
+  link description (#67).  We were putting flankingness constraints
+  on the link delimiters, but this isn't requried by the spec.
+
 ## 0.1.1.2
 
 * Fix bug in fix to #65 (#66).

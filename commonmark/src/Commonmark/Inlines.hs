@@ -121,20 +121,23 @@ defaultInlineParser =
                                     codetoks
 
 unChunks :: IsInline a => [Chunk a] -> a
-unChunks = {-# SCC unChunks #-} foldl' mappend mempty . go
-    where
-      go []     = []
-      go (c:cs) =
-        let (f, rest) =
-             case cs of
-               (Chunk (AddAttributes attrs) _pos _ts : ds) ->
-                 (addAttributes attrs, ds)
-               _ -> (id, cs) in
-        case chunkType c of
-          AddAttributes _ -> go rest
-          Delim{ delimType = ch, delimSpec = mbspec } -> x : go rest
-              where !x = f (ranged range (str txt))
-                    txt = untokenize $ alterToks $ chunkToks c
+unChunks = mconcat . map snd . chunksToPairs
+
+
+chunksToPairs :: forall a . IsInline a => [Chunk a] -> [([Tok], a)]
+chunksToPairs = reverse . foldl' go []
+ where
+   go :: [([Tok],a)] -> Chunk a -> [([Tok],a)]
+   go xs chunk =
+     let toks = chunkToks chunk in
+     case chunkType chunk of
+       AddAttributes attrs ->
+           case xs of
+             [] -> []
+             ((ts,z):zs) -> (ts ++ toks, addAttributes attrs z):zs
+       Delim{ delimType = ch, delimSpec = mbspec } -> (toks, ils) : xs
+              where !ils = ranged range (str txt)
+                    txt = untokenize $ alterToks toks
                     alterToks =
                       case formattingWhenUnmatched <$> mbspec of
                         Just ch' | ch' /= ch ->
@@ -142,10 +145,11 @@ unChunks = {-# SCC unChunks #-} foldl' mappend mempty . go
                                          T.map (const ch') (tokContents t) })
                         _ -> id
                     range = SourceRange
-                             [(chunkPos c,
-                               incSourceColumn (chunkPos c) (T.length txt))]
-          Parsed ils -> x : go rest
-              where !x = f ils
+                             [(chunkPos chunk,
+                               incSourceColumn (chunkPos chunk) (T.length txt))]
+       Parsed ils -> (toks, ils) : xs
+
+
 
 parseChunks :: (Monad m, IsInline a)
             => [BracketedSpec a]
@@ -251,7 +255,10 @@ data BracketedSpec il = BracketedSpec
      , bracketedPrefix    :: Maybe Char -- ^ Prefix character.
      , bracketedSuffixEnd :: Maybe Char -- ^ Suffix character.
      , bracketedSuffix    :: ReferenceMap
-                          -> [Tok]
+                          -> [([Tok], il)]
+                          -- ^ Contents of bracketed part: each chunk
+                          -- consists of a list of tokens and the corresponding
+                          -- parsed inline.
                           -> Parsec [Tok] () (il -> il)
                           -- ^ Parser for suffix after
                           -- brackets.  Returns a constructor.
@@ -288,15 +295,15 @@ imageSpec = BracketedSpec
             }
 
 pLinkSuffix :: IsInline il
-            => ReferenceMap -> [Tok] -> Parsec [Tok] s (il -> il)
-pLinkSuffix rm toksInside = do
-  LinkInfo target title attrs <- pLink rm toksInside
+            => ReferenceMap -> [([Tok],il)] -> Parsec [Tok] s (il -> il)
+pLinkSuffix rm contents = do
+  LinkInfo target title attrs <- pLink rm contents
   return $! addAttributes attrs . link target title
 
 pImageSuffix :: IsInline il
-             => ReferenceMap -> [Tok] -> Parsec [Tok] s (il -> il)
-pImageSuffix rm toksInside = do
-  LinkInfo target title attrs <- pLink rm toksInside
+             => ReferenceMap -> [([Tok],il)] -> Parsec [Tok] s (il -> il)
+pImageSuffix rm contents = do
+  LinkInfo target title attrs <- pLink rm contents
   return $! addAttributes attrs . image target title
 
 ---
@@ -732,13 +739,7 @@ processBs bracketedSpecs st =
         Just closer@(Chunk Delim{ delimType = ']'} closePos _)) ->
           let chunksinside = takeWhile (\ch -> chunkPos ch /= closePos)
                                (afters left)
-              isBracket (Chunk Delim{ delimType = c' } _ _) =
-                 c' == '[' || c' == ']'
-              isBracket _ = False
-              toksInside =
-                    if any isBracket chunksinside
-                       then []
-                       else concatMap chunkToks chunksinside
+              contents = chunksToPairs chunksinside
 
               prefixChar = case befores left of
                                  Chunk Delim{delimType = c} _ [_] : _
@@ -761,7 +762,7 @@ processBs bracketedSpecs st =
                  (withRaw
                    (do setPosition suffixPos
                        (spec, constructor) <- choice $
-                           map (\s -> (s,) <$> bracketedSuffix s rm toksInside)
+                           map (\s -> (s,) <$> bracketedSuffix s rm contents)
                            specs
                        pos <- getPosition
                        return (spec, constructor, pos)))
@@ -854,8 +855,14 @@ fixSingleQuote
   Cursor (Just (Chunk d{ delimCanOpen = False } pos toks)) xs ys
 fixSingleQuote cursor = cursor
 
-pLink :: ReferenceMap -> [Tok] -> Parsec [Tok] s LinkInfo
-pLink rm toksInside = do
+pLink :: ReferenceMap -> [([Tok],il)] -> Parsec [Tok] s LinkInfo
+pLink rm contents = do
+  let tokChunks = map fst contents
+  let isLoneBracket [Tok (Symbol c) _ _] = c == '[' || c == ']'
+      isLoneBracket _ = False
+  let toksInside = if any isLoneBracket tokChunks
+                      then []
+                      else concat tokChunks
   pInlineLink <|> pReferenceLink rm toksInside
 
 pInlineLink :: Monad m => ParsecT [Tok] s m LinkInfo

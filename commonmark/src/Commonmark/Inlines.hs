@@ -737,7 +737,8 @@ processBs bracketedSpecs st =
 
        (Just opener@(Chunk Delim{ delimType = '[' } _ _),
         Just closer@(Chunk Delim{ delimType = ']'} closePos _)) ->
-          let chunksinside = takeWhile (\ch -> chunkPos ch /= closePos)
+          let chunksinside = processEmphasis $
+                             takeWhile (\ch -> chunkPos ch /= closePos)
                                (afters left)
               contents = chunksToPairs chunksinside
 
@@ -787,8 +788,7 @@ processBs bracketedSpecs st =
                                      (openers ++ chunksinside ++ [closer])
                                       ++ desttoks
                          elt = ranged (rangeFromToks elttoks newpos)
-                                  $ constructor $ unChunks $
-                                       processEmphasis chunksinside
+                                  $ constructor $ unChunks $ chunksinside
                          eltchunk = Chunk (Parsed elt) openerPos elttoks
                          afterchunks = dropWhile ((< newpos) . chunkPos)
                                          (afters right)

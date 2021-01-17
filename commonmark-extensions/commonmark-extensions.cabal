@@ -28,6 +28,7 @@ extra-source-files:
     test/implicit_heading_references.md
     test/pipe_tables.md
     test/attributes.md
+    test/wikilinks.md
     test/raw_attribute.md
     test/fenced_divs.md
     test/bracketed_spans.md
@@ -76,6 +77,7 @@ library
       Commonmark.Extensions.FancyList
       Commonmark.Extensions.TaskList
       Commonmark.Extensions.ImplicitHeadingReferences
+      Commonmark.Extensions.Wikilinks
   ghc-options: -Wall -fno-warn-unused-do-bind -funbox-small-strict-fields
   if impl(ghc >= 8.8)
     ghc-options:  -fwrite-ide-info -hiedir=.hie

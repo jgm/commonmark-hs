@@ -23,6 +23,7 @@ import Commonmark.Types as C
 import Commonmark.Entity (lookupEntity)
 import Commonmark.Extensions.Math
 import Commonmark.Extensions.Emoji
+import Commonmark.Extensions.Wikilinks
 import Commonmark.Extensions.PipeTable
 import Commonmark.Extensions.Strikethrough
 import Commonmark.Extensions.Superscript
@@ -120,6 +121,9 @@ instance Rangeable (Cm b B.Inlines) => HasQuoted (Cm b B.Inlines) where
 instance HasEmoji (Cm b B.Inlines) where
   emoji kw t = Cm $ B.spanWith ("",["emoji"],[("data-emoji",kw)])
                   $ B.text t
+
+instance HasWikilinks (Cm b B.Inlines) where
+  wikilink t il = Cm $ B.link t "wikilink" $ unCm il
 
 instance HasPipeTable (Cm a B.Inlines) (Cm a B.Blocks) where
   pipeTable aligns headerCells rows =

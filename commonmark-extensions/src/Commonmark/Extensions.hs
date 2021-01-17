@@ -39,6 +39,7 @@ module Commonmark.Extensions
     , module Commonmark.Extensions.FancyList
     , module Commonmark.Extensions.TaskList
     , module Commonmark.Extensions.ImplicitHeadingReferences
+    , module Commonmark.Extensions.Wikilinks
     , gfmExtensions
     ) where
 
@@ -58,6 +59,7 @@ import           Commonmark.Extensions.AutoIdentifiers
 import           Commonmark.Extensions.FancyList
 import           Commonmark.Extensions.TaskList
 import           Commonmark.Extensions.ImplicitHeadingReferences
+import           Commonmark.Extensions.Wikilinks
 import           Commonmark
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid ((<>))

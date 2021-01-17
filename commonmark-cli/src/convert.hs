@@ -124,6 +124,7 @@ extensions :: (Monad m, Typeable m,
                HasMath il,
                HasQuoted il,
                HasEmoji il,
+               HasWikilinks il,
                HasSpan il,
                ToPlainText il,
                HasStrikethrough il,
@@ -155,6 +156,7 @@ extensions =
   ,("auto_identifiers", autoIdentifiersSpec)
   ,("auto_identifiers_ascii", autoIdentifiersAsciiSpec)
   ,("implicit_heading_references", implicitHeadingReferencesSpec)
+  ,("wikilinks", wikilinksSpec)
   ,("gfm", gfmExtensions)
   ]
 
@@ -171,7 +173,7 @@ specFromExtensionNames ::
  (Monad m, Typeable m, Typeable bl, Typeable il,
   IsBlock il bl, IsInline il,
   HasPipeTable il bl, HasMath il, HasQuoted il, HasEmoji il,
-  HasSpan il,
+  HasWikilinks il, HasSpan il,
   ToPlainText il,
   HasStrikethrough il,
   HasSuperscript il,

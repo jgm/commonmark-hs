@@ -25,6 +25,7 @@ commonmark package:
 - [`auto_identifiers`] (automatic generation of identifiers for headings)
 - [`auto_identifiers_ascii`] (automatic generation of ASCII identifiers for headings)
 - [`implicit_heading_references`] (headings implicitly define link references)
+- [`wikilinks`] (wikilink syntax)
 
 [`pipe_tables`]: test/pipe_tables.md
 [`hard_line_breaks`]: test/hard_line_breaks.md
@@ -46,4 +47,5 @@ commonmark package:
 [`auto_identifiers`]: test/auto_identifiers.md
 [`auto_identifiers_ascii`]: test/auto_identifiers_ascii.md
 [`implicit_heading_references`]: test/implicit_heading_references.md
+[`wikilinks`]: test/wikilinks.md
 

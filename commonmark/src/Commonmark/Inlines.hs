@@ -121,16 +121,15 @@ defaultInlineParser =
                                     codetoks
 
 unChunks :: IsInline a => [Chunk a] -> a
-unChunks = mconcat . map snd . chunksToPairs
+unChunks = foldl' mappend mempty . map snd . chunksToPairs
 
 
 chunksToPairs :: forall a . IsInline a => [Chunk a] -> [([Tok], a)]
 chunksToPairs = reverse . foldl' go []
  where
    go :: [([Tok],a)] -> Chunk a -> [([Tok],a)]
-   go xs chunk =
-     let toks = chunkToks chunk in
-     case chunkType chunk of
+   go xs chunk@Chunk{ chunkToks = toks, chunkType = chtype } =
+     case chtype of
        AddAttributes attrs ->
            case xs of
              [] -> []

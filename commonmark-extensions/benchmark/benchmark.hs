@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-import Criterion.Main
+import Test.Tasty.Bench
 import Data.Text (Text)
 import Data.Functor.Identity  -- base >= 4.8
 import Commonmark
@@ -15,7 +15,7 @@ import Data.Monoid
 main :: IO ()
 main = do
   sample <- T.replicate 10 <$> TIO.readFile "benchmark/sample.md"
-  defaultMainWith defaultConfig
+  defaultMain
     [ benchCommonmark (smartPunctuationSpec <> defaultSyntaxSpec)
         ("commonmark +smart", sample)
     , benchCommonmark (autolinkSpec <> defaultSyntaxSpec)

@@ -1,7 +1,8 @@
 resolver: lts-14.6
 extra-deps:
 - emojis-0.1
-- pandoc-types-1.21
+- pandoc-types-1.22
+- tasty-bench-0.1
 ghc-options:
    "$locals": -fhide-source-paths
 packages:

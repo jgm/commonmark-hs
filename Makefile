@@ -2,10 +2,10 @@ DATE=$(shell date +%Y-%m-%d-%H%M)
 LOGS=log
 ifdef PATTERN
   TESTARGS?='-p "$(PATTERN)" --hide-successes'
-  BENCHARGS?='--output $(LOGS)/benchmark-$(DATE).html --time-limit=2 --match=pattern "$(PATTERN)"'
+  BENCHARGS?='--timout=2 --pattern "$(PATTERN)"'
 else
   TESTARGS?="--hide-successes"
-  BENCHARGS?="--output $(LOGS)/benchmark-$(DATE).html --time-limit=2"
+  BENCHARGS?="--timeout=2"
 endif
 SOURCEFILES?=$(shell find commonmark/src commonmark-cli/src commonmark-pandoc/src -name '*.hs')
 GHC_OPTS=-Wall -fno-warn-unused-do-bind -Wnoncanonical-monad-instances -Wincomplete-uni-patterns -Werror=missing-home-modules -Widentities -Wcpp-undef -fhide-source-paths -fno-prof-auto

@@ -56,6 +56,7 @@ benchmark:
 	sudo nice -n -20 bench "commonmark ${PROFTARGET}"
 
 bench: $(LOGS)
+	set -o pipefail && \
 	stack bench --benchmark-arguments=$(BENCHARGS) commonmark 2>&1 \
 	    | tee $(LOGS)/benchmark-$(DATE).out
 

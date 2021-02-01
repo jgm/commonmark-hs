@@ -2,7 +2,7 @@ DATE=$(shell date +%Y-%m-%d-%H%M)
 LOGS=log
 ifdef PATTERN
   TESTARGS?='-p "$(PATTERN)" --hide-successes'
-  BENCHARGS?='--timout=2 --pattern "$(PATTERN)" +RTS -T -RTS'
+  BENCHARGS?='--timeout=2 --pattern "$(PATTERN)" +RTS -T -RTS'
 else
   TESTARGS?="--hide-successes"
   BENCHARGS?="--timeout=2 +RTS -T -RTS"

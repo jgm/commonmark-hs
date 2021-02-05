@@ -330,11 +330,11 @@ pChunk :: (IsInline a, Monad m)
 pChunk specmap attrParser ilParsers isDelimChar =
  do pos <- getPosition
     (res, ts) <- withRaw $
-         {-# SCC attrParser #-} (AddAttributes <$> attrParser)
+         ({-# SCC attrParser #-} AddAttributes <$> attrParser)
          <|>
          {-# SCC pInline #-} (Parsed <$> pInline ilParsers)
     return $! Chunk res pos ts
-  <|> {-# SCC pDelimChunk #-} pDelimChunk specmap isDelimChar
+  <|> ({-# SCC pDelimChunk #-} pDelimChunk specmap isDelimChar)
   <|> (do t <- anyTok
           endpos <- getPosition
           return $! Chunk

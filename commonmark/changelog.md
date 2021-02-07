@@ -1,5 +1,9 @@
 # Changelog for commonmark
 
+## 0.1.1.4
+
+* Fix build with GHC 9.0.1 (Simon Jakobi, #72).
+
 ## 0.1.1.3
 
 * Fix bug in links with spaces at the beginning or end of

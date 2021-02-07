@@ -1,6 +1,6 @@
 cabal-version:  2.2
 name:           commonmark
-version:        0.1.1.3
+version:        0.1.1.4
 synopsis:       Pure Haskell commonmark parser.
 description:
    This library provides the core data types and functions

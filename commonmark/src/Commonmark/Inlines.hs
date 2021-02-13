@@ -251,7 +251,7 @@ data BracketedSpec il = BracketedSpec
      , bracketedPrefix    :: Maybe Char -- ^ Prefix character.
      , bracketedSuffixEnd :: Maybe Char -- ^ Suffix character.
      , bracketedSuffix    :: ReferenceMap
-                          -> [Tok]
+                          -> Text
                           -> Parsec [Tok] () (il -> il)
                           -- ^ Parser for suffix after
                           -- brackets.  Returns a constructor.
@@ -288,15 +288,15 @@ imageSpec = BracketedSpec
             }
 
 pLinkSuffix :: IsInline il
-            => ReferenceMap -> [Tok] -> Parsec [Tok] s (il -> il)
-pLinkSuffix rm toksInside = do
-  LinkInfo target title attrs <- pLink rm toksInside
+            => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
+pLinkSuffix rm key = do
+  LinkInfo target title attrs <- pLink rm key
   return $! addAttributes attrs . link target title
 
 pImageSuffix :: IsInline il
-             => ReferenceMap -> [Tok] -> Parsec [Tok] s (il -> il)
-pImageSuffix rm toksInside = do
-  LinkInfo target title attrs <- pLink rm toksInside
+             => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
+pImageSuffix rm key = do
+  LinkInfo target title attrs <- pLink rm key
   return $! addAttributes attrs . image target title
 
 ---
@@ -735,11 +735,12 @@ processBs bracketedSpecs st =
               isBracket (Chunk Delim{ delimType = c' } _ _) =
                  c' == '[' || c' == ']'
               isBracket _ = False
-              toksInside =
-                    if any isBracket chunksinside
-                       then []
-                       else concatMap chunkToks chunksinside
-
+              key = if any isBracket chunksinside
+                       then ""
+                       else
+                         case untokenize (concatMap chunkToks chunksinside) of
+                              ks | T.length ks <= 999 -> ks
+                              _  -> ""
               prefixChar = case befores left of
                                  Chunk Delim{delimType = c} _ [_] : _
                                     -> Just c
@@ -761,7 +762,7 @@ processBs bracketedSpecs st =
                  (withRaw
                    (do setPosition suffixPos
                        (spec, constructor) <- choice $
-                           map (\s -> (s,) <$> bracketedSuffix s rm toksInside)
+                           map (\s -> (s,) <$> bracketedSuffix s rm key)
                            specs
                        pos <- getPosition
                        return (spec, constructor, pos)))
@@ -854,9 +855,9 @@ fixSingleQuote
   Cursor (Just (Chunk d{ delimCanOpen = False } pos toks)) xs ys
 fixSingleQuote cursor = cursor
 
-pLink :: ReferenceMap -> [Tok] -> Parsec [Tok] s LinkInfo
-pLink rm toksInside = do
-  pInlineLink <|> pReferenceLink rm toksInside
+pLink :: ReferenceMap -> Text -> Parsec [Tok] s LinkInfo
+pLink rm key = do
+  pInlineLink <|> pReferenceLink rm key
 
 pInlineLink :: Monad m => ParsecT [Tok] s m LinkInfo
 pInlineLink = try $ do
@@ -932,11 +933,10 @@ pLinkLabel = try $ do
   guard $ T.length lab <= 999
   return lab
 
-pReferenceLink :: ReferenceMap -> [Tok] -> Parsec [Tok] s LinkInfo
-pReferenceLink rm toksInside = do
-  lab <- option mempty pLinkLabel
+pReferenceLink :: ReferenceMap -> Text -> Parsec [Tok] s LinkInfo
+pReferenceLink rm key = do
+  lab <- option key pLinkLabel
   let key' = if T.null lab
-                then untokenize toksInside
+                then key
                 else lab
-  guard $ T.length key' <= 999
   maybe mzero return $! lookupReference key' rm

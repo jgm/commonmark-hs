@@ -21,7 +21,6 @@ import Text.Parsec
 import Data.Semigroup
 #endif
 import Data.Text (Text)
-import qualified Data.Text as T
 
 class HasWikilinks il where
   wikilink :: Text -> il -> il
@@ -54,10 +53,6 @@ wikilinksSpec = mempty
      let (mbtitle, pageOrUrl) = case break isPipe toks of
                                    (xs, _:ys) -> (Just xs, ys)
                                    (xs, [])   -> (Nothing, xs)
-     let dest = untokenize pageOrUrl
-     let isUrl = "://" `T.isInfixOf` dest -- TODO something better
-     let description = maybe (str dest) (str . untokenize) mbtitle
      return $ \_ ->  -- we ignore the inlines passed in...
-       if isUrl
-          then link dest mempty description
-          else wikilink dest description
+       wikilink (untokenize pageOrUrl)
+                (maybe (str $ untokenize pageOrUrl) (str . untokenize) mbtitle)

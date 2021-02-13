@@ -21,7 +21,6 @@ import Text.Parsec
 import Data.Semigroup
 #endif
 import Data.Text (Text)
-import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 
 class HasWikilinks il where
@@ -50,15 +49,15 @@ wikilinksSpec = mempty
             }
    pWikilinkSuffix _rm contents = try $ do
      symbol ']'
-     let isPipe ([Tok (Symbol '|') _ _],_) = True
+     let toks = concat $ map fst contents -- FIXME
+     let isPipe (Tok (Symbol '|') _ _) = True
          isPipe _ = False
-     let (mbtitle, pageOrUrl) =
-           case break isPipe contents of
-             (xs, _:ys) -> (Just $ mconcat $ map snd xs, concatMap fst ys)
-             (xs, [])   -> (Nothing, concatMap fst xs)
+     let (mbtitle, pageOrUrl) = case break isPipe toks of
+                                   (xs, _:ys) -> (Just xs, ys)
+                                   (xs, [])   -> (Nothing, xs)
      let dest = untokenize pageOrUrl
      let isUrl = "://" `T.isInfixOf` dest -- TODO something better
-     let description = fromMaybe (str dest) mbtitle
+     let description = maybe (str dest) (str . untokenize) mbtitle
      return $ \_ ->  -- we ignore the inlines passed in...
        if isUrl
           then link dest mempty description

@@ -256,12 +256,13 @@ data BracketedSpec il = BracketedSpec
      , bracketedSuffixEnd :: Maybe Char -- ^ Suffix character.
      , bracketedSuffix    :: ReferenceMap
                           -> [([Tok], il)]
+                          -- ^ Contents of bracketed part: each chunk
+                          -- consists of a list of tokens and the corresponding
+                          -- parsed inline.
                           -> Parsec [Tok] () (il -> il)
                           -- ^ Parser for suffix after
                           -- brackets.  Returns a constructor.
-                          -- Second parameter is contents of bracketed part:
-                          -- each chunk consists of a list of tokens and
-                          -- the corresponding parsed inline.
+                          -- Second parameter is the raw key.
      }
 
 instance Show (BracketedSpec il) where

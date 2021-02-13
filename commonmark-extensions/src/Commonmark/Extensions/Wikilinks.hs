@@ -12,9 +12,8 @@ where
 import Commonmark.Types
 import Commonmark.Tokens
 import Commonmark.Syntax
-import Commonmark.Inlines
 import Commonmark.SourceMap
-import Commonmark.TokParsers (symbol)
+import Commonmark.TokParsers
 import Commonmark.Html
 import Text.Parsec
 #if !MIN_VERSION_base(4,11,0)
@@ -36,23 +35,18 @@ instance (HasWikilinks il, Semigroup il, Monoid il)
 wikilinksSpec :: (Monad m, IsInline il, HasWikilinks il)
               => SyntaxSpec m il bl
 wikilinksSpec = mempty
-  { syntaxBracketedSpecs = [ wlspec ]
+  { syntaxInlineParsers = [ pWikilink ]
   }
   where
-   wlspec = BracketedSpec
-            { bracketedName = "Wikilink"
-            , bracketedNests = True
-            , bracketedPrefix = Just '['
-            , bracketedSuffixEnd = Just ']'
-            , bracketedSuffix = pWikilinkSuffix
-            }
-   pWikilinkSuffix _rm toks = try $ do
+   pWikilink = do
+     symbol '['
+     symbol '['
+     notFollowedBy (symbol '[')
+     title <- untokenize <$>
+                many (satisfyTok (\t ->
+                  not (hasType (Symbol '|') t || hasType (Symbol ']') t)))
+     url <- option title $ untokenize <$> (symbol '|' *>
+                     many (satisfyTok (not . hasType (Symbol ']'))))
      symbol ']'
-     let isPipe (Tok (Symbol '|') _ _) = True
-         isPipe _ = False
-     let (mbtitle, pageOrUrl) = case break isPipe toks of
-                                   (xs, _:ys) -> (Just xs, ys)
-                                   (xs, [])   -> (Nothing, xs)
-     return $ \_ ->  -- we ignore the inlines passed in...
-       wikilink (untokenize pageOrUrl)
-                (maybe (str $ untokenize pageOrUrl) (str . untokenize) mbtitle)
+     symbol ']'
+     return $ wikilink url (str title)

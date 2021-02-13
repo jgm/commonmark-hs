@@ -47,9 +47,8 @@ wikilinksSpec = mempty
             , bracketedSuffixEnd = Just ']'
             , bracketedSuffix = pWikilinkSuffix
             }
-   pWikilinkSuffix _rm contents = try $ do
+   pWikilinkSuffix _rm toks = try $ do
      symbol ']'
-     let toks = concat $ map fst contents -- FIXME
      let isPipe (Tok (Symbol '|') _ _) = True
          isPipe _ = False
      let (mbtitle, pageOrUrl) = case break isPipe toks of

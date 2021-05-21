@@ -19,14 +19,14 @@ from the text) affect the heading element.**
 ```````````````````````````````` example
 # Heading {#ident .class key="value value" key2=value2}
 .
-<h1 id="ident" class="class" key="value value" key2="value2">Heading</h1>
+<h1 id="ident" class="class" data-key="value value" data-key2="value2">Heading</h1>
 ````````````````````````````````
 
 ```````````````````````````````` example
 Heading {#ident .class key="value"}
 =====
 .
-<h1 id="ident" class="class" key="value">Heading</h1>
+<h1 id="ident" class="class" data-key="value">Heading</h1>
 ````````````````````````````````
 
 Whitespace is tolerated around the delimiters:
@@ -34,7 +34,7 @@ Whitespace is tolerated around the delimiters:
 ```````````````````````````````` example
 # Heading {  #ident  .class key="value" }
 .
-<h1 id="ident" class="class" key="value">Heading</h1>
+<h1 id="ident" class="class" data-key="value">Heading</h1>
 ````````````````````````````````
 
 Multiple class attributes are combined:
@@ -82,7 +82,7 @@ in a fenced code block affect the code block element.**
 xyz
 ```
 .
-<pre id="ident" class="class" key="value value" key2="value2"><code>xyz
+<pre id="ident" class="class" data-key="value value" data-key2="value2"><code>xyz
 </code></pre>
 ````````````````````````````````
 
@@ -127,13 +127,13 @@ to the space.
 ```````````````````````````````` example
 `hi`{#ident .class key=value}
 .
-<p><code id="ident" class="class" key="value">hi</code></p>
+<p><code id="ident" class="class" data-key="value">hi</code></p>
 ````````````````````````````````
 
 ```````````````````````````````` example
 `hi` {#ident .class key=value}
 .
-<p><code>hi</code><span id="ident" class="class" key="value"> </span></p>
+<p><code>hi</code><span id="ident" class="class" data-key="value"> </span></p>
 ````````````````````````````````
 
 The attributes can wrap:
@@ -142,7 +142,7 @@ The attributes can wrap:
 `hi`{#ident .class
 key=value}
 .
-<p><code id="ident" class="class" key="value">hi</code></p>
+<p><code id="ident" class="class" data-key="value">hi</code></p>
 ````````````````````````````````
 
 **Attributes that occur immediately before a block
@@ -195,7 +195,7 @@ cumulative.
 {.class2 .class3 k=2}
 # Heading {.class4}
 .
-<h1 class="class1 class2 class3 class4" k="2">Heading</h1>
+<h1 class="class1 class2 class3 class4" data-k="2">Heading</h1>
 ````````````````````````````````
 
 
@@ -217,7 +217,7 @@ element affect that element.**
 ```````````````````````````````` example
 [foo](bar){#ident .class key="value value" key2=value2}
 .
-<p><a id="ident" class="class" key="value value" key2="value2" href="bar">foo</a></p>
+<p><a id="ident" class="class" data-key="value value" data-key2="value2" href="bar">foo</a></p>
 ````````````````````````````````
 
 ```````````````````````````````` example
@@ -262,5 +262,5 @@ either for blocks or for inlines.**
 ```````````````````````````````` example
 # Heading {key="v&#97;lue" }
 .
-<h1 key="value">Heading</h1>
+<h1 data-key="value">Heading</h1>
 ````````````````````````````````

@@ -4,7 +4,7 @@ without the link destination.
 ```````````````````````````````` example
 [foo]{#ident .class key="value value" key2=value2}
 .
-<p><span id="ident" class="class" key="value value" key2="value2">foo</span></p>
+<p><span id="ident" class="class" data-key="value value" data-key2="value2">foo</span></p>
 ````````````````````````````````
 
 ```````````````````````````````` example

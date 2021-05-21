@@ -31,7 +31,6 @@ library
     , commonmark-extensions >= 0.2 && < 0.3
     , pandoc-types >= 1.21 && < 1.23
     , text
-    , containers
   if impl(ghc >= 8.10)
     ghc-options:      -Wunused-packages
   if impl(ghc >= 8.8)

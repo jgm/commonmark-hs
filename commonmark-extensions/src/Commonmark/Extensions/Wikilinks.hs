@@ -20,7 +20,7 @@ import Text.Parsec
 #if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup hiding (option)
 #endif
-import Data.Text (Text)
+import Data.Text (Text, strip)
 
 class HasWikilinks il where
   wikilink :: Text -> il -> il
@@ -62,4 +62,4 @@ wikilinksSpec titlepos = mempty
                   TitleAfterPipe  -> (untokenize ys, untokenize xs)
      symbol ']'
      symbol ']'
-     return $ wikilink url (str title)
+     return $ wikilink (strip url) (str (strip title))

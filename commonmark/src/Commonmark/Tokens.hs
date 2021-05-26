@@ -16,6 +16,7 @@ import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Data.Data       (Data, Typeable)
 import           Text.Parsec.Pos
+import           Data.Text.Normalize (normalize, NormalizationMode(NFC))
 
 data Tok = Tok { tokType     :: !TokType
                , tokPos      :: !SourcePos
@@ -34,7 +35,8 @@ data TokType =
 -- | Convert a 'Text' into a list of 'Tok'. The first parameter
 -- species the source name.
 tokenize :: String -> Text -> [Tok]
-tokenize name = {-# SCC tokenize #-} go (initialPos name) . T.groupBy f
+tokenize name =
+  {-# SCC tokenize #-} go (initialPos name) . T.groupBy f . normalize NFC
   where
     -- We group \r\n, consecutive spaces, and consecutive alphanums;
     -- everything else gets in a token by itself.

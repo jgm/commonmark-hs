@@ -60,6 +60,7 @@ library
     , containers
     , transformers
     , parsec
+    , unicode-transforms
   exposed-modules:
       Commonmark
       Commonmark.Parser
@@ -94,6 +95,7 @@ test-suite test-commonmark
       base >= 4.9 && <5
     , commonmark
     , text
+    , unicode-transforms
     , tasty
     , tasty-quickcheck
     , tasty-hunit

@@ -12,6 +12,7 @@ import qualified Data.Text.IO          as T
 import           System.IO             (hSetEncoding, utf8, openFile,
                                         IOMode(..))
 import qualified Data.Text.Lazy        as TL
+import           Data.Text.Normalize   (normalize, NormalizationMode(NFC))
 import           Test.Tasty
 import           Test.Tasty.HUnit
 import           Test.Tasty.QuickCheck
@@ -111,7 +112,7 @@ fromRight _ (Right x)       = x
 
 tokenize_roundtrip :: String -> Bool
 tokenize_roundtrip s = untokenize (tokenize "source" t) == t
-  where t = T.pack s
+  where t = normalize NFC $ T.pack s
 
 --- parser for spec test cases
 

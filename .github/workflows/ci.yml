@@ -24,15 +24,18 @@ jobs:
             cabal: '3.2'
     steps:
     - uses: actions/checkout@v1
+
     - name: Install recent cabal/ghc
-      uses: actions/setup-haskell@v1.1.3
+      uses: haskell/actions/setup@v1
       with:
         ghc-version: ${{ matrix.versions.ghc }}
         cabal-version: ${{ matrix.versions.cabal }}
+
     - name: Install dependencies
       run: |
           cabal v2-update
           cabal v2-build --dependencies-only --enable-tests --disable-optimization all
+
     - name: Build and test
       run: |
           cabal v2-build --enable-tests --disable-optimization all 2>&1 | tee build.log

@@ -5,6 +5,10 @@ Wikilinks can have one of the following forms:
     [[name of page]]
     [[title|name of page]]
 
+Note that the order of title and page here is that used in
+GitHub wikis.  MediaWiki, Obsidian, Foam, and some others use
+the opposite order.
+
 
 ```````````````````````````````` example
 [[https://example.org]]

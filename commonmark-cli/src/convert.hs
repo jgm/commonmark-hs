@@ -156,7 +156,8 @@ extensions =
   ,("auto_identifiers", autoIdentifiersSpec)
   ,("auto_identifiers_ascii", autoIdentifiersAsciiSpec)
   ,("implicit_heading_references", implicitHeadingReferencesSpec)
-  ,("wikilinks", wikilinksSpec)
+  ,("wikilinks_title_before_pipe", wikilinksSpec TitleBeforePipe)
+  ,("wikilinks_title_after_pipe", wikilinksSpec TitleAfterPipe)
   ,("gfm", gfmExtensions)
   ]
 

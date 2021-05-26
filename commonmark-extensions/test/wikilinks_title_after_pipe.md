@@ -1,14 +1,11 @@
 Wikilinks can have one of the following forms:
 
     [[https://example.org]]
-    [[title|https://example.org]]
+    [[https://example.org|title]]
     [[name of page]]
-    [[title|name of page]]
+    [[name of page|title]]
 
-Note that the order of title and page here is that used in
-GitHub wikis.  MediaWiki, Obsidian, Foam, and some others use
-the opposite order.
-
+With this version of wikilinks, the title comes after the pipe.
 
 ```````````````````````````````` example
 [[https://example.org]]
@@ -17,7 +14,7 @@ the opposite order.
 ````````````````````````````````
 
 ```````````````````````````````` example
-[[title|https://example.org]]
+[[https://example.org|title]]
 .
 <p><a href="https://example.org" title="wikilink">title</a></p>
 ````````````````````````````````
@@ -29,7 +26,7 @@ the opposite order.
 ````````````````````````````````
 
 ```````````````````````````````` example
-[[Title|Name of page]]
+[[Name of page|Title]]
 .
 <p><a href="Name%20of%20page" title="wikilink">Title</a></p>
 ````````````````````````````````

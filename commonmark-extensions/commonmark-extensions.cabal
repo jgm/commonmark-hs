@@ -28,7 +28,8 @@ extra-source-files:
     test/implicit_heading_references.md
     test/pipe_tables.md
     test/attributes.md
-    test/wikilinks.md
+    test/wikilinks_title_before_pipe.md
+    test/wikilinks_title_after_pipe.md
     test/raw_attribute.md
     test/fenced_divs.md
     test/bracketed_spans.md

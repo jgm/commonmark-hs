@@ -6,6 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Commonmark.Extensions.Wikilinks
   ( wikilinksSpec
+  , TitlePosition(..)
   , HasWikilinks(..)
   )
 where
@@ -31,10 +32,17 @@ instance (HasWikilinks il, Semigroup il, Monoid il)
         => HasWikilinks (WithSourceMap il) where
   wikilink url il = (wikilink url <$> il) <* addName "wikilink"
 
+-- | Determines whether @[[foo|bar]]@ is a link to page @bar@
+-- with title (description) @foo@ ('TitleBeforePipe'), as in
+-- GitHub wikis, or a link to page @foo@ with title @bar@
+-- ('TitleAfterPipe'), as in Obsidian and Foam.
+data TitlePosition = TitleBeforePipe | TitleAfterPipe
+  deriving (Show, Eq)
 
 wikilinksSpec :: (Monad m, IsInline il, HasWikilinks il)
-              => SyntaxSpec m il bl
-wikilinksSpec = mempty
+              => TitlePosition
+              -> SyntaxSpec m il bl
+wikilinksSpec titlepos = mempty
   { syntaxInlineParsers = [ pWikilink ]
   }
   where
@@ -42,11 +50,16 @@ wikilinksSpec = mempty
      symbol '['
      symbol '['
      notFollowedBy (symbol '[')
-     title <- untokenize <$>
-                many (satisfyTok (\t ->
-                  not (hasType (Symbol '|') t || hasType (Symbol ']') t)))
-     url <- option title $ untokenize <$> (symbol '|' *>
-                     many (satisfyTok (not . hasType (Symbol ']'))))
+     toks <- many (satisfyTok (not . hasType (Symbol ']')))
+     let isPipe (Tok (Symbol '|') _ _) = True
+         isPipe _ = False
+     let (title, url) =
+           case break isPipe toks of
+              (xs, [])   -> (untokenize xs, untokenize xs)
+              (xs, _:ys) ->
+                case titlepos of
+                  TitleBeforePipe -> (untokenize xs, untokenize ys)
+                  TitleAfterPipe  -> (untokenize ys, untokenize xs)
      symbol ']'
      symbol ']'
      return $ wikilink url (str title)

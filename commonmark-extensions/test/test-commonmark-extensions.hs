@@ -50,7 +50,8 @@ main = do
              , ("test/auto_identifiers.md", autoIdentifiersSpec <> attributesSpec)
              , ("test/implicit_heading_references.md",
                  autoIdentifiersSpec <> attributesSpec <> implicitHeadingReferencesSpec)
-             , ("test/wikilinks.md", wikilinksSpec)
+             , ("test/wikilinks_title_before_pipe.md", wikilinksSpec TitleBeforePipe)
+             , ("test/wikilinks_title_after_pipe.md", wikilinksSpec TitleAfterPipe)
              ]
   defaultMain $ testGroup "Tests" tests
 

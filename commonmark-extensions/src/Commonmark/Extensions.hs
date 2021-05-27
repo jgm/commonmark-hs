@@ -40,6 +40,7 @@ module Commonmark.Extensions
     , module Commonmark.Extensions.TaskList
     , module Commonmark.Extensions.ImplicitHeadingReferences
     , module Commonmark.Extensions.Wikilinks
+    , module Commonmark.Extensions.RebaseRelativePaths
     , gfmExtensions
     ) where
 
@@ -60,6 +61,7 @@ import           Commonmark.Extensions.FancyList
 import           Commonmark.Extensions.TaskList
 import           Commonmark.Extensions.ImplicitHeadingReferences
 import           Commonmark.Extensions.Wikilinks
+import           Commonmark.Extensions.RebaseRelativePaths
 import           Commonmark
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid ((<>))

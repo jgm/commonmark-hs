@@ -158,6 +158,7 @@ extensions =
   ,("implicit_heading_references", implicitHeadingReferencesSpec)
   ,("wikilinks_title_before_pipe", wikilinksSpec TitleBeforePipe)
   ,("wikilinks_title_after_pipe", wikilinksSpec TitleAfterPipe)
+  ,("rebase_relative_paths", rebaseRelativePathsSpec)
   ,("gfm", gfmExtensions)
   ]
 

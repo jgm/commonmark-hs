@@ -37,6 +37,7 @@ extra-source-files:
     test/math.md
     test/emoji.md
     test/smart.md
+    test/rebase_relative_paths.md
     test/strikethrough.md
     test/superscript.md
     test/subscript.md
@@ -56,6 +57,8 @@ library
     , parsec
     , containers
     , transformers
+    , filepath
+    , network-uri
     , commonmark >= 0.1.1.2 && < 0.2
     -- for extensions:
     , emojis >= 0.1 && < 0.2
@@ -77,6 +80,7 @@ library
       Commonmark.Extensions.FancyList
       Commonmark.Extensions.TaskList
       Commonmark.Extensions.ImplicitHeadingReferences
+      Commonmark.Extensions.RebaseRelativePaths
       Commonmark.Extensions.Wikilinks
   ghc-options: -Wall -fno-warn-unused-do-bind -funbox-small-strict-fields
   if impl(ghc >= 8.10)

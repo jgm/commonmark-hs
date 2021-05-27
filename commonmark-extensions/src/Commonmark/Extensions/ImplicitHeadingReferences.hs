@@ -51,6 +51,7 @@ addHeadingRef bd
           referenceMap = insertReference lab
             LinkInfo{ linkDestination = "#" <> ident
                     , linkTitle = mempty
-                    , linkAttributes = mempty }
+                    , linkAttributes = mempty
+                    , linkPos = Nothing }
             (referenceMap s) }
   | otherwise = return ()

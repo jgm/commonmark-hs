@@ -290,13 +290,13 @@ imageSpec = BracketedSpec
 pLinkSuffix :: IsInline il
             => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
 pLinkSuffix rm key = do
-  LinkInfo target title attrs <- pLink rm key
+  LinkInfo target title attrs _mbpos <- pLink rm key
   return $! addAttributes attrs . link target title
 
 pImageSuffix :: IsInline il
              => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
 pImageSuffix rm key = do
-  LinkInfo target title attrs <- pLink rm key
+  LinkInfo target title attrs _mbpos <- pLink rm key
   return $! addAttributes attrs . image target title
 
 ---
@@ -870,7 +870,8 @@ pInlineLink = try $ do
   _ <- symbol ')'
   return $! LinkInfo { linkDestination = target
                     , linkTitle = title
-                    , linkAttributes = mempty }
+                    , linkAttributes = mempty
+                    , linkPos = Nothing }
 
 pLinkDestination :: Monad m => ParsecT [Tok] s m [Tok]
 pLinkDestination = pAngleDest <|> pNormalDest 0

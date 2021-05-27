@@ -22,7 +22,11 @@ newtype ReferenceMap = ReferenceMap { unReferenceMap :: M.Map Text [Dynamic] }
 
 data LinkInfo = LinkInfo{ linkDestination :: !Text
                         , linkTitle       :: !Text
-                        , linkAttributes  :: !Attributes }
+                        , linkAttributes  :: !Attributes
+                        , linkPos         :: !(Maybe SourcePos)
+                            -- ^ Position of the reference link definition
+                            -- for references links.
+                        }
      deriving (Show, Typeable)
 
 emptyReferenceMap :: ReferenceMap

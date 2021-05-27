@@ -617,6 +617,7 @@ linkReferenceDef attrParser = try $ do
   guard $ not $ T.all isSpace lab
   symbol ':'
   optional whitespace
+  linkpos <- getPosition
   dest <- pLinkDestination
   (title, attrs) <- option (mempty, mempty) $ try $ do
              tit <- option mempty $ try (whitespace *> pLinkTitle)
@@ -630,7 +631,8 @@ linkReferenceDef attrParser = try $ do
   return $! ((SourceRange [(startpos, endpos)], lab),
                 LinkInfo{ linkDestination = unEntity dest
                         , linkTitle = unEntity title
-                        , linkAttributes = attrs })
+                        , linkAttributes = attrs
+                        , linkPos = Just linkpos })
 
 atxHeadingSpec :: (Monad m, IsBlock il bl)
             => BlockSpec m il bl

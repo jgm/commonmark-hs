@@ -19,6 +19,7 @@ module Commonmark.Inlines
   , defaultBracketedSpecs
   , imageSpec
   , linkSpec
+  , pLink
   , pLinkLabel
   , pLinkDestination
   , pLinkTitle

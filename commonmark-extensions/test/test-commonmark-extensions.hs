@@ -53,7 +53,7 @@ main = do
              , ("test/wikilinks_title_before_pipe.md", wikilinksSpec TitleBeforePipe)
              , ("test/wikilinks_title_after_pipe.md", wikilinksSpec TitleAfterPipe)
              ]
-  defaultMain $ testGroup "Tests" tests
+  defaultMain $ testGroup "Tests" (tests ++ [rebaseRelativePathTests])
 
 getSpecTestTree :: FilePath
                 -> SyntaxSpec Identity (Html ()) (Html ())
@@ -146,4 +146,29 @@ normalLine = do
   when ("#" `T.isPrefixOf` t) $ updateState $ \(_secname, exampnum) ->
            (T.strip $ T.dropWhile (=='#') t, exampnum)
 
----
+rebaseRelativePathTests :: TestTree
+rebaseRelativePathTests = do
+  let parser = runIdentity . parseCommonmarkWith
+                   (rebaseRelativePathsSpec <> defaultSyntaxSpec)
+  let md = T.unlines
+            [ "![image](foo.jpg)"
+            , "[link](http://example.com/foo.jpg)"
+            , "![image]()"
+            , "[link](#foobar)"
+            , "![image][ref]"
+            , ""
+            ]
+  let mdref = "[ref]: baz.png"
+  let toks = tokenize "chap1/text.md" md ++ tokenize "extra/refs.md" mdref
+  let actual = normalizeHtml .  TL.toStrict . renderHtml .
+                  fromRight mempty $ (parser toks
+                       :: Either ParseError (Html ()))
+  let expected = T.unlines
+                 [ "<p><img src=\"chap1/foo.jpg\" alt=\"image\" />"
+                 , "<a href=\"http://example.com/foo.jpg\">link</a>"
+                 , "<img src=\"\" alt=\"image\" />"
+                 , "<a href=\"#foobar\">link</a>"
+                 , "<img src=\"extra/baz.png\" alt=\"image\" /></p>"
+                 ]
+  testCase "rebase_relative_paths" (actual @?= expected)
+

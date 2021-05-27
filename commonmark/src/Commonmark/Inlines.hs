@@ -17,6 +17,7 @@ module Commonmark.Inlines
   , defaultFormattingSpecs
   , BracketedSpec(..)
   , defaultBracketedSpecs
+  , LinkInfo(..)
   , imageSpec
   , linkSpec
   , pLink

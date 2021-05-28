@@ -1,5 +1,10 @@
 # Changelog for commonmark-pandoc
 
+## 0.2.1
+
+- commonmark-pandoc.cabal: remove unneeded build-depend on containers.
+- Support wikilinks extension.
+
 ## 0.2.0.1
 
 - Allow pandoc-types 1.22.

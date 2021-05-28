@@ -1,5 +1,5 @@
 name:           commonmark-pandoc
-version:        0.2.0.1
+version:        0.2.1
 synopsis:       Bridge between commonmark and pandoc AST.
 description:    This library provides typeclasses for rendering
                 commonmark to Pandoc types.
@@ -8,7 +8,7 @@ homepage:       https://github.com/jgm/commonmark-hs
 bug-reports:    https://github.com/jgm/commonmark-hs/issues
 author:         John MacFarlane
 maintainer:     jgm@berkeley.edu
-copyright:      2018-2020 John MacFarlane
+copyright:      2018-2021 John MacFarlane
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple

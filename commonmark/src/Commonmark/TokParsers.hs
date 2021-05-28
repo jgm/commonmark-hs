@@ -119,7 +119,7 @@ gobble' requireAll numspaces
                let newtok = Tok Spaces newpos
                       (T.replicate (n - numspaces) " ")
                getInput >>= setInput . (newtok:)
-               setPosition $ newpos
+               setPosition newpos
                return $! numspaces)
     <|> if requireAll
            then mzero

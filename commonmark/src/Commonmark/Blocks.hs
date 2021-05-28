@@ -108,7 +108,7 @@ processLines :: (Monad m, IsBlock il bl)
              -> BlockParser m il bl bl
 processLines specs finalParsers = {-# SCC processLines #-} do
   let go = eof <|> (processLine specs >> go) in go
-  tree <- (nodeStack <$> getState) >>= collapseNodeStack
+  tree <- getState >>= collapseNodeStack . nodeStack
   updateState $ \st -> st{ nodeStack = [reverseSubforests tree] }
   endContent <- mconcat <$> sequence finalParsers
   tree':_ <- nodeStack <$> getState
@@ -237,7 +237,7 @@ checkContinue nd (matched, unmatched) = do
                 else (matched, new:unmatched))
        <|> (matched, nd:unmatched) <$ updateState (\st -> st{
                                          blockMatched = False })
-     else return $! (matched, nd:unmatched)
+     else return (matched, nd:unmatched)
 
 
 {-
@@ -404,7 +404,7 @@ addRange (Node b _)
      go [] = []
      go ((!startpos1, !endpos1):(!startpos2, !endpos2):rest)
        | endpos1 == startpos2 = go ((startpos1, endpos2):rest)
-     go (!x:xs) = x : go xs
+     go (x:xs) = x : go xs
 
 -- Add a new node to the block stack.  If current tip can contain
 -- it, add it there; otherwise, close the tip and repeat til we get
@@ -475,10 +475,10 @@ refLinkDefSpec = BlockSpec
          let linkdefs = fromDyn (blockData (rootLabel node))
                   undefined :: [((SourceRange, Text), LinkInfo)]
          return $! mconcat $ map (\((range, lab), linkinfo) ->
-            (ranged range
+            ranged range
               (addAttributes (linkAttributes linkinfo)
                 (referenceLinkDefinition lab (linkDestination linkinfo,
-                                            linkTitle linkinfo))))) linkdefs
+                                            linkTitle linkinfo)))) linkdefs
      , blockFinalize       = defaultFinalizer
      }
 
@@ -495,7 +495,7 @@ extractReferenceLinks node = do
                         many1 (linkReferenceDef (choice $ attributeParsers st)))
                   <*> getInput) st "" (getBlockText node)
   case res of
-        Left _ -> return $! (Just node, Nothing)
+        Left _ -> return (Just node, Nothing)
         Right (linkdefs, toks') -> do
           mapM_
             (\((_,lab),linkinfo) ->
@@ -523,7 +523,7 @@ extractReferenceLinks node = do
                    , blockData = toDyn linkdefs
                    , blockSpec = refLinkDefSpec
                  }}
-          return $! (node', Just refnode)
+          return (node', Just refnode)
 
 attributeSpec :: (Monad m, IsBlock il bl)
               => BlockSpec m il bl
@@ -556,7 +556,7 @@ attributeSpec = BlockSpec
          lookAhead (void lineEnd <|> eof)
          let oldattrs = fromDyn (blockData (rootLabel n)) mempty :: Attributes
          let attrs' = oldattrs <> attrs
-         return $! (pos, n{ rootLabel = (rootLabel n){
+         return  (pos, n{ rootLabel = (rootLabel n){
                           blockData = toDyn attrs' }})
      , blockConstructor    = \_ -> return $! mempty
      , blockFinalize       = \node parent -> do
@@ -625,10 +625,10 @@ linkReferenceDef attrParser = try $ do
              as <- option mempty attrParser
              skipWhile (hasType Spaces)
              lookAhead (void lineEnd <|> eof)
-             return $! (tit, as)
+             return (tit, as)
   endpos <- getPosition
   void lineEnd <|> eof
-  return $! ((SourceRange [(startpos, endpos)], lab),
+  return ((SourceRange [(startpos, endpos)], lab),
                 LinkInfo{ linkDestination = unEntity dest
                         , linkTitle = unEntity title
                         , linkAttributes = attrs
@@ -679,7 +679,7 @@ atxHeadingSpec = BlockSpec
          let oldAttr = blockAttributes cdata
          let toks = getBlockText node
          (newtoks, attr) <- parseFinalAttributes True toks
-                        <|> (return $! (toks, mempty))
+                        <|> (return (toks, mempty))
          defaultFinalizer (Node cdata{ blockAttributes = oldAttr <> attr
                                      , blockLines = [newtoks] }
                                 children) parent
@@ -733,7 +733,7 @@ setextHeadingSpec = BlockSpec
          let oldAttr = blockAttributes cdata
          let toks = getBlockText node
          (newtoks, attr) <- parseFinalAttributes True toks
-                        <|> (return $! (toks, mempty))
+                        <|> (return (toks, mempty))
          defaultFinalizer (Node cdata{ blockAttributes = oldAttr <> attr
                                      , blockLines = [newtoks] }
                                 children) parent
@@ -753,7 +753,7 @@ parseFinalAttributes requireWhitespace ts = do
             <*> option [] pAttr') st "heading contents" ts
   case res of
     Left _         -> mzero
-    Right (xs, ys) -> return $! (xs, ys)
+    Right (xs, ys) -> return (xs, ys)
 
 blockQuoteSpec :: (Monad m, IsBlock il bl) => BlockSpec m il bl
 blockQuoteSpec = BlockSpec
@@ -775,9 +775,8 @@ blockQuoteSpec = BlockSpec
              pos <- getPosition
              _ <- symbol '>'
              _ <- gobbleUpToSpaces 1
-             return $! (pos, n)
-     , blockConstructor    = \node ->
-           (blockQuote . mconcat) <$> renderChildren node
+             return (pos, n)
+     , blockConstructor    = fmap (blockQuote . mconcat) . renderChildren
      , blockFinalize       = defaultFinalizer
      }
 
@@ -831,7 +830,7 @@ listItemSpec parseListMarker = BlockSpec
                      not (null children)
              pos <- getPosition
              gobbleSpaces (listItemIndent lidata) <|> 0 <$ lookAhead blankLine
-             return $! (pos, node)
+             return (pos, node)
      , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = \(Node cdata children) parent -> do
           let lidata = fromDyn (blockData cdata)
@@ -868,7 +867,7 @@ itemStart parseListMarker = do
   numspaces <- try (gobbleUpToSpaces 4 <* notFollowedBy whitespace)
            <|> gobbleSpaces 1
            <|> 1 <$ lookAhead lineEnd
-  return $! (pos, ListItemData{
+  return (pos, ListItemData{
            listItemType = ty
           , listItemIndent = (aftercol - beforecol) + numspaces
           , listItemBlanksInside = False
@@ -980,7 +979,7 @@ indentedCodeSpec = BlockSpec
              void (gobbleSpaces 4)
                <|> try (skipWhile (hasType Spaces) <* lookAhead lineEnd)
              pos <- getPosition
-             return $! (pos, node)
+             return (pos, node)
 
      , blockConstructor    = \node ->
              return $! codeBlock mempty (untokenize (getBlockText node))
@@ -1022,7 +1021,7 @@ fencedCodeSpec = BlockSpec
 
              let infotoks = tokenize "info string" info
              (content, attrs) <- parseFinalAttributes False infotoks
-                                  <|> (return $! (infotoks, mempty))
+                                  <|> (return (infotoks, mempty))
              addNodeToStack $
                 Node (defBlockData fencedCodeSpec){
                           blockData = toDyn
@@ -1052,7 +1051,7 @@ fencedCodeSpec = BlockSpec
                                    ('`', 3, 0, mempty, mempty)
                        pos <- getPosition
                        _ <- gobbleUpToSpaces indentspaces
-                       return $! (pos, node))
+                       return (pos, node))
      , blockConstructor    = \node -> do
            let ((_, _, _, info, attrs) :: (Char, Int, Int, Text, Attributes)) =
                    fromDyn (blockData (rootLabel node)) ('`', 3, 0, mempty, mempty)
@@ -1109,7 +1108,7 @@ rawHtmlSpec = BlockSpec
                     return $! (pos', Node ndata{
                                     blockData = toDyn (0 :: Int)
                                   , blockLines = (toks ++ le) : blockLines ndata
-                                  } children)) <|> (return $! (pos, node))
+                                  } children)) <|> (return (pos, node))
      , blockConstructor    = \node ->
              return $! rawBlock (Format "html")
                            (untokenize (getBlockText node))

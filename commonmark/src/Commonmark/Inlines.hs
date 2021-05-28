@@ -410,7 +410,7 @@ withAttributes :: (IsInline a, Monad m) => InlineParser m a -> InlineParser m a
 withAttributes p = do
   x <- p
   attrParser <- attributeParser <$> getState
-  option x $ (\attr -> addAttributes attr x) <$> attrParser
+  option x $ (`addAttributes` x) <$> attrParser
 
 pInline :: (IsInline a, Monad m)
         => [InlineParser m a]
@@ -428,7 +428,7 @@ pInline ilParsers =
 
 rangeFromToks :: [Tok] -> SourcePos -> SourceRange
 rangeFromToks [] _ = SourceRange mempty
-rangeFromToks (!z:zs) !endpos
+rangeFromToks (z:zs) !endpos
   | sourceLine (tokPos z) == sourceLine endpos
     = SourceRange [(tokPos z, endpos)]
   | otherwise
@@ -438,8 +438,8 @@ rangeFromToks (!z:zs) !endpos
           case break (hasType LineEnd) ts of
              ([], [])     -> []
              ([], _:ys)   -> go ys
-             (!x:_, [])   -> [(tokPos x, endpos)]
-             (!x:_, !y:ys) ->
+             (x:_, [])   -> [(tokPos x, endpos)]
+             (x:_, y:ys) ->
                case ys of
                  (Tok _ !pos _ : _) | sourceColumn pos == 1 -> go (x:ys)
                  _ -> (tokPos x, tokPos y) : go ys
@@ -853,7 +853,7 @@ processBs bracketedSpecs st =
 -- isn't.
 fixSingleQuote :: Cursor (Chunk a) -> Cursor (Chunk a)
 fixSingleQuote
-  (Cursor (Just (Chunk d@(Delim{ delimType = '\'' }) pos toks)) xs ys) =
+  (Cursor (Just (Chunk d@Delim{ delimType = '\'' } pos toks)) xs ys) =
   Cursor (Just (Chunk d{ delimCanOpen = False } pos toks)) xs ys
 fixSingleQuote cursor = cursor
 

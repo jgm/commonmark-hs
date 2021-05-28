@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE BangPatterns #-}
 
 module Commonmark.Tokens

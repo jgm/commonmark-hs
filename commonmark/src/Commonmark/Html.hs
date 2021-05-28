@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP                        #-}
-{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE FlexibleInstances          #-}
@@ -167,7 +166,7 @@ instance Rangeable (Html SourceRange) where
 
 
 htmlInline :: Text -> Maybe (Html a) -> Html a
-htmlInline tagname mbcontents = HtmlElement InlineElement tagname [] mbcontents
+htmlInline tagname = HtmlElement InlineElement tagname []
 
 htmlBlock :: Text -> Maybe (Html a) -> Html a
 htmlBlock tagname mbcontents = HtmlElement BlockElement tagname [] mbcontents
@@ -419,7 +418,7 @@ renderHtml :: Html a -> TL.Text
 renderHtml = {-# SCC renderHtml #-} toLazyText . toBuilder
 
 toBuilder :: Html a -> Builder
-toBuilder (HtmlNull) = mempty
+toBuilder HtmlNull = mempty
 toBuilder (HtmlConcat x y) = toBuilder x <> toBuilder y
 toBuilder (HtmlRaw t) = fromText t
 toBuilder (HtmlText t) = escapeHtml t

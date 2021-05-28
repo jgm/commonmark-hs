@@ -39,7 +39,7 @@ insertReference :: Typeable a
                 -> ReferenceMap
                 -> ReferenceMap
 insertReference label x (ReferenceMap m) =
-  ReferenceMap (M.insertWith (\new old -> old ++ new)
+  ReferenceMap (M.insertWith (flip (++))
     (T.toCaseFold $! normalizeSpaces label) [toDyn x] m)
 
 -- | Lookup a reference in a reference map.  If there are several

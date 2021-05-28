@@ -1,6 +1,6 @@
 cabal-version:  2.2
 name:           commonmark
-version:        0.1.1.3
+version:        0.2
 synopsis:       Pure Haskell commonmark parser.
 description:
    This library provides the core data types and functions
@@ -35,7 +35,7 @@ bug-reports:    https://github.com/jgm/commonmark-hs/issues
 stability:      experimental
 author:         John MacFarlane
 maintainer:     jgm@berkeley.edu
-copyright:      2018-2020 John MacFarlane
+copyright:      2018-2021 John MacFarlane
 license:        BSD-3-Clause
 license-file:   LICENSE
 build-type:     Simple

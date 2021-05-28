@@ -1,5 +1,17 @@
 # Changelog for commonmark
 
+## 0.2
+
+* Commonmark.Inlines: export LinkInfo(..) [API change].
+* Commonmark.Inlines: export pLink [API chage].
+* Comonmark.ReferenceMap: Add linkPos field to LinkInfo [API change].
+* Commonmark.Tokens: normalize unicode to NFC before tokenizing (#57).
+  Normalization might affect detection of flankingness, recognition
+  of reference links, etc.
+* Commonmark.Html:  add data-prefix to non-HTML5 attributes, as pandoc does.
+* Remove unnecessary build-depends.
+* Use lightweight tasty-bench instead of criterion for benchmarks.
+
 ## 0.1.1.4
 
 * Fix build with GHC 9.0.1 (Simon Jakobi, #72).

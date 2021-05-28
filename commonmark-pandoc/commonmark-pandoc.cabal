@@ -27,8 +27,8 @@ library
       src
   build-depends:
       base >= 4.9 && <5
-    , commonmark >= 0.1 && < 0.2
-    , commonmark-extensions >= 0.2 && < 0.3
+    , commonmark >= 0.2 && < 0.3
+    , commonmark-extensions >= 0.2.1 && < 0.3
     , pandoc-types >= 1.21 && < 1.23
     , text
   if impl(ghc >= 8.10)

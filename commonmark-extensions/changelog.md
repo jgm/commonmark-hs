@@ -1,5 +1,13 @@
 # Changelog for commonmark-extensions
 
+## 0.2.1
+
+- Add `rebase_relative_paths` extension.
+  New exported module Commonmark.Extensions.RebaseRelativePaths [API change].
+- Add `wikilinks_title_before_pipe` and `wikilinks_title_after_pipe`
+  extensions (#69).
+  New exported module Commonmark.Extensions.Wikilinks [API change].
+
 ## 0.2.0.4
 
 - Add a test for autolinks (#66).

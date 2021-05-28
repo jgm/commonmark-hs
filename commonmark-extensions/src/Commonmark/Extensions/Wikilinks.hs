@@ -46,7 +46,7 @@ wikilinksSpec titlepos = mempty
   { syntaxInlineParsers = [ pWikilink ]
   }
   where
-   pWikilink = do
+   pWikilink = try $ do
      symbol '['
      symbol '['
      notFollowedBy (symbol '[')

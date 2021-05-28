@@ -31,3 +31,12 @@ With this version of wikilinks, the title comes before the pipe.
 <p><a href="Name%20of%20page" title="wikilink">Title</a></p>
 ````````````````````````````````
 
+Regular links should still work!
+
+```````````````````````````````` example
+[Title](Name%20of%20page)
+.
+<p><a href="Name%20of%20page">Title</a></p>
+````````````````````````````````
+
+

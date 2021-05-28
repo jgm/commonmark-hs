@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -15,6 +16,9 @@ import Text.Parsec.Pos (sourceName)
 import System.FilePath
 import Network.URI (URI (uriScheme), parseURI)
 import qualified Data.Set as Set
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup(..))
+#endif
 
 rebaseRelativePathsSpec
   :: forall m bl il . (Monad m , IsInline il , IsBlock il bl)

@@ -1,5 +1,9 @@
 # Changelog for commonmark-extensions
 
+## 0.2.1.1
+
+- Fix bug in wikilinks extensions.
+
 ## 0.2.1
 
 - Add `rebase_relative_paths` extension.

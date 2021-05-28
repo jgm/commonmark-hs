@@ -1,5 +1,5 @@
 name:           commonmark-cli
-version:        0.1.0.1
+version:        0.2
 synopsis:       Command-line commonmark converter and highlighter.
 description:    This package provides a command-line tool, `commonmark`,
                 for converting and syntax-highlighting commonmark documents.
@@ -8,7 +8,7 @@ homepage:       https://github.com/jgm/commonmark-hs
 bug-reports:    https://github.com/jgm/commonmark-hs/issues
 author:         John MacFarlane
 maintainer:     jgm@berkeley.edu
-copyright:      2018-2020 John MacFarlane
+copyright:      2018-2021 John MacFarlane
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -33,7 +33,7 @@ executable commonmark
   build-depends: base >= 4.9 && <5
                , commonmark >= 0.2 && < 0.3
                , commonmark-extensions >= 0.2.1 && < 0.3
-               , commonmark-pandoc >= 0.1 && < 0.3
+               , commonmark-pandoc >= 0.2.1 && < 0.3
                , pandoc-types
                , aeson
                , bytestring

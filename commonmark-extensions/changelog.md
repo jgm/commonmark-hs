@@ -1,5 +1,10 @@
 # Changelog for commonmark-extensions
 
+## 0.2.1.2
+
+- Fix bug with absolute paths in rebase_relative_paths
+  extension on Windows.
+
 ## 0.2.1.1
 
 - Fix bug in wikilinks extensions.

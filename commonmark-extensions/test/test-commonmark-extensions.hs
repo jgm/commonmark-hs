@@ -156,6 +156,7 @@ rebaseRelativePathTests = do
             , "![image]()"
             , "[link](#foobar)"
             , "![image][ref]"
+            , "![image](/absolute/path.jpg)"
             , ""
             ]
   let mdref = "[ref]: baz.png"
@@ -168,7 +169,8 @@ rebaseRelativePathTests = do
                  , "<a href=\"http://example.com/foo.jpg\">link</a>"
                  , "<img src=\"\" alt=\"image\" />"
                  , "<a href=\"#foobar\">link</a>"
-                 , "<img src=\"extra/baz.png\" alt=\"image\" /></p>"
+                 , "<img src=\"extra/baz.png\" alt=\"image\" />"
+                 , "<img src=\"/absolute/path.jpg\" alt=\"image\" /></p>"
                  ]
   testCase "rebase_relative_paths" (actual @?= expected)
 

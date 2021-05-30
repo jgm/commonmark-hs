@@ -14,6 +14,8 @@ import Data.Maybe (fromMaybe)
 import Text.Parsec (getPosition)
 import Text.Parsec.Pos (sourceName)
 import System.FilePath
+import qualified System.FilePath.Windows as Windows
+import qualified System.FilePath.Posix as Posix
 import Network.URI (URI (uriScheme), parseURI)
 import qualified Data.Set as Set
 #if !MIN_VERSION_base(4,11,0)
@@ -66,7 +68,9 @@ rebasePath :: SourcePos -> Text -> Text
 rebasePath pos path = do
   let fp = sourceName pos
       isFragment = T.take 1 path == "#"
-   in if T.null path || isFragment || isAbsolute (T.unpack path) || isURI path
+      path' = T.unpack path
+      isAbsolutePath = Posix.isAbsolute path' || Windows.isAbsolute path'
+   in if T.null path || isFragment || isAbsolutePath || isURI path
          then path
          else
            case takeDirectory fp of

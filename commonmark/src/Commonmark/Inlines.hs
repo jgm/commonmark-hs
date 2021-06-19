@@ -573,12 +573,14 @@ processEm st =
                             Just c  -> c : befores (rightCursor st)
 
        (Nothing, Just (Chunk Delim{ delimType = c
-                                  , delimCanClose = True } pos ts)) ->
+                                  , delimCanClose = True
+                                  , delimCanOpen = canopen } pos ts)) ->
            processEm
            st{ leftCursor   = right
              , rightCursor  = moveRight right
              , stackBottoms = M.insert
-                   (T.pack (c : show (length ts `mod` 3))) pos
+                   (T.pack ([c, if canopen then '1' else '0']
+                              ++ show (length ts `mod` 3))) pos
                    $ stackBottoms st
              }
 
@@ -589,6 +591,7 @@ processEm st =
 
        (Just chunk, Just closedelim@(Chunk Delim{ delimType = c,
                                                   delimCanClose = True,
+                                                  delimCanOpen = canopen,
                                                   delimSpec = Just spec}
                                            closePos ts))
          | delimsMatch chunk closedelim ->
@@ -638,7 +641,8 @@ processEm st =
                   st{ leftCursor   = right
                     , rightCursor  = moveRight right
                     , stackBottoms =  M.insert
-                        (T.pack (c : show (length ts `mod` 3)))
+                        (T.pack ([c, if canopen then '1' else '0']
+                                   ++ show (length ts `mod` 3)))
                         (chunkPos closedelim)
                         $ stackBottoms st
                     }

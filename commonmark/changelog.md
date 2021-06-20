@@ -1,5 +1,15 @@
 # Changelog for commonmark
 
+
+## 0.2.1
+
+  * Use official 0.30 spec.txt.
+  * Update HTML block parser for recent spec changes.
+  * Fix test case from commonmark/cmark#383.  We need to index the list
+    of stack bottoms not just by the length mod 3 of the closer but by
+    whether it can be an opener, since this goes into the calculation of
+    whether the delimiters can match.
+
 ## 0.2
 
 * Commonmark.Inlines: export LinkInfo(..) [API change].

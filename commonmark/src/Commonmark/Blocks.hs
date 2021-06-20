@@ -1119,7 +1119,7 @@ rawHtmlSpec = BlockSpec
 
 startCond :: Monad m => Int -> BlockParser m il bl ()
 startCond 1 = void $ try $ do
-  satisfyWord (isOneOfCI ["script","pre","style"])
+  satisfyWord (isOneOfCI ["script","pre","style","textarea"])
   spaceTok
      <|> symbol '>'
      <|> lookAhead lineEnd
@@ -1165,7 +1165,7 @@ endCond 1 = try $ do
   let closer = try $ do
         symbol '<'
         symbol '/'
-        satisfyWord (isOneOfCI ["script","pre","style"])
+        satisfyWord (isOneOfCI ["script","pre","style","textarea"])
         symbol '>'
   skipManyTill (satisfyTok (not . hasType LineEnd)) closer
 endCond 2 = try $ do

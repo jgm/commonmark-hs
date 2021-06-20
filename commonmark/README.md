@@ -10,7 +10,7 @@ Comments on the API and implementation are very much welcome.
 Further changes should be expected.
 
 The library is **fully commonmark-compliant** and passes the
-test suite for version 0.29 of the commonmark spec.
+test suite for version 0.30 of the commonmark spec.
 It is designed to be **customizable and easily
 extensible.**  To customize the output, create an
 AST, or support a new output format, one need only define some

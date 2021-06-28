@@ -270,7 +270,10 @@ pClass = do
   symbol '.'
   xs <- many1 $
         satisfyWord (const True)
-    <|> satisfyTok (\c -> hasType (Symbol '-') c || hasType (Symbol '_') c)
+    <|> satisfyTok (\c -> hasType (Symbol '-') c 
+                       || hasType (Symbol '_') c 
+                       || hasType (Symbol '/') c
+                       || hasType (Symbol ':') c)
   return $! ("class", unEntity xs)
 
 pKeyValue :: Monad m => ParsecT [Tok] u m Attribute

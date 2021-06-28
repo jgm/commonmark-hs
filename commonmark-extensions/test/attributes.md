@@ -264,3 +264,11 @@ either for blocks or for inlines.**
 .
 <h1 data-key="value">Heading</h1>
 ````````````````````````````````
+
+Class names can support these special symbols
+
+```````````````````````````````` example
+# Heading {.class-with-hyphen .class_with_underscode .class/with/slash .class:with:colon }
+.
+<h1 class="class-with-hyphen class_with_underscode class/with/slash class:with:colon">Heading</h1>
+````````````````````````````````

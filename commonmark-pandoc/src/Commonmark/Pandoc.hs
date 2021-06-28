@@ -165,7 +165,7 @@ toTaskListItem :: (Bool, Cm a B.Blocks) -> B.Blocks
 toTaskListItem (checked, item) = B.fromList $
   case B.toList $ coerce item of
     (Plain ils : rest) -> Plain (checkbox : Space : ils) : rest
-    (Para  ils : rest) -> Plain (checkbox : Space : ils) : rest
+    (Para  ils : rest) -> Para  (checkbox : Space : ils) : rest
     bs                 -> Plain [checkbox] : bs
     where checkbox = Str (if checked then "\9746" else "\9744")
 

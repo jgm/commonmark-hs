@@ -1,8 +1,5 @@
 ## Footnotes
 
-TODO: proper spec.
-This test is based on the one from gfm.
-
 ```````````````````````````````` example
 This is some text![^1]. Other text.[^footnote].
 

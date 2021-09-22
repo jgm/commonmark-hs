@@ -164,8 +164,8 @@ paraToPlain x = x
 toTaskListItem :: (Bool, Cm a B.Blocks) -> B.Blocks
 toTaskListItem (checked, item) = B.fromList $
   case B.toList $ coerce item of
-    (Plain ils : rest) -> Plain (checkbox : Space : ils) : rest
-    (Para  ils : rest) -> Para  (checkbox : Space : ils) : rest
+    (Plain ils : rest) -> Plain (checkbox : Str " " : ils) : rest
+    (Para  ils : rest) -> Para  (checkbox : Str " " : ils) : rest
     bs                 -> Plain [checkbox] : bs
     where checkbox = Str (if checked then "\9746" else "\9744")
 
@@ -248,7 +248,6 @@ illegalCodePoint t =
 stringify :: Walkable Inline a => a -> T.Text
 stringify = query go . walk (deNote . deQuote)
   where go :: Inline -> T.Text
-        go Space                                         = " "
         go SoftBreak                                     = " "
         go (Str x)                                       = x
         go (Code _ x)                                    = x

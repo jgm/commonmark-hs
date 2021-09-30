@@ -63,16 +63,18 @@ import           Commonmark.Extensions.ImplicitHeadingReferences
 import           Commonmark.Extensions.Wikilinks
 import           Commonmark.Extensions.RebaseRelativePaths
 import           Commonmark
+import           Data.Typeable
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid ((<>))
 #endif
 
 -- | Standard extensions for GitHub-flavored Markdown.
-gfmExtensions :: (Monad m, IsBlock il bl, IsInline il,
+gfmExtensions :: (Monad m, Typeable m, Typeable il, Typeable bl,
+                  IsBlock il bl, IsInline il, HasFootnote il bl,
                   HasEmoji il, HasStrikethrough il, HasPipeTable il bl,
                   HasTaskList il bl, ToPlainText il)
               => SyntaxSpec m il bl
 gfmExtensions =
   emojiSpec <> strikethroughSpec <> pipeTableSpec <> autolinkSpec <>
-    autoIdentifiersSpec <> taskListSpec
+    autoIdentifiersSpec <> taskListSpec <> footnoteSpec
 

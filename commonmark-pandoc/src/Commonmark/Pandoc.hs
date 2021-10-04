@@ -162,12 +162,14 @@ paraToPlain (Para xs) = Plain xs
 paraToPlain x = x
 
 toTaskListItem :: (Bool, Cm a B.Blocks) -> B.Blocks
-toTaskListItem (checked, item) = B.fromList $
+toTaskListItem (checked, item) =
   case B.toList $ coerce item of
-    (Plain ils : rest) -> Plain (checkbox : Str " " : ils) : rest
-    (Para  ils : rest) -> Para  (checkbox : Str " " : ils) : rest
-    bs                 -> Plain [checkbox] : bs
-    where checkbox = Str (if checked then "\9746" else "\9744")
+    (Plain ils : rest) -> B.plain (B.str (checkbox <> " ") <> B.fromList ils)
+                            <> B.fromList rest
+    (Para  ils : rest) -> B.para  (B.str (checkbox <> " ") <> B.fromList ils)
+                            <> B.fromList rest
+    bs                 -> B.plain (B.str checkbox) <> B.fromList bs
+    where checkbox = if checked then "\9746" else "\9744"
 
 instance Rangeable (Cm a B.Blocks)
   => HasDiv (Cm a B.Blocks) where

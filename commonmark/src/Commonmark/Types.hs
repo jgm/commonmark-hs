@@ -125,20 +125,19 @@ class Rangeable a where
   ranged :: SourceRange -> a -> a
 
 prettyRange :: SourceRange -> String
-prettyRange (SourceRange []) = ""
-prettyRange (SourceRange xs@((p,_):_)) =
-  sourceName p ++ "@" ++ go (sourceName p) xs
+prettyRange (SourceRange xs) = go "" xs
   where
     go _ [] = ""
     go curname ((p1,p2):rest)
-      | sourceName p1 /= curname =
-         sourceName p1 ++ "@" ++ go (sourceName p) ((p1,p2):rest)
-      | otherwise =
+      = (if sourceName p1 /= curname
+            then sourceName p1 ++ "@"
+            else "") ++
          show (sourceLine p1) ++ ":" ++
          show (sourceColumn p1) ++ "-" ++
-         (if sourceName p2 /= curname
+         (if sourceName p2 /= sourceName p1
              then sourceName p2 ++ "@"
-             else "") ++ show (sourceLine p2) ++
+             else "") ++
+         show (sourceLine p2) ++
          ":" ++ show (sourceColumn p2) ++
          if null rest
             then ""

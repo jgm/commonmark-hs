@@ -403,6 +403,8 @@ addRange (Node b _)
    where
      go [] = []
      go ((!startpos1, !endpos1):(!startpos2, !endpos2):rest)
+       | startpos1 == startpos2
+       , endpos1 == endpos2   = go ((startpos1, endpos2):rest)
        | endpos1 == startpos2 = go ((startpos1, endpos2):rest)
      go (x:xs) = x : go xs
 

@@ -1,5 +1,10 @@
 # Changelog for commonmark-extensions
 
+## 0.2.2
+
+  * Add footnote to gfmExtensions.  Note that this also requires
+    additional type constraints on gfmExtensions [API change].
+
 ## 0.2.1.2
 
 - Fix bug with absolute paths in rebase_relative_paths

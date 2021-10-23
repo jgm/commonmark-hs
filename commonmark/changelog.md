@@ -1,5 +1,9 @@
 # Changelog for commonmark
 
+## 0.2.1.1
+
+  * Fix bug in `prettyShow` for `SourceRange` (#80).
+    The bug led to an infinite loop in certain cases.
 
 ## 0.2.1
 

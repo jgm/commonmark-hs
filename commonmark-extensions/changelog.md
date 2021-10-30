@@ -1,9 +1,14 @@
 # Changelog for commonmark-extensions
 
+## 0.2.2.1
+
+- Fix commonmark-extensions to build with GHC 9.2 (#81, Joseph C. Sible).
+  Currently `--allow-newer` is needed.
+
 ## 0.2.2
 
-  * Add footnote to gfmExtensions.  Note that this also requires
-    additional type constraints on gfmExtensions [API change].
+- Add footnote to gfmExtensions.  Note that this also requires
+  additional type constraints on gfmExtensions [API change].
 
 ## 0.2.1.2
 

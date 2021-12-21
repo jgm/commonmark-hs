@@ -12,16 +12,16 @@ GHC_OPTS=-Wall -fno-warn-unused-do-bind -Wnoncanonical-monad-instances -Wincompl
 PROFTARGET?=b5.md
 
 all:
-	stack install --ghc-options="$(GHC_OPTS)" --test --test-arguments=--hide-successes --bench --no-run-benchmarks
+	stack install --system-ghc --ghc-options="$(GHC_OPTS)" --test --test-arguments=--hide-successes --bench --no-run-benchmarks
 
 quick:
-	stack install --test --no-run-tests --fast
+	stack install --system-ghc --test --no-run-tests --fast
 
 test:
-	stack test --test-arguments=$(TESTARGS)
+	stack test --system-ghc --test-arguments=$(TESTARGS)
 
 haddock:
-	stack haddock
+	stack --system-ghc haddock
 
 stan:
 	for d in commonmark commonmark-extensions commonmark-pandoc commonmark-cli; do cd $$d; stan report --config-file=../.stan.toml; cd ..; done

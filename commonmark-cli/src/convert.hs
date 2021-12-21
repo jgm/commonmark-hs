@@ -87,22 +87,30 @@ main = catch (do
               runIdentity (parseCommonmarkWith spec toks) of
            Left e -> errExit e
            Right (_ :: Html (), sm) -> highlightWith sm toks
-  else
-    if SourcePos `elem` opts then do
-       spec <- specFromExtensionNames [x | Extension x <- opts]
-       case runIdentity (parseCommonmarkWith spec toks) of
-            Left e -> errExit e
-            Right (r :: Html SourceRange)
-                   -> TLIO.putStr . renderHtml $ r
-    else
-      if PandocJSON `elem` opts then do
+  else do
+    let sourcepos = SourcePos `elem` opts
+    let json = SourcePos `elem` opts
+    case (json, sourcepos) of
+      (True, True) -> do
+        spec <- specFromExtensionNames [x | Extension x <- opts]
+        case runIdentity (parseCommonmarkWith spec toks) of
+             Left e -> errExit e
+             Right (r :: Cm SourceRange B.Blocks) -> do
+               BL.putStr . encode $ B.doc $ unCm r
+               BL.putStr "\n"
+      (True, False) -> do
         spec <- specFromExtensionNames [x | Extension x <- opts]
         case runIdentity (parseCommonmarkWith spec toks) of
              Left e -> errExit e
              Right (r :: Cm () B.Blocks) -> do
                BL.putStr . encode $ B.doc $ unCm r
                BL.putStr "\n"
-      else do
+      (False, True) -> do
+        spec <- specFromExtensionNames [x | Extension x <- opts]
+        case runIdentity (parseCommonmarkWith spec toks) of
+             Left e -> errExit e
+             Right (r :: Html SourceRange) -> TLIO.putStr . renderHtml $ r
+      (False, False) -> do
         spec <- specFromExtensionNames [x | Extension x <- opts]
         case runIdentity (parseCommonmarkWith spec toks) of
              Left e -> errExit e

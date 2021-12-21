@@ -108,7 +108,7 @@ instance Rangeable (Cm () B.Blocks) where
   ranged _r x = x
 
 instance Rangeable (Cm SourceRange B.Blocks) where
-  ranged r x = B.divWith ("",[],[("data-pos",T.pack (show r))]) <$> x
+  ranged r = addAttributes [("data-pos", T.pack (show r))]
 
 instance HasMath (Cm b B.Inlines) where
   inlineMath t = Cm $ B.math t

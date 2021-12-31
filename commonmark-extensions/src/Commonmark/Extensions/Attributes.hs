@@ -53,7 +53,7 @@ fencedDivSpec = mempty
 fencedDivBlockSpec :: (Monad m, IsBlock il bl, HasDiv bl)
                    => BlockSpec m il bl
 fencedDivBlockSpec = BlockSpec
-     { blockType           = "FencedDiv"
+    { blockType           = "FencedDiv"
      , blockStart          = try $ do
              prepos <- getPosition
              nonindentSpaces
@@ -63,7 +63,10 @@ fencedDivBlockSpec = BlockSpec
              let fencelength = length colons
              guard $ fencelength >= 3
              skipWhile (hasType Spaces)
-             attrs <- pAttributes
+             attrs <- pAttributes <|>
+                      (do bareWordToks <- many1
+                           (satisfyWord (const True) <|> anySymbol)
+                          return [("class", untokenize bareWordToks)])
              skipWhile (hasType Spaces)
              lookAhead $ void lineEnd <|> eof
              addNodeToStack $

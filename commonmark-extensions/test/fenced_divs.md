@@ -119,3 +119,16 @@ before a closing fence, the fenced div is implicitly closed.
 </blockquote>
 ````````````````````````````````
 
+Instead of a normal attribute specifier in curly braces,
+a single bare word may be used; it will be treated as a
+"class" attribute:
+
+```````````````````````````````` example
+::: c_d
+Hi
+:::
+.
+<div class="c_d">
+<p>Hi</p>
+</div>
+````````````````````````````````

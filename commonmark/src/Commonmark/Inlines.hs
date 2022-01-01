@@ -18,7 +18,6 @@ module Commonmark.Inlines
   , BracketedSpec(..)
   , defaultBracketedSpecs
   , LinkInfo(..)
-  , Chunk(..)
   , imageSpec
   , linkSpec
   , pLink
@@ -255,7 +254,7 @@ data BracketedSpec il = BracketedSpec
      , bracketedPrefix    :: Maybe Char -- ^ Prefix character.
      , bracketedSuffixEnd :: Maybe Char -- ^ Suffix character.
      , bracketedSuffix    :: ReferenceMap
-                          -> [Chunk il]
+                          -> [Tok]
                           -> Parsec [Tok] () (il -> il)
                           -- ^ Parser for suffix after
                           -- brackets.  Returns a constructor.
@@ -292,17 +291,17 @@ imageSpec = BracketedSpec
             }
 
 pLinkSuffix :: IsInline il
-            => ReferenceMap -> [Chunk il] -> Parsec [Tok] s (il -> il)
-pLinkSuffix rm chunksInside = do
+            => ReferenceMap -> [Tok] -> Parsec [Tok] s (il -> il)
+pLinkSuffix rm toksInside = do
   LinkInfo target title attrs _mbpos <-
-    pLink rm (untokenize $ concatMap chunkToks chunksInside)
+    pLink rm (untokenize toksInside)
   return $! addAttributes attrs . link target title
 
 pImageSuffix :: IsInline il
-             => ReferenceMap -> [Chunk il] -> Parsec [Tok] s (il -> il)
-pImageSuffix rm chunksInside = do
+             => ReferenceMap -> [Tok] -> Parsec [Tok] s (il -> il)
+pImageSuffix rm toksInside = do
   LinkInfo target title attrs _mbpos <-
-    pLink rm (untokenize $ concatMap chunkToks chunksInside)
+    pLink rm (untokenize toksInside)
   return $! addAttributes attrs . image target title
 
 ---
@@ -743,6 +742,8 @@ processBs bracketedSpecs st =
           let chunksinside = takeWhile (\ch -> chunkPos ch /= closePos)
                                (afters left)
 
+              toksinside = concatMap chunkToks chunksinside
+
               prefixChar = case befores left of
                                  Chunk Delim{delimType = c} _ [_] : _
                                     -> Just c
@@ -764,7 +765,7 @@ processBs bracketedSpecs st =
                  (withRaw
                    (do setPosition suffixPos
                        (spec, constructor) <- choice $
-                           map (\s -> (s,) <$> bracketedSuffix s rm chunksinside)
+                           map (\s -> (s,) <$> bracketedSuffix s rm toksinside)
                            specs
                        pos <- getPosition
                        return (spec, constructor, pos)))

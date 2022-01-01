@@ -50,16 +50,16 @@ rebaseRelativePathsSpec =
            , bracketedSuffix = newLinkSuffix
            }
 
-  newImageSuffix rm chunksInside = do
+  newImageSuffix rm toksInside = do
     pos <- getPosition
-    let key = untokenize $ concatMap chunkToks chunksInside
+    let key = untokenize toksInside
     LinkInfo target title attrs mbpos <- pLink rm key
     let pos' = fromMaybe pos mbpos
     return $! addAttributes attrs . image (rebasePath pos' target) title
 
-  newLinkSuffix rm chunksInside = do
+  newLinkSuffix rm toksInside = do
     pos <- getPosition
-    let key = untokenize $ concatMap chunkToks chunksInside
+    let key = untokenize toksInside
     LinkInfo target title attrs mbpos <- pLink rm key
     let pos' = fromMaybe pos mbpos
     return $! addAttributes attrs . link (rebasePath pos' target) title

@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -17,9 +16,6 @@ import Commonmark.SourceMap
 import Commonmark.TokParsers
 import Commonmark.Html
 import Text.Parsec
-#if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup hiding (option)
-#endif
 import Data.Text (Text, strip)
 
 class HasWikilinks il where

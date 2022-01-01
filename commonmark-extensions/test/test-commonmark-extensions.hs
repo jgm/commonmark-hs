@@ -17,9 +17,6 @@ import           Test.Tasty
 import           Test.Tasty.HUnit
 import           Text.Parsec
 import           Text.Parsec.Pos
-#if !MIN_VERSION_base(4,11,0)
-import           Data.Semigroup
-#endif
 
 readTextFile :: FilePath -> IO Text
 readTextFile fp = do

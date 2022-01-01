@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -19,9 +18,6 @@ import qualified System.FilePath.Windows as Windows
 import qualified System.FilePath.Posix as Posix
 import Network.URI (URI (uriScheme), parseURI)
 import qualified Data.Set as Set
-#if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup (Semigroup(..))
-#endif
 
 rebaseRelativePathsSpec
   :: forall m bl il . (Monad m , IsInline il , IsBlock il bl)

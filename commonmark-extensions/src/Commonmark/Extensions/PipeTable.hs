@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE IncoherentInstances   #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -25,9 +24,6 @@ import Text.Parsec
 import Data.Dynamic
 import Data.Tree
 import Data.Data
-#if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup (Semigroup(..))
-#endif
 
 data ColAlignment = LeftAlignedCol
                   | CenterAlignedCol

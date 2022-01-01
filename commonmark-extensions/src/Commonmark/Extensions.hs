@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {- |
 
 Syntax extensions for the commonmark library.
@@ -64,9 +63,6 @@ import           Commonmark.Extensions.Wikilinks
 import           Commonmark.Extensions.RebaseRelativePaths
 import           Commonmark
 import           Data.Typeable
-#if !MIN_VERSION_base(4,11,0)
-import           Data.Monoid ((<>))
-#endif
 
 -- | Standard extensions for GitHub-flavored Markdown.
 gfmExtensions :: (Monad m, Typeable m, Typeable il, Typeable bl,

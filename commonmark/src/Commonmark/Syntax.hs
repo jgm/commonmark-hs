@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE RankNTypes #-}
 module Commonmark.Syntax
   ( SyntaxSpec(..)
@@ -11,9 +10,6 @@ import Commonmark.Tokens (Tok)
 import Commonmark.Types
 import Commonmark.Blocks
 import Commonmark.Inlines
-#if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup
-#endif
 
 -- | A 'SyntaxSpec' defines a basic collection of syntax
 -- elements or an extension.  'SyntaxSpec's can be composed

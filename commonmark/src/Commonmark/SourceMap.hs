@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE OverloadedStrings          #-}
@@ -19,9 +18,6 @@ import qualified Data.Map.Strict      as M
 import qualified Data.Sequence as Seq
 import Commonmark.Types
 import Control.Monad.Trans.State
-#if !MIN_VERSION_base(4,11,0)
-import           Data.Semigroup       (Semigroup, (<>))
-#endif
 
 -- | A map from source positions to a pair of sequences:
 -- first, elements that start at that position; then, elements

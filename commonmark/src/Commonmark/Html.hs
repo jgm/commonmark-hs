@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE FlexibleInstances          #-}
@@ -30,9 +29,6 @@ import qualified Data.Set as Set
 import           Text.Printf          (printf)
 import           Data.Char            (ord, isAlphaNum, isAscii, isSpace)
 import           Data.Maybe           (fromMaybe)
-#if !MIN_VERSION_base(4,11,0)
-import           Data.Semigroup
-#endif
 
 data ElementType =
     InlineElement

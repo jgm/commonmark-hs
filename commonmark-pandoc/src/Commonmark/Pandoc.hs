@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE ExtendedDefaultRules       #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
@@ -35,9 +34,6 @@ import Commonmark.Extensions.TaskList
 import Commonmark.Extensions.Smart
 import Data.Char (isSpace)
 import Data.Coerce (coerce)
-#if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup       (Semigroup, (<>))
-#endif
 
 newtype Cm b a = Cm { unCm :: a }
   deriving (Show, Semigroup, Monoid)

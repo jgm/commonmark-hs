@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -23,10 +22,6 @@ import Control.Monad.Trans.Class (lift)
 import Control.Monad (mzero)
 import Data.List
 import Data.Maybe (fromMaybe, mapMaybe)
-#if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup (Semigroup)
-import Data.Monoid
-#endif
 import Data.Dynamic
 import Data.Tree
 import Text.Parsec

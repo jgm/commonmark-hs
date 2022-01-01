@@ -8,9 +8,6 @@ import Commonmark
 import Commonmark.Extensions
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-#if !MIN_VERSION_base(4,11,0)
-import Data.Monoid
-#endif
 
 main :: IO ()
 main = do

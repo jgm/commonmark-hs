@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE FlexibleContexts     #-}
@@ -15,10 +14,6 @@ import Commonmark.Html
 import Commonmark.SourceMap
 import Commonmark.TokParsers (symbol)
 import Text.Parsec
-#if !MIN_VERSION_base(4,11,0)
-import Data.Monoid (Monoid)
-import Data.Semigroup (Semigroup, (<>))
-#endif
 
 class IsInline il => HasQuoted il where
   singleQuoted :: il -> il

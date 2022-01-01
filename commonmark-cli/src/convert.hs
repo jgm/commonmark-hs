@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -26,9 +25,6 @@ import           System.IO
 import           System.Console.GetOpt
 import           Paths_commonmark_cli (version)
 import           Data.Version (showVersion)
-#if !MIN_VERSION_base(4,11,0)
-import           Data.Monoid
-#endif
 import           Control.Exception          (AsyncException, catch, throwIO)
 import           GHC.Stack                  (currentCallStack)
 import           System.Console.ANSI

@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -19,9 +18,6 @@ import qualified Data.Text as T
 import Control.Monad (unless)
 import Data.Maybe (fromMaybe)
 import Text.Parsec
-#if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup
-#endif
 
 implicitHeadingReferencesSpec
          :: (Monad m, IsBlock il bl, IsInline il)

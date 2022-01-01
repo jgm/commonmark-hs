@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -17,10 +16,6 @@ import Commonmark.SourceMap
 import Commonmark.TokParsers
 import Commonmark.Html
 import Control.Monad (mzero)
-#if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup (Semigroup)
-import Data.Monoid
-#endif
 import Data.Dynamic
 import Data.Tree
 import Text.Parsec

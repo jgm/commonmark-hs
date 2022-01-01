@@ -1,5 +1,4 @@
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE CPP               #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -47,9 +46,6 @@ import qualified Data.Map.Strict            as M
 import           Data.Maybe                 (isJust, isNothing,
                                              mapMaybe, listToMaybe)
 import qualified Data.Set                   as Set
-#if !MIN_VERSION_base(4,11,0)
-import           Data.Monoid                ((<>))
-#endif
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import           Commonmark.Entity          (unEntity, charEntity, numEntity)

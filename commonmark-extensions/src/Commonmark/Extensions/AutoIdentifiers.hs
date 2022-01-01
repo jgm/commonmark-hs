@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -18,9 +17,6 @@ import Data.Dynamic
 import qualified Data.Map as M
 import qualified Data.Text as T
 import Text.Parsec
-#if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup
-#endif
 
 autoIdentifiersSpec :: (Monad m, IsBlock il bl, IsInline il, ToPlainText il)
                     => SyntaxSpec m il bl

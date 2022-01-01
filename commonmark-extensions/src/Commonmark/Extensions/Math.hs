@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Commonmark.Extensions.Math
@@ -14,9 +13,6 @@ import Commonmark.TokParsers
 import Commonmark.Html
 import Text.Parsec
 import Data.Text (Text)
-#if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup (Semigroup(..))
-#endif
 
 mathSpec :: (Monad m, IsBlock il bl, IsInline il, HasMath il)
          => SyntaxSpec m il bl

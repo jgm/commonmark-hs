@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Commonmark.Extensions.Autolink
@@ -12,9 +11,6 @@ import Commonmark.TokParsers
 import Control.Monad (guard, void)
 import Text.Parsec
 import Data.Text (Text)
-#if !MIN_VERSION_base(4,11,0)
-import Data.Monoid
-#endif
 
 autolinkSpec :: (Monad m, IsBlock il bl, IsInline il)
              => SyntaxSpec m il bl

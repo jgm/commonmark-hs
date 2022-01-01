@@ -17,6 +17,8 @@ module Commonmark.Inlines
   , BracketedSpec(..)
   , defaultBracketedSpecs
   , LinkInfo(..)
+  , Chunk(..)
+  , ChunkType(..)
   , imageSpec
   , linkSpec
   , pLink
@@ -271,7 +273,7 @@ data BracketedSpec il = BracketedSpec
      , bracketedPrefix    :: Maybe Char -- ^ Prefix character.
      , bracketedSuffixEnd :: Maybe Char -- ^ Suffix character.
      , bracketedSuffix    :: ReferenceMap
-                          -> Text
+                          -> [Chunk il]
                           -> Parsec [Tok] () (il -> il)
                           -- ^ Parser for suffix after
                           -- brackets.  Returns a constructor.
@@ -308,15 +310,17 @@ imageSpec = BracketedSpec
             }
 
 pLinkSuffix :: IsInline il
-            => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
-pLinkSuffix rm key = do
-  LinkInfo target title attrs _mbpos <- pLink rm key
+            => ReferenceMap -> [Chunk il] -> Parsec [Tok] s (il -> il)
+pLinkSuffix rm chunksInside = do
+  LinkInfo target title attrs _mbpos <-
+    pLink rm (untokenize $ concatMap chunkToks chunksInside)
   return $! addAttributes attrs . link target title
 
 pImageSuffix :: IsInline il
-             => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
-pImageSuffix rm key = do
-  LinkInfo target title attrs _mbpos <- pLink rm key
+             => ReferenceMap -> [Chunk il] -> Parsec [Tok] s (il -> il)
+pImageSuffix rm chunksInside = do
+  LinkInfo target title attrs _mbpos <-
+    pLink rm (untokenize $ concatMap chunkToks chunksInside)
   return $! addAttributes attrs . image target title
 
 ---
@@ -756,15 +760,6 @@ processBs bracketedSpecs st =
         Just closer@(Chunk Delim{ delimType = ']'} closePos _)) ->
           let chunksinside = takeWhile (\ch -> chunkPos ch /= closePos)
                                (afters left)
-              isBracket (Chunk Delim{ delimType = c' } _ _) =
-                 c' == '[' || c' == ']'
-              isBracket _ = False
-              key = if any isBracket chunksinside
-                       then ""
-                       else
-                         case untokenize (concatMap chunkToks chunksinside) of
-                              ks | T.length ks <= 999 -> ks
-                              _  -> ""
               prefixChar = case befores left of
                                  Chunk Delim{delimType = c} _ [_] : _
                                     -> Just c
@@ -786,7 +781,7 @@ processBs bracketedSpecs st =
                  (withRaw
                    (do setPosition suffixPos
                        (spec, constructor) <- choice $
-                           map (\s -> (s,) <$> bracketedSuffix s rm key)
+                           map (\s -> (s,) <$> bracketedSuffix s rm chunksinside)
                            specs
                        pos <- getPosition
                        return (spec, constructor, pos)))

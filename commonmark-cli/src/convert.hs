@@ -134,6 +134,7 @@ extensions :: (Monad m, Typeable m,
                HasStrikethrough il,
                HasSuperscript il,
                HasSubscript il,
+               HasCitations il,
                HasDefinitionList il bl,
                HasDiv bl,
                HasTaskList il bl,
@@ -146,6 +147,7 @@ extensions =
   ,("strikethrough", strikethroughSpec)
   ,("superscript", superscriptSpec)
   ,("subscript", subscriptSpec)
+  ,("citations", citationsSpec)
   ,("smart", smartPunctuationSpec)
   ,("math", mathSpec)
   ,("emoji", emojiSpec)
@@ -184,6 +186,7 @@ specFromExtensionNames ::
   HasStrikethrough il,
   HasSuperscript il,
   HasSubscript il,
+  HasCitations il,
   HasDefinitionList il bl,
   HasDiv bl,
   HasTaskList il bl,

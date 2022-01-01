@@ -40,6 +40,7 @@ module Commonmark.Extensions
     , module Commonmark.Extensions.ImplicitHeadingReferences
     , module Commonmark.Extensions.Wikilinks
     , module Commonmark.Extensions.RebaseRelativePaths
+    , module Commonmark.Extensions.Citations
     , gfmExtensions
     ) where
 
@@ -61,6 +62,7 @@ import           Commonmark.Extensions.TaskList
 import           Commonmark.Extensions.ImplicitHeadingReferences
 import           Commonmark.Extensions.Wikilinks
 import           Commonmark.Extensions.RebaseRelativePaths
+import           Commonmark.Extensions.Citations
 import           Commonmark
 import           Data.Typeable
 
@@ -73,4 +75,3 @@ gfmExtensions :: (Monad m, Typeable m, Typeable il, Typeable bl,
 gfmExtensions =
   emojiSpec <> strikethroughSpec <> pipeTableSpec <> autolinkSpec <>
     autoIdentifiersSpec <> taskListSpec <> footnoteSpec
-

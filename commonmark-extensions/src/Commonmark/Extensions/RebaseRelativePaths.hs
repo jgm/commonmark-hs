@@ -7,6 +7,7 @@ where
 import Commonmark.Types
 import Commonmark.Syntax
 import Commonmark.Inlines
+import Commonmark.Tokens
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Maybe (fromMaybe)
@@ -45,14 +46,16 @@ rebaseRelativePathsSpec =
            , bracketedSuffix = newLinkSuffix
            }
 
-  newImageSuffix rm key = do
+  newImageSuffix rm chunksInside = do
     pos <- getPosition
+    let key = untokenize $ concatMap chunkToks chunksInside
     LinkInfo target title attrs mbpos <- pLink rm key
     let pos' = fromMaybe pos mbpos
     return $! addAttributes attrs . image (rebasePath pos' target) title
 
-  newLinkSuffix rm key = do
+  newLinkSuffix rm chunksInside = do
     pos <- getPosition
+    let key = untokenize $ concatMap chunkToks chunksInside
     LinkInfo target title attrs mbpos <- pLink rm key
     let pos' = fromMaybe pos mbpos
     return $! addAttributes attrs . link (rebasePath pos' target) title

@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE ExtendedDefaultRules       #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
@@ -32,6 +33,7 @@ import Commonmark.Extensions.Attributes
 import Commonmark.Extensions.Footnote
 import Commonmark.Extensions.TaskList
 import Commonmark.Extensions.Smart
+import Commonmark.Extensions.Citations
 import Data.Char (isSpace)
 import Data.Coerce (coerce)
 
@@ -177,6 +179,17 @@ instance HasSuperscript (Cm a B.Inlines) where
 
 instance HasSubscript (Cm a B.Inlines) where
   subscript ils = B.subscript <$> ils
+
+instance HasCitations (Cm a B.Inlines) where
+  citationGroup ils = B.spanWith ("",["citation-group"],[]) <$> ils
+  citation ident suppressAuthor =
+    Cm $ B.spanWith ("", ["citation"],
+                       ([("citation-identifier", ident)] ++
+                        [("suppress-author","true") | suppressAuthor])) mempty
+  hasCitations (Cm ils) =
+    let isCitation (Span (_,["citation"],_) _) = True
+        isCitation _ = False
+    in  any isCitation ils
 
 instance Rangeable (Cm a B.Inlines) => HasSpan (Cm a B.Inlines) where
   spanWith attrs ils =

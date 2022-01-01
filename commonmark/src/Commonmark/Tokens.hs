@@ -43,8 +43,8 @@ tokenize name =
     f ' ' ' '   = True
     f x   y     = isAlphaNum x && isAlphaNum y
 
-    go _pos [] = []
-    go !pos (t:ts) = -- note that t:ts are guaranteed to be nonempty
+    go !_pos [] = []
+    go !pos (!t:ts) = -- note that t:ts are guaranteed to be nonempty
       case T.head t of
          ' ' ->  Tok Spaces pos t :
                  go (incSourceColumn pos (T.length t)) ts

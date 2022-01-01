@@ -18,6 +18,7 @@ module Commonmark.Inlines
   , BracketedSpec(..)
   , defaultBracketedSpecs
   , LinkInfo(..)
+  , Chunk(..)
   , imageSpec
   , linkSpec
   , pLink
@@ -44,7 +45,8 @@ import           Data.List                  (foldl')
 import           Data.Char                  (isAscii, isLetter)
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map.Strict            as M
-import           Data.Maybe                 (isJust, mapMaybe, listToMaybe)
+import           Data.Maybe                 (isJust, isNothing,
+                                             mapMaybe, listToMaybe)
 import qualified Data.Set                   as Set
 #if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid                ((<>))
@@ -253,7 +255,7 @@ data BracketedSpec il = BracketedSpec
      , bracketedPrefix    :: Maybe Char -- ^ Prefix character.
      , bracketedSuffixEnd :: Maybe Char -- ^ Suffix character.
      , bracketedSuffix    :: ReferenceMap
-                          -> Text
+                          -> [Chunk il]
                           -> Parsec [Tok] () (il -> il)
                           -- ^ Parser for suffix after
                           -- brackets.  Returns a constructor.
@@ -290,15 +292,17 @@ imageSpec = BracketedSpec
             }
 
 pLinkSuffix :: IsInline il
-            => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
-pLinkSuffix rm key = do
-  LinkInfo target title attrs _mbpos <- pLink rm key
+            => ReferenceMap -> [Chunk il] -> Parsec [Tok] s (il -> il)
+pLinkSuffix rm chunksInside = do
+  LinkInfo target title attrs _mbpos <-
+    pLink rm (untokenize $ concatMap chunkToks chunksInside)
   return $! addAttributes attrs . link target title
 
 pImageSuffix :: IsInline il
-             => ReferenceMap -> Text -> Parsec [Tok] s (il -> il)
-pImageSuffix rm key = do
-  LinkInfo target title attrs _mbpos <- pLink rm key
+             => ReferenceMap -> [Chunk il] -> Parsec [Tok] s (il -> il)
+pImageSuffix rm chunksInside = do
+  LinkInfo target title attrs _mbpos <-
+    pLink rm (untokenize $ concatMap chunkToks chunksInside)
   return $! addAttributes attrs . image target title
 
 ---
@@ -738,15 +742,7 @@ processBs bracketedSpecs st =
         Just closer@(Chunk Delim{ delimType = ']'} closePos _)) ->
           let chunksinside = takeWhile (\ch -> chunkPos ch /= closePos)
                                (afters left)
-              isBracket (Chunk Delim{ delimType = c' } _ _) =
-                 c' == '[' || c' == ']'
-              isBracket _ = False
-              key = if any isBracket chunksinside
-                       then ""
-                       else
-                         case untokenize (concatMap chunkToks chunksinside) of
-                              ks | T.length ks <= 999 -> ks
-                              _  -> ""
+
               prefixChar = case befores left of
                                  Chunk Delim{delimType = c} _ [_] : _
                                     -> Just c
@@ -768,7 +764,7 @@ processBs bracketedSpecs st =
                  (withRaw
                    (do setPosition suffixPos
                        (spec, constructor) <- choice $
-                           map (\s -> (s,) <$> bracketedSuffix s rm key)
+                           map (\s -> (s,) <$> bracketedSuffix s rm chunksinside)
                            specs
                        pos <- getPosition
                        return (spec, constructor, pos)))
@@ -942,8 +938,21 @@ pLinkLabel = try $ do
 
 pReferenceLink :: ReferenceMap -> Text -> Parsec [Tok] s LinkInfo
 pReferenceLink rm key = do
-  lab <- option key pLinkLabel
+  lab <- option mempty pLinkLabel
   let key' = if T.null lab
                 then key
                 else lab
+  guard $ T.length key' <= 999
+  guard $ not $ hasUnescapedBracket key'
   maybe mzero return $! lookupReference key' rm
+
+hasUnescapedBracket :: Text -> Bool
+hasUnescapedBracket = isNothing . T.foldl go (Just False)
+ where
+  go Nothing _ = Nothing
+  go (Just True) ']' = Just False
+  go (Just True) '[' = Just False
+  go (Just False) ']' = Nothing
+  go (Just False) '[' = Nothing
+  go (Just False) '\\' = Just True -- escaped
+  go x _ = x

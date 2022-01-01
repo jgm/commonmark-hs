@@ -6,6 +6,7 @@ module Commonmark.Extensions.RebaseRelativePaths
   ( rebaseRelativePathsSpec )
 where
 import Commonmark.Types
+import Commonmark.Tokens
 import Commonmark.Syntax
 import Commonmark.Inlines
 import Data.Text (Text)
@@ -49,14 +50,16 @@ rebaseRelativePathsSpec =
            , bracketedSuffix = newLinkSuffix
            }
 
-  newImageSuffix rm key = do
+  newImageSuffix rm chunksInside = do
     pos <- getPosition
+    let key = untokenize $ concatMap chunkToks chunksInside
     LinkInfo target title attrs mbpos <- pLink rm key
     let pos' = fromMaybe pos mbpos
     return $! addAttributes attrs . image (rebasePath pos' target) title
 
-  newLinkSuffix rm key = do
+  newLinkSuffix rm chunksInside = do
     pos <- getPosition
+    let key = untokenize $ concatMap chunkToks chunksInside
     LinkInfo target title attrs mbpos <- pLink rm key
     let pos' = fromMaybe pos mbpos
     return $! addAttributes attrs . link (rebasePath pos' target) title

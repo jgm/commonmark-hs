@@ -85,7 +85,7 @@ main = catch (do
            Right (_ :: Html (), sm) -> highlightWith sm toks
   else do
     let sourcepos = SourcePos `elem` opts
-    let json = SourcePos `elem` opts
+    let json = PandocJSON `elem` opts
     case (json, sourcepos) of
       (True, True) -> do
         spec <- specFromExtensionNames [x | Extension x <- opts]

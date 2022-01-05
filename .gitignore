@@ -3,6 +3,7 @@ test/__pycache__/
 .stack-work/
 dist-newstyle/
 dist/
+*.hie
 *~
 log/
 *.prof

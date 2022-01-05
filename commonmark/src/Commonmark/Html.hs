@@ -34,6 +34,7 @@ import           Data.Maybe           (fromMaybe)
 data ElementType =
     InlineElement
   | BlockElement
+  deriving (Show)
 
 data Html a =
     HtmlElement !ElementType {-# UNPACK #-} !Text [Attribute] (Maybe (Html a))
@@ -41,9 +42,7 @@ data Html a =
   | HtmlRaw {-# UNPACK #-} !Text
   | HtmlNull
   | HtmlConcat !(Html a) !(Html a)
-
-instance Show (Html a) where
-  show = TL.unpack . renderHtml
+  deriving (Show)
 
 instance Semigroup (Html a) where
   x <> HtmlNull                = x

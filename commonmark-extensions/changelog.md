@@ -1,5 +1,10 @@
 # Changelog for commonmark-extensions
 
+## 0.2.3
+
+- Allow bare word attribute in fenced_divs (#84).  This follows a similar
+  change in pandoc (jgm/pandoc#7242).
+
 ## 0.2.2.1
 
 - Fix commonmark-extensions to build with GHC 9.2 (#81, Joseph C. Sible).

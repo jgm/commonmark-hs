@@ -40,7 +40,7 @@ import           Commonmark.Types
 import           Control.Monad              (guard, mzero)
 import           Control.Monad.Trans.State.Strict
 import           Data.List                  (foldl')
-import           Data.Char                  (isAscii, isLetter)
+import           Unicode.Char               (isAscii, isAlpha)
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map.Strict            as M
 import           Data.Maybe                 (isJust, mapMaybe, listToMaybe)
@@ -489,7 +489,7 @@ pScheme :: Monad m => InlineParser m Text
 pScheme = do
   t <- satisfyWord (\t -> case T.uncons t of
                                Nothing -> False
-                               Just (c,rest) -> isAscii c && isLetter c &&
+                               Just (c,rest) -> isAscii c && isAlpha c &&
                                                 T.all isAscii rest)
   ts <- many $ oneOfToks [WordChars, Symbol '+', Symbol '.', Symbol '-']
   let s = untokenize (t:ts)

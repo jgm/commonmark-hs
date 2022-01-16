@@ -14,7 +14,7 @@ import           Commonmark.TokParsers
 import           Control.Monad     (liftM2, guard)
 import           Control.Monad.Trans.State.Strict
 import           Control.Monad.Trans.Class (lift)
-import           Data.Char         (isAscii, isLetter)
+import           Unicode.Char (isAscii, isAlpha)
 import qualified Data.Text         as T
 import           Text.Parsec       hiding (State)
 
@@ -38,7 +38,7 @@ defaultEnders = Enders { scannedForCDATA = False
 htmlTagName :: Monad m => ParsecT [Tok] s m [Tok]
 htmlTagName = try $ do
   let isTagText = T.all isAscii
-  let startsWithLetter t' = not (T.null t') && isLetter (T.head t')
+  let startsWithLetter t' = not (T.null t') && isAlpha (T.head t')
   t <- satisfyWord (isTagText .&&. startsWithLetter)
   rest <- many (symbol '-' <|> satisfyWord isTagText)
   return (t:rest)
@@ -49,7 +49,7 @@ htmlTagName = try $ do
 htmlAttributeName :: Monad m => ParsecT [Tok] s m [Tok]
 htmlAttributeName = try $ do
   let isTagText t' = T.all isAscii t'
-  let startsWithLetter t' = not (T.null t') && isLetter (T.head t')
+  let startsWithLetter t' = not (T.null t') && isAlpha (T.head t')
   t <- satisfyWord (startsWithLetter .&&. isTagText) <|>
         symbol '_' <|>
         symbol ':'
@@ -184,7 +184,7 @@ htmlDeclaration = try $ do
   op <- symbol '!'
   alreadyScanned <- lift $ gets scannedForDeclaration
   guard $ not alreadyScanned
-  let isDeclName t = not (T.null t) && T.all (isAscii .&&. isLetter) t
+  let isDeclName t = not (T.null t) && T.all (isAscii .&&. isAlpha) t
   name <- satisfyWord isDeclName
   ws <- whitespace
   contents <- many (satisfyTok (not . hasType (Symbol '>')))

@@ -27,7 +27,8 @@ import           Data.Text.Encoding   (encodeUtf8)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.Set as Set
 import           Text.Printf          (printf)
-import           Data.Char            (ord, isAlphaNum, isAscii, isSpace)
+import           Unicode.Char         (ord, isAlphaNum, isAscii)
+import           Unicode.Char.General.Compat (isSpace)
 import           Data.Maybe           (fromMaybe)
 
 data ElementType =

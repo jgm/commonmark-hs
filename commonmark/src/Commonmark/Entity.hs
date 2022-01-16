@@ -19,7 +19,7 @@ import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.Text.Read as TR
 import Control.Monad (guard, mzero)
-import Data.Char (isDigit, isHexDigit, chr)
+import Unicode.Char (chr, isDigit, isHexDigit)
 import Data.Maybe (isJust)
 
 -- | Lookup an entity, using 'lookupNumericEntity' if it starts with

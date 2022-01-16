@@ -60,7 +60,8 @@ import           Control.Monad             (foldM, guard, mzero, void, unless,
                                             when)
 import           Control.Monad.Trans.Class (lift)
 import           Data.Foldable             (foldrM)
-import           Data.Char                 (isAsciiUpper, isDigit, isSpace)
+import           Unicode.Char              (isAsciiUpper, isDigit)
+import           Unicode.Char.General.Compat (isSpace)
 import           Data.Dynamic
 import           Data.Text                 (Text)
 import qualified Data.Map.Strict           as M

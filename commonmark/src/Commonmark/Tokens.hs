@@ -10,7 +10,8 @@ module Commonmark.Tokens
   , untokenize
   ) where
 
-import           Data.Char       (isAlphaNum, isSpace)
+import           Unicode.Char    (isAlphaNum)
+import           Unicode.Char.General.Compat  (isSpace)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Data.Data       (Data, Typeable)

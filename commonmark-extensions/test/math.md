@@ -46,6 +46,15 @@ The cost is between \$10 and 30$.
 <p>The cost is between $10 and 30$.</p>
 ````````````````````````````````
 
+Dollar signs must also be backslash-escaped if they
+occur within math:
+
+```````````````````````````````` example
+$\text{\$}$
+.
+<p><span class="math inline">\(\text{\$}\)</span></p>
+````````````````````````````````
+
 Everthing inside the math construction is treated
 as math, and not given its normal commonmark meaning.
 ```````````````````````````````` example

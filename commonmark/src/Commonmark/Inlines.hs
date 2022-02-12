@@ -34,10 +34,20 @@ where
 
 import           Commonmark.Tag             (htmlTag, Enders, defaultEnders)
 import           Commonmark.Tokens
-import           Commonmark.TokParsers
+import Commonmark.TokParsers
+    ( lineEnd,
+      noneOfToks,
+      whitespace,
+      oneOfToks,
+      satisfyWord,
+      withRaw,
+      symbol,
+      satisfyTok,
+      anyTok,
+      hasType )
 import           Commonmark.ReferenceMap
 import           Commonmark.Types
-import           Control.Monad              (guard, mzero)
+import           Control.Monad              (guard, mzero, mplus)
 import           Control.Monad.Trans.State.Strict
 import           Data.List                  (foldl')
 import           Unicode.Char               (isAscii, isAlpha)
@@ -238,7 +248,19 @@ defaultFormattingSpecs =
   ]
 
 mkFormattingSpecMap :: [FormattingSpec il] -> FormattingSpecMap il
-mkFormattingSpecMap fs = M.fromList [(formattingDelimChar s, s) | s <- fs]
+mkFormattingSpecMap fs =
+   foldr go mempty fs
+ where
+   go s =
+     M.alter (\case -- combine FormattingSpecs with same character (see #87)
+                 Nothing -> Just s
+                 Just s' -> Just
+                   s' { formattingSingleMatch =
+                         formattingSingleMatch s' `mplus` formattingSingleMatch s
+                     , formattingDoubleMatch =
+                         formattingDoubleMatch s' `mplus` formattingDoubleMatch s
+                     })
+             (formattingDelimChar s)
 
 --- Bracketed specs:
 

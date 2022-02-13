@@ -61,7 +61,7 @@ library
     , transformers
     , parsec
     , unicode-transforms
-    , unicode-data
+    , unicode-data >= 0.3
   exposed-modules:
       Commonmark
       Commonmark.Parser

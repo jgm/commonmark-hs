@@ -157,8 +157,8 @@ With two parentheses:
 ````````````````````````````````
 
 
-Note that with decimal enumerators and Upper Alpha or Upper
-Roman style, we require at least two spaces after the list
+Note that with Upper Alpha or Upper Roman style list items
+followed by periods, we require at least two spaces after the list
 marker in order to avoid capturing initials:
 
 ```````````````````````````````` example
@@ -221,3 +221,79 @@ b. two
 </ol>
 ````````````````````````````````
 
+In cases of ambiguity (such as `'v.'`, which could be
+lowercase Roman or lowercase alphabetical, we prefer an
+interpretation that continues an existing list:
+
+```````````````````````````````` example
+u. one
+v. two
+.
+<ol start="21" type="a">
+<li>one</li>
+<li>two</li>
+</ol>
+````````````````````````````````
+
+```````````````````````````````` example
+iv. one
+v. two
+.
+<ol start="4" type="i">
+<li>one</li>
+<li>two</li>
+</ol>
+````````````````````````````````
+
+In cases of ambiguity at the beginning of a list, we
+try to match the following list item, if it is ambiguous:
+
+```````````````````````````````` example
+i. one
+j. two
+.
+<ol start="9" type="a">
+<li>one</li>
+<li>two</li>
+</ol>
+````````````````````````````````
+
+```````````````````````````````` example
+i. one
+ii. two
+.
+<ol start="1" type="i">
+<li>one</li>
+<li>two</li>
+</ol>
+````````````````````````````````
+
+If there is no following item, or if it doesn't help,
+we prefer to interpret `i.` and `I.` as Roman numerals,
+and other single letters as alphabetical:
+
+```````````````````````````````` example
+i. one
+v. two
+.
+<ol start="1" type="a">
+<li>one</li>
+<li>two</li>
+</ol>
+````````````````````````````````
+
+```````````````````````````````` example
+I.  one
+.
+<ol start="1" type="I">
+<li>one</li>
+</ol>
+````````````````````````````````
+
+```````````````````````````````` example
+C.  one
+.
+<ol start="3" type="A">
+<li>one</li>
+</ol>
+````````````````````````````````

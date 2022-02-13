@@ -76,6 +76,7 @@ pCells :: Monad m => ParsecT [Tok] s m [[Tok]]
 pCells = try $ do
   hasPipe <- option False $ True <$ symbol '|'
   pipedCells <- many (try $ pCell <* symbol '|')
+  skipMany $ satisfyTok (hasType Spaces)
   unpipedCell <- option [] $ (:[]) <$> pCell
   let cells = pipedCells ++ unpipedCell
   guard $ not (null cells)
@@ -100,6 +101,7 @@ pDividers :: Monad m => ParsecT [Tok] s m [ColAlignment]
 pDividers = try $ do
   hasPipe <- option False $ True <$ symbol '|'
   pipedAligns <- many (try $ pDivider <* symbol '|')
+  skipMany $ satisfyTok (hasType Spaces)
   unpipedAlign <- option [] $ (:[]) <$> pDivider
   let aligns = pipedAligns ++ unpipedAlign
   guard $ not (null aligns)

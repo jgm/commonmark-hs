@@ -245,38 +245,15 @@ v. two
 </ol>
 ````````````````````````````````
 
-In cases of ambiguity at the beginning of a list, we
-try to match the following list item, if it is ambiguous:
-
-```````````````````````````````` example
-i. one
-j. two
-.
-<ol start="9" type="a">
-<li>one</li>
-<li>two</li>
-</ol>
-````````````````````````````````
-
-```````````````````````````````` example
-i. one
-ii. two
-.
-<ol start="1" type="i">
-<li>one</li>
-<li>two</li>
-</ol>
-````````````````````````````````
-
-If there is no following item, or if it doesn't help,
+When ambiguities cannot be resolved this way,
 we prefer to interpret `i.` and `I.` as Roman numerals,
 and other single letters as alphabetical:
 
 ```````````````````````````````` example
 i. one
-v. two
+ii. two
 .
-<ol start="1" type="a">
+<ol type="i">
 <li>one</li>
 <li>two</li>
 </ol>
@@ -285,15 +262,19 @@ v. two
 ```````````````````````````````` example
 I.  one
 .
-<ol start="1" type="I">
+<ol type="I">
 <li>one</li>
 </ol>
 ````````````````````````````````
 
 ```````````````````````````````` example
 C.  one
+CI.  one
 .
 <ol start="3" type="A">
+<li>one</li>
+</ol>
+<ol start="101" type="I">
 <li>one</li>
 </ol>
 ````````````````````````````````

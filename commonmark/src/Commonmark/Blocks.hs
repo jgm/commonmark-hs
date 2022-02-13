@@ -30,6 +30,7 @@ module Commonmark.Blocks
   , linkReferenceDef
   , renderChildren
   , reverseSubforests
+  , getParentListType
   -- * BlockSpecs
   , docSpec
   , indentedCodeSpec
@@ -376,6 +377,18 @@ data ListItemData = ListItemData
      , listItemBlanksInside :: !Bool
      , listItemBlanksAtEnd  :: !Bool
      } deriving (Show, Eq)
+
+-- | Get type of the enclosing List block. If the parent isn't
+-- a List block, return Nothing.
+getParentListType :: Monad m => BlockParser m il bl (Maybe ListType)
+getParentListType = do
+  (cur:_) <- nodeStack <$> getState
+  if blockType (bspec cur) == "List"
+     then do
+       let ListData lt _ = fromDyn (blockData (rootLabel cur))
+                            (ListData (BulletList '*') TightList)
+       return $ Just lt
+     else return Nothing
 
 runInlineParser :: Monad m
                 => [Tok]
@@ -808,9 +821,23 @@ listItemSpec parseListMarker = BlockSpec
                notFollowedBy blankLine
              let curdata = fromDyn (blockData (rootLabel cur))
                                 (ListData (BulletList '*') TightList)
+             let isSingleRomanDigit n = n == 1 || n == 5 || n == 10 ||
+                                        n == 50 || n == 100 || n == 500 ||
+                                        n == 1000
+             let matchesOrderedListStyle
+                  (OrderedList _s1 e1 d1) (OrderedList s2 e2 d2) =
+                    d1 == d2 && -- roman can match alphabetic if single-digit:
+                      case (e1, e2) of
+                        (LowerAlpha, LowerRoman) -> isSingleRomanDigit s2
+                        (UpperAlpha, UpperRoman) -> isSingleRomanDigit s2
+                        (LowerRoman, LowerAlpha) -> isSingleRomanDigit s2
+                        (UpperRoman, UpperAlpha) -> isSingleRomanDigit s2
+                        _ -> e1 == e2
+                 matchesOrderedListStyle _ _ = False
+
              let matchesList (BulletList c) (BulletList d)       = c == d
-                 matchesList (OrderedList _ e1 d1)
-                             (OrderedList _ e2 d2) = e1 == e2 && d1 == d2
+                 matchesList x@OrderedList{}
+                             y@OrderedList{} = matchesOrderedListStyle x y
                  matchesList _ _                                 = False
              case blockType (bspec cur) of
                   "List" | listType curdata `matchesList`

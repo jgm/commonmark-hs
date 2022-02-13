@@ -29,23 +29,48 @@ fancyListSpec = mempty
 
 fancyOrderedListMarker :: Monad m => BlockParser m il bl ListType
 fancyOrderedListMarker = do
-  initialParen <- option False $ True <$ symbol '('
-  (start, enumtype) <- pDecimal <|>
-                       pLowerRoman <|> pUpperRoman <|>
-                       pLowerAlpha <|> pUpperAlpha
-  delimtype <- if initialParen
-                  then TwoParens <$ symbol ')'
-                  else Period <$ symbol '.' <|> OneParen <$ symbol ')'
-  when (delimtype == Period &&
-        (enumtype == UpperRoman || enumtype == UpperAlpha)) $ do
-    Tok tt _ t <- lookAhead anyTok
-    guard $ case tt of
-              Spaces  -> T.length t > 1
-              LineEnd -> True
-              _       -> False
-  return $! OrderedList start enumtype delimtype
+  mbListType <- getParentListType
+  -- first try to parse an item like the parent
+  let pInSeries = case mbListType of
+                     Just (OrderedList _ e d) -> try (pMarker e d)
+                     _ -> mzero
+  pInSeries <|>
+      do initialParen <- option False $ True <$ symbol '('
+         (start, enumtype) <- pDecimal <|>
+                              (case mbListType of
+                                 Nothing -> pLowerRomanOne <|> pUpperRomanOne
+                                 _ -> mzero) <|>
+                              pLowerAlpha <|> pUpperAlpha <|>
+                              pLowerRoman <|> pUpperRoman
+         delimtype <- if initialParen
+                         then TwoParens <$ symbol ')'
+                         else Period <$ symbol '.' <|> OneParen <$ symbol ')'
+         when (delimtype == Period &&
+              (enumtype == UpperRoman || enumtype == UpperAlpha)) $ checkSpace
+         return $! OrderedList start enumtype delimtype
 
   where
+    checkSpace = do
+        Tok tt _ t <- lookAhead anyTok
+        guard $ case tt of
+                  Spaces  -> T.length t > 1
+                  LineEnd -> True
+                  _       -> False
+    pMarker e d = do
+      when (d == TwoParens) $ () <$ symbol '('
+      (start, enumtype) <- case e of
+        Decimal -> pDecimal
+        LowerRoman -> pLowerRoman
+        UpperRoman -> pUpperRoman
+        LowerAlpha -> pLowerAlpha
+        UpperAlpha -> pUpperAlpha
+      delimtype <- case d of
+        TwoParens -> TwoParens <$ symbol ')'
+        OneParen  -> OneParen <$ symbol ')'
+        Period    -> Period <$ symbol '.'
+      when (delimtype == Period &&
+           (enumtype == UpperRoman || enumtype == UpperAlpha)) $ checkSpace
+      return $! OrderedList start enumtype delimtype
     pDecimal = do
       Tok WordChars _ ds <- satisfyWord (\t ->
                               T.all isDigit t && T.length t < 10)
@@ -70,6 +95,9 @@ fancyOrderedListMarker = do
       case T.uncons ds of
         Nothing    -> mzero
         Just (c,_) -> return $! (1 + ord c - ord 'A', UpperAlpha)
+
+    pLowerRomanOne = (1, LowerRoman) <$ satisfyWord (== "i")
+    pUpperRomanOne = (1, UpperRoman) <$ satisfyWord (== "I")
 
     pLowerRoman = do
       Tok WordChars _ ds <- satisfyWord (\t ->

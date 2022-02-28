@@ -4,7 +4,7 @@ module Commonmark.Extensions.Math
   ( HasMath(..)
   , mathSpec )
 where
-import Control.Monad (mzero, guard)
+import Control.Monad (mzero)
 import Commonmark.Types
 import Commonmark.Tokens
 import Commonmark.Syntax

@@ -55,6 +55,7 @@ pDisplayMath = try $ do
   (_, toks) <- withRaw $ many1 $
                   choice [ () <$ symbol '\\' >> anyTok
                          , noneOfToks [Symbol '$']
+                         , try (symbol '$' <* notFollowedBy (symbol '$'))
                          ]
   count 2 $ symbol '$'
   return $! displayMath (untokenize toks)

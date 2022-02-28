@@ -37,20 +37,25 @@ e=mc^2
 \]</span></p>
 ````````````````````````````````
 
-Note that display math can contain embedded inline math:
+Note that math can contain embedded math.  In scanning
+for a closing delimiter, we skip material in balanced
+curly braces:
 
 ```````````````````````````````` example
 This is display math:
 $$
 \text{Hello $x^2$}
 $$
+And this is inline math:
+$\text{Hello $x$ there!}$
 .
 <p>This is display math:
 <span class="math display">\[
 \text{Hello $x^2$}
-\]</span></p>
+\]</span>
+And this is inline math:
+<span class="math inline">\(\text{Hello $x$ there!}\)</span></p>
 ````````````````````````````````
-
 
 
 To avoid treating currency signs as math delimiters,

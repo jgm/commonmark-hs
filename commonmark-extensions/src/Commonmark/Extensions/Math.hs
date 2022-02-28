@@ -4,6 +4,7 @@ module Commonmark.Extensions.Math
   ( HasMath(..)
   , mathSpec )
 where
+import Control.Monad (mzero, guard)
 import Commonmark.Types
 import Commonmark.Tokens
 import Commonmark.Syntax
@@ -13,6 +14,7 @@ import Commonmark.TokParsers
 import Commonmark.Html
 import Text.Parsec
 import Data.Text (Text)
+import qualified Data.Text as T
 
 mathSpec :: (Monad m, IsBlock il bl, IsInline il, HasMath il)
          => SyntaxSpec m il bl
@@ -35,27 +37,29 @@ instance (HasMath i, Monoid i) => HasMath (WithSourceMap i) where
   displayMath t = (displayMath t) <$ addName "displayMath"
 
 parseMath :: (Monad m, HasMath a) => InlineParser m a
-parseMath = pDisplayMath <|> pInlineMath
-
-pInlineMath :: (Monad m, HasMath a) => InlineParser m a
-pInlineMath = try $ do
+parseMath = try $ do
   symbol '$'
-  notFollowedBy whitespace
-  (_, toks) <- withRaw $ many1 $
-                  choice [ () <$ symbol '\\' >> anyTok
-                         , whitespace >> lookAhead (noneOfToks [Symbol '$'])
-                         , noneOfToks [Symbol '$']
-                         ]
-  symbol '$'
-  return $! inlineMath (untokenize toks)
+  display <- (True <$ symbol '$') <|> (False <$ notFollowedBy whitespace)
+  (do contents <- try $ untokenize <$> pDollarsMath 0
+      if display
+         then displayMath contents <$ symbol '$'
+         else if T.all (==' ') (T.takeEnd 1 contents)
+                 -- don't allow math to end with SPACE + $
+                 then mzero
+                 else return $ inlineMath contents)
+   <|> (guard display >> return (inlineMath ""))
 
-pDisplayMath :: (Monad m, HasMath a) => InlineParser m a
-pDisplayMath = try $ do
-  count 2 $ symbol '$'
-  (_, toks) <- withRaw $ many1 $
-                  choice [ () <$ symbol '\\' >> anyTok
-                         , noneOfToks [Symbol '$']
-                         , try (symbol '$' <* notFollowedBy (symbol '$'))
-                         ]
-  count 2 $ symbol '$'
-  return $! displayMath (untokenize toks)
+-- Int is number of embedded groupings
+pDollarsMath :: Monad m => Int -> InlineParser m [Tok]
+pDollarsMath n = do
+  tk@(Tok toktype _ _) <- anyTok
+  case toktype of
+       Symbol '$'
+              | n == 0 -> return []
+       Symbol '\\' -> do
+              tk' <- anyTok
+              (tk :) . (tk' :) <$> pDollarsMath n
+       Symbol '{' -> (tk :) <$> pDollarsMath (n+1)
+       Symbol '}' | n > 0 -> (tk :) <$> pDollarsMath (n-1)
+                  | otherwise -> mzero
+       _ -> (tk :) <$> pDollarsMath n

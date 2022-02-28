@@ -40,14 +40,13 @@ parseMath :: (Monad m, HasMath a) => InlineParser m a
 parseMath = try $ do
   symbol '$'
   display <- (True <$ symbol '$') <|> (False <$ notFollowedBy whitespace)
-  (do contents <- try $ untokenize <$> pDollarsMath 0
-      if display
-         then displayMath contents <$ symbol '$'
-         else if T.all (==' ') (T.takeEnd 1 contents)
-                 -- don't allow math to end with SPACE + $
-                 then mzero
-                 else return $ inlineMath contents)
-   <|> (guard display >> return (inlineMath ""))
+  contents <- try $ untokenize <$> pDollarsMath 0
+  if display
+     then displayMath contents <$ symbol '$'
+     else if T.all (==' ') (T.takeEnd 1 contents)
+             -- don't allow math to end with SPACE + $
+             then mzero
+             else return $ inlineMath contents
 
 -- Int is number of embedded groupings
 pDollarsMath :: Monad m => Int -> InlineParser m [Tok]

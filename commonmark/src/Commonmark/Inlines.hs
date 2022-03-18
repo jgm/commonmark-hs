@@ -179,12 +179,11 @@ parseChunks bspecs specs ilParsers attrParser rm ts =
   where
    isDelimChar = (`Set.member` delimcharset)
    !delimcharset = Set.fromList delimchars
-   delimchars = '[' : ']' : suffixchars ++ splitchars ++
+   delimchars = '[' : ']' : suffixchars ++
                   prefixchars ++ M.keys specmap
    specmap = mkFormattingSpecMap specs
    prefixchars = mapMaybe bracketedPrefix bspecs
    suffixchars = mapMaybe bracketedSuffixEnd bspecs
-   splitchars = mapMaybe bracketedSplitOn bspecs
    precedingTokTypeMap = {-# SCC precedingTokTypeMap #-}fst $! foldl' go  (mempty, LineEnd) ts
    go (!m, !prevTy) (Tok !ty !pos _) =
      case ty of
@@ -273,13 +272,11 @@ data BracketedSpec il = BracketedSpec
      , bracketedNests     :: !Bool  -- ^ True if this can be nested.
      , bracketedPrefix    :: Maybe Char -- ^ Prefix character.
      , bracketedSuffixEnd :: Maybe Char -- ^ Suffix character.
-     , bracketedSplitOn   :: Maybe Char -- ^ Split character.
      , bracketedSuffix    :: ReferenceMap
-                          -> Text
-                          -> Parsec [Tok] () ([il] -> il)
+                          -> [Chunk il]
+                          -> Parsec [Tok] () (il -> il)
                           -- ^ Parser for suffix after
-                          -- brackets.  Returns a constructor
-                          -- that takes a list (because of bracketedSplitOn).
+                          -- brackets.  Returns a constructor.
                           -- Second parameter is the raw key.
      }
 
@@ -300,7 +297,6 @@ linkSpec = BracketedSpec
            , bracketedNests = False  -- links don't nest inside links
            , bracketedPrefix = Nothing
            , bracketedSuffixEnd = Just ')'
-           , bracketedSplitOn = Nothing
            , bracketedSuffix = pLinkSuffix
            }
 
@@ -310,21 +306,22 @@ imageSpec = BracketedSpec
             , bracketedNests = True
             , bracketedPrefix = Just '!'
             , bracketedSuffixEnd = Just ')'
-            , bracketedSplitOn = Nothing
             , bracketedSuffix = pImageSuffix
             }
 
 pLinkSuffix :: IsInline il
-            => ReferenceMap -> Text -> Parsec [Tok] s ([il] -> il)
-pLinkSuffix rm txt = do
-  LinkInfo target title attrs _mbpos <- pLink rm txt
-  return $! addAttributes attrs . link target title . mconcat
+            => ReferenceMap -> [Chunk il] -> Parsec [Tok] s (il -> il)
+pLinkSuffix rm chunksInside = do
+  LinkInfo target title attrs _mbpos <-
+    pLink rm (untokenize $ concatMap chunkToks chunksInside)
+  return $! addAttributes attrs . link target title
 
 pImageSuffix :: IsInline il
-             => ReferenceMap -> Text -> Parsec [Tok] s ([il] -> il)
-pImageSuffix rm txt = do
-  LinkInfo target title attrs _mbpos <- pLink rm txt
-  return $! addAttributes attrs . image target title . mconcat
+             => ReferenceMap -> [Chunk il] -> Parsec [Tok] s (il -> il)
+pImageSuffix rm chunksInside = do
+  LinkInfo target title attrs _mbpos <-
+    pLink rm (untokenize $ concatMap chunkToks chunksInside)
+  return $! addAttributes attrs . image target title
 
 ---
 
@@ -784,8 +781,7 @@ processBs bracketedSpecs st =
                  (withRaw
                    (do setPosition suffixPos
                        (spec, constructor) <- choice $
-                           map (\s -> (s,) <$> bracketedSuffix s rm
-                                 (untokenize (concatMap chunkToks chunksinside)))
+                           map (\s -> (s,) <$> bracketedSuffix s rm chunksinside)
                            specs
                        pos <- getPosition
                        return (spec, constructor, pos)))
@@ -810,11 +806,8 @@ processBs bracketedSpecs st =
                                      (openers ++ chunksinside ++ [closer])
                                       ++ desttoks
                          elt = ranged (rangeFromToks elttoks newpos)
-                                  $ constructor
-                                  $ map (unChunks . processEmphasis)
-                                  $ case bracketedSplitOn spec of
-                                      Nothing -> [chunksinside]
-                                      Just c  -> (splitChunksOn c chunksinside)
+                                  $ constructor $ unChunks $
+                                       processEmphasis chunksinside
                          eltchunk = Chunk (Parsed elt) openerPos elttoks
                          afterchunks = dropWhile ((< newpos) . chunkPos)
                                          (afters right)
@@ -967,14 +960,3 @@ pReferenceLink rm key = do
                 then key
                 else lab
   maybe mzero return $! lookupReference key' rm
-
-splitChunksOn :: Char -> [Chunk a] -> [[Chunk a]]
-splitChunksOn c chunks =
-  case break isSplitTok chunks of
-    (xs, []) -> [xs]
-    (xs, _:ys) -> xs : splitChunksOn c ys
- where
-  isSplitTok chunk =
-    case chunkToks chunk of
-      [Tok (Symbol d) _ _] | d == c -> True
-      _ -> False

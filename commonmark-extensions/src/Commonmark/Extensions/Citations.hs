@@ -89,6 +89,12 @@ citationsSpec =
             Parsed x -> hasCitations x
             _ -> False
     guard $ any chunkHasCitations chunksInside
+    -- split on unescaped semicolons (alone in chunk)
+    let cits = splitOnSemicolon chunksInside
+    -- TODO here's the problem!  We return an il -> il,
+    -- and there's really no way to parse the chunks to an il
+    -- Can we change the type to so bracketedSuffix returns [Chunk il] -> il?
+    -- But then we'd need to processEmphasis manually inside each sub-unit.
     return $! citationGroup
 
 parseBareCitation :: (Monad m, HasCitations il, IsInline il)

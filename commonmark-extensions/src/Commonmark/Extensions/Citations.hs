@@ -22,15 +22,20 @@ import Data.Text (Text)
 import Text.Parsec
 
 class HasCitations il where
-  citationGroup :: il -> il -- we'll parse further in pandoc
+  citationGroup :: il -> il
+  addPrefix :: il -> il -> il -- first arg is prefix, second citation
+  addSuffix :: il -> il -> il -- first arg is suffix, second citation
   citation :: Text -> Bool -> il
   hasCitations :: il -> Bool
 
 instance HasCitations (Html il) where
   citationGroup =
-    addAttribute ("class", "citation-group") .
-    htmlInline "span" .
-    Just
+    addAttribute ("class", "citation-group") . htmlInline "span" . Just
+  addPrefix pref cit =
+    (addAttribute ("class", "citation-prefix") . htmlInline "span" . Just $ pref)
+    <> cit
+  addSuffix suff cit = cit <>
+    (addAttribute ("class", "citation-suffix") . htmlInline "span" . Just $ suff)
   citation ident suppressAuthor =
     addAttribute ("class", "citation") .
     addAttribute ("identifier", ident) .
@@ -45,7 +50,12 @@ instance HasCitations (Html il) where
     _ -> False
 
 instance (HasCitations il, Monoid il, Show il) => HasCitations (WithSourceMap il) where
-  citationGroup x = (citationGroup <$> x) <* addName "citation"
+  citationGroup x =
+    (citationGroup <$> x) <* addName "citation-group"
+  addPrefix pref cit =
+    addPrefix <$> (pref <* addName "citation-prefix") <*> cit
+  addSuffix suff cit =
+    addSuffix <$> (suff <* addName "citation-suffix") <*> cit
   citation ident suppressAuthor =
     pure (citation ident suppressAuthor) <* addName "citation"
   hasCitations x =

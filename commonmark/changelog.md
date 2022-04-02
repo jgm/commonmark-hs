@@ -1,5 +1,23 @@
 # Changelog for commonmark
 
+## 0.2.2
+
+  * Blocks: export `getParentListType` [API change].
+  * Require unicode-data >= 0.3.
+  * Change `mkFormattingSpecMap` so it integrates different
+    FormattingSpecs that use the same character (#87).  Otherwise
+    we have problems if you have one formatting spec that
+    reacts to single delimiters and another that reacts to
+    pairs; if the first fails to match, the fallback behavior
+    is produced and the second never matches.
+  * Use unicode-data's faster versions of Data.Char functions.
+    This speeds up benchmarks for tokenize considerably; little difference
+    in other benchmarks.  unicode-data is already a transitive dependency,
+    via unicode-transforms.
+  * Increase strictness in tokenize/go.
+  * Remove legacy cpp needed to support ghc < 8.4.
+
+
 ## 0.2.1.1
 
   * Fix bug in `prettyShow` for `SourceRange` (#80).

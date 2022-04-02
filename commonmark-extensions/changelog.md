@@ -1,5 +1,17 @@
 # Changelog for commonmark-extensions
 
+## 0.2.3.1
+
+- `math` extension:  don't fail when display math contains
+  embedded inline math.  See jgm/pandoc#7942.
+- Make math parsing more sophisticated.
+  Count embeddings inside `{..}`, since math can contain
+  e.g. `\text{...}` which itself contains math delimiters.
+- Small improvement in pipe table parsing.
+  The old parser failed on some edge cases with extra whitespace
+  after pipes (which we should just ignore).
+- `fancy_list` extension: improve list type ambiguity resolution (#89).
+
 ## 0.2.3
 
 - Allow bare word attribute in fenced_divs (#84).  This follows a similar

@@ -1,5 +1,10 @@
 # Changelog for commonmark-extensions
 
+## 0.2.3.2
+
+- Update lower version bounds for commonmark (#93, David
+  Thrane Christiansen).
+
 ## 0.2.3.1
 
 - `math` extension:  don't fail when display math contains

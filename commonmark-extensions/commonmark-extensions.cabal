@@ -59,7 +59,7 @@ library
     , transformers
     , filepath
     , network-uri
-    , commonmark >= 0.2 && < 0.3
+    , commonmark >= 0.2.2 && < 0.3
     -- for extensions:
     , emojis >= 0.1 && < 0.2
   exposed-modules:

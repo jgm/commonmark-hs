@@ -93,9 +93,7 @@ instance Rangeable (Html a) => IsInline (Html a) where
     htmlInline "a" (Just ils)
   image target title ils =
     addAttribute ("src", escapeURI target) .
-    (case toPlainText ils of
-        "" -> id
-        alt' -> addAttribute ("alt", alt')) .
+    addAttribute ("alt", toPlainText ils) .
     (if T.null title
         then id
         else addAttribute ("title", title)) $

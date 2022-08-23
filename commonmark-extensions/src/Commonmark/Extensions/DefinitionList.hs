@@ -81,21 +81,27 @@ definitionListItemBlockSpec = BlockSpec
      }
 
 
-
 definitionListDefinitionBlockSpec ::
    (Monad m, IsBlock il bl, IsInline il, HasDefinitionList il bl)
    => BlockSpec m il bl
 definitionListDefinitionBlockSpec = BlockSpec
      { blockType           = "DefinitionListDefinition"
      , blockStart          = try $ do
-         n <- gobbleUpToSpaces 3
+         initcol <- sourceColumn <$> getPosition
+         gobbleUpToSpaces 3
          pos <- getPosition
          symbol ':' <|> symbol '~'
-         gobbleSpaces (min 1 (3 - n))
+         try (gobbleUpToSpaces 4 <* notFollowedBy whitespace)
+           <|> gobbleSpaces 1
+           <|> 1 <$ lookAhead lineEnd
+         finalcol <- sourceColumn <$> getPosition
          (Node bdata children : rest) <- nodeStack <$> getState
+         let definitionIndent :: Int
+             definitionIndent = finalcol - initcol
          let defnode = Node (defBlockData
                               definitionListDefinitionBlockSpec){
-                                  blockStartPos = [pos] } []
+                                  blockStartPos = [pos],
+                                  blockData = toDyn definitionIndent } []
          if blockType (blockSpec bdata) == "DefinitionListItem"
             then addNodeToStack defnode
             else do
@@ -153,9 +159,10 @@ definitionListDefinitionBlockSpec = BlockSpec
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = \node -> do
+     , blockContinue       = \node@(Node ndata _cs) -> do
          pos <- getPosition
-         gobbleSpaces 4 <|> 0 <$ lookAhead blankLine
+         let definitionIndent = fromDyn (blockData ndata) 0
+         gobbleSpaces definitionIndent <|> 0 <$ lookAhead blankLine
          return $! (pos, node)
      , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = defaultFinalizer

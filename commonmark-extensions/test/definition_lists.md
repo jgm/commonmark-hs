@@ -126,6 +126,26 @@ crisp, pleasant to taste</p>
 </dl>
 ````````````````````````````````
 
+Nested lists:
+
+```````````````````````````````` example
+term
+
+:   1. Para one
+
+       Para two
+.
+<dl>
+<dt>term</dt>
+<dd>
+<ol>
+<li><p>Para one</p>
+<p>Para two</p></li>
+</ol>
+</dd>
+</dl>
+````````````````````````````````
+
 Multiple definitions, tight:
 
 ```````````````````````````````` example

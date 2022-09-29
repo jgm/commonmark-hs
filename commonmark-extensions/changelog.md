@@ -1,5 +1,12 @@
 # Changelog for commonmark-extensions
 
+## 0.2.3.3
+
+  - Fix definition_lists extension (#96). We were not properly consuming
+    indentation in definitions, which caused problems when the definitions
+    themselves contained lists.
+
+
 ## 0.2.3.2
 
 - Update lower version bounds for commonmark (#93, David

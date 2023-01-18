@@ -1,5 +1,9 @@
 # Changelog for commonmark-pandoc
 
+## 0.2.1.3
+
+- Allow pandoc-types 1.23.
+
 ## 0.2.1.2
 
 - Fix addition of sourcepos attributes to blocks (jgm/pandoc#7769).

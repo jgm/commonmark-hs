@@ -20,6 +20,7 @@ import Commonmark.TokParsers
 import Commonmark.Blocks
 import Commonmark.SourceMap
 import Commonmark.Html
+import Commonmark.HtmlMod
 import Text.Parsec
 import Data.Dynamic
 import Data.Tree
@@ -65,6 +66,14 @@ instance HasPipeTable (Html a) (Html a) where
       toCell constructor align cell =
         (alignToAttr align $ htmlInline constructor $ Just cell)
           <> htmlRaw "\n"
+
+instance HasPipeTable (HtmlMod a) (HtmlMod a) where
+  pipeTable cols headers rows =
+    withHtmlMod $ \mods ->
+      pipeTable
+        cols
+        (map (runHtmlMod mods) headers)
+        (map (map (runHtmlMod mods)) rows)
 
 instance (HasPipeTable i b, Monoid b)
         => HasPipeTable (WithSourceMap i) (WithSourceMap b) where

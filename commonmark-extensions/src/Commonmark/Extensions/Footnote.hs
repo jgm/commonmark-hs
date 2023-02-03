@@ -12,6 +12,7 @@ where
 import Commonmark.Tokens
 import Commonmark.Types
 import Commonmark.Html
+import Commonmark.HtmlMod
 import Commonmark.Syntax
 import Commonmark.Blocks
 import Commonmark.Inlines
@@ -163,6 +164,11 @@ instance Rangeable (Html a) => HasFootnote (Html a) (Html a) where
        addAttribute ("href", "#fn-" <> lab) $
        addAttribute ("id", "fnref-" <> lab) $
        htmlInline "a" $ Just (htmlText x)
+
+instance Rangeable (Html a) => HasFootnote (HtmlMod a) (HtmlMod a) where
+  footnote num lab' bl = withHtmlMod $ \mods -> footnote num lab' (runHtmlMod mods bl)
+  footnoteList bls = withHtmlMod $ \mods -> footnoteList (map (runHtmlMod mods) bls)
+  footnoteRef num lab' bl = withHtmlMod $ \mods -> footnoteRef num lab' (runHtmlMod mods bl)
 
 instance (HasFootnote il bl, Semigroup bl, Semigroup il)
         => HasFootnote (WithSourceMap il) (WithSourceMap bl) where

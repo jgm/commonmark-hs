@@ -67,6 +67,7 @@ library
       Commonmark.Parser
       Commonmark.Types
       Commonmark.Html
+      Commonmark.HtmlMod
       Commonmark.Syntax
       Commonmark.ReferenceMap
       Commonmark.Tokens

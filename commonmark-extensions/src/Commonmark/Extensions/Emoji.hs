@@ -11,6 +11,7 @@ import Commonmark.Inlines
 import Commonmark.SourceMap
 import Commonmark.TokParsers
 import Commonmark.Html
+import Commonmark.HtmlMod
 import Text.Emoji (emojiFromAlias)
 import Text.Parsec
 import Data.Text (Text)
@@ -30,6 +31,9 @@ instance HasEmoji (Html a) where
   emoji kw t = addAttribute ("class", "emoji") .
                addAttribute ("data-emoji", kw) $
     htmlInline "span" $ Just $ htmlText t
+
+instance HasEmoji (HtmlMod a) where
+  emoji kw t = HtmlMod $ pure $ emoji kw t
 
 instance (HasEmoji i, Monoid i) => HasEmoji (WithSourceMap i) where
   emoji kw t = emoji kw t <$ addName "emoji"

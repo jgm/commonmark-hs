@@ -9,6 +9,7 @@ import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.SourceMap
 import Commonmark.Html
+import Commonmark.HtmlMod
 
 strikethroughSpec :: (Monad m, IsBlock il bl, IsInline il, HasStrikethrough il)
               => SyntaxSpec m il bl
@@ -23,6 +24,9 @@ class HasStrikethrough a where
 
 instance HasStrikethrough (Html a) where
   strikethrough x = htmlInline "del" (Just x)
+
+instance HasStrikethrough (HtmlMod a) where
+  strikethrough a = withHtmlMod $ \mods -> strikethrough (runHtmlMod mods a)
 
 instance (HasStrikethrough i, Monoid i)
         => HasStrikethrough (WithSourceMap i) where

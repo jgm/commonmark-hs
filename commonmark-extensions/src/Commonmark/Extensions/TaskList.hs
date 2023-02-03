@@ -17,6 +17,7 @@ import Commonmark.Blocks
 import Commonmark.SourceMap
 import Commonmark.TokParsers
 import Commonmark.Html
+import Commonmark.HtmlMod
 import Control.Monad (mzero)
 import Control.Monad (when, guard)
 import Data.List (sort)
@@ -221,6 +222,12 @@ addCheckbox (checked, x) =
    addAttribute ("disabled", "") $
    (if checked then addAttribute ("checked","") else id) $
    htmlInline "input" Nothing) <> x
+
+instance Rangeable (Html a) => HasTaskList (HtmlMod a) (HtmlMod a) where
+  taskList lType lSpacing items =
+    withHtmlMod $ \mods ->
+      taskList lType lSpacing $
+        map (fmap (runHtmlMod mods)) items
 
 instance (HasTaskList il bl, Semigroup bl, Semigroup il)
         => HasTaskList (WithSourceMap il) (WithSourceMap bl) where

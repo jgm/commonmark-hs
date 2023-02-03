@@ -13,6 +13,7 @@ module Commonmark.Html
   , renderHtml
   , escapeURI
   , escapeHtml
+  , transform
   )
 where
 
@@ -463,3 +464,8 @@ escapeURIChar c
                                      '#','!','$','\'','(',')','*','+',',',
                                      ';','=']
 
+-- | Walk HTML nodes bottom-up, applying a function.
+transform :: (Html a -> Html a) -> Html a -> Html a
+transform f (HtmlElement et name attr (Just elt)) =
+  f $ HtmlElement et name attr (Just (transform f elt))
+transform f elt = f elt

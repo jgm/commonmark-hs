@@ -1,8 +1,11 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 module Commonmark.Extensions.Wikilinks
   ( wikilinksSpec
   , TitlePosition(..)
@@ -15,8 +18,10 @@ import Commonmark.Syntax
 import Commonmark.SourceMap
 import Commonmark.TokParsers
 import Commonmark.Html
+import Commonmark.Nodes
 import Text.Parsec
 import Data.Text (Text, strip)
+import Data.Typeable (Typeable)
 
 class HasWikilinks il where
   wikilink :: Text -> il -> il
@@ -59,3 +64,19 @@ wikilinksSpec titlepos = mempty
      symbol ']'
      symbol ']'
      return $ wikilink (strip url) (str (strip title))
+
+data NodeTypeWikilinks a
+  = NodeWikilink Text (Nodes a)
+  deriving (Show)
+
+instance (Typeable a, Monoid a, HasAttributes a, Rangeable a) => NodeType NodeTypeWikilinks a where
+  type FromNodeType NodeTypeWikilinks a = HasWikilinks a
+  fromNodeType = \case
+    NodeWikilink url x -> wikilink url (fromNodes x)
+
+instance ToPlainText (NodeTypeWikilinks a) where
+  toPlainText = \case
+    NodeWikilink _ x -> toPlainText x
+
+instance (Typeable a, HasWikilinks a, Monoid a, HasAttributes a, Rangeable a) => HasWikilinks (Nodes a) where
+  wikilink url x = singleNode $ NodeWikilink url x

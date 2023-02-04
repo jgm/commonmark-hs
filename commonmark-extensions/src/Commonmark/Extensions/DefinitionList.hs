@@ -4,6 +4,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 module Commonmark.Extensions.DefinitionList
   ( definitionListSpec
   , HasDefinitionList(..)
@@ -15,9 +18,11 @@ import Commonmark.Blocks
 import Commonmark.SourceMap
 import Commonmark.TokParsers
 import Commonmark.Html
+import Commonmark.Nodes hiding (Node (..))
 import Control.Monad (mzero)
 import Data.Dynamic
 import Data.Tree
+import qualified Data.Text as T
 import Text.Parsec
 
 definitionListSpec :: (Monad m, IsBlock il bl, IsInline il,
@@ -194,3 +199,28 @@ instance (HasDefinitionList il bl, Semigroup bl, Semigroup il)
     let res = definitionList spacing (zip terms' defs')
     addName "definitionList"
     return res
+
+data NodeTypeDefinitionList a
+  = NodeDefinitionList ListSpacing [(Nodes a, [Nodes a])]
+  deriving (Show)
+
+instance Typeable a => NodeType NodeTypeDefinitionList a where
+  type FromNodeType NodeTypeDefinitionList a = HasDefinitionList a a
+  fromNodeType = \case
+    NodeDefinitionList spacing items ->
+      definitionList
+        spacing
+        [ (fromNodes term, map fromNodes defs)
+        | (term, defs) <- items
+        ]
+
+instance ToPlainText (NodeTypeDefinitionList a) where
+  toPlainText = \case
+    NodeDefinitionList _ items ->
+      T.unlines . concat $
+        [ (toPlainText term <> ":") : map toPlainText defs
+        | (term, defs) <- items
+        ]
+
+instance (Typeable a, HasDefinitionList a a) => HasDefinitionList (Nodes a) (Nodes a) where
+  definitionList spacing items = singleNode $ NodeDefinitionList spacing items

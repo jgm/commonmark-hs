@@ -1,5 +1,8 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
 module Commonmark.Extensions.Math
   ( HasMath(..)
   , mathSpec )
@@ -12,9 +15,11 @@ import Commonmark.Inlines
 import Commonmark.SourceMap
 import Commonmark.TokParsers
 import Commonmark.Html
+import Commonmark.Nodes
 import Text.Parsec
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Typeable (Typeable)
 
 mathSpec :: (Monad m, IsBlock il bl, IsInline il, HasMath il)
          => SyntaxSpec m il bl
@@ -62,3 +67,23 @@ pDollarsMath n = do
        Symbol '}' | n > 0 -> (tk :) <$> pDollarsMath (n-1)
                   | otherwise -> mzero
        _ -> (tk :) <$> pDollarsMath n
+
+data NodeTypeMath a
+  = NodeInlineMath Text
+  | NodeDisplayMath Text
+  deriving (Show)
+
+instance Typeable a => NodeType NodeTypeMath a where
+  type FromNodeType NodeTypeMath a = HasMath a
+  fromNodeType = \case
+    NodeInlineMath t -> inlineMath t
+    NodeDisplayMath t -> displayMath t
+
+instance ToPlainText (NodeTypeMath a) where
+  toPlainText = \case
+    NodeInlineMath t -> t
+    NodeDisplayMath t -> t
+
+instance (Typeable a, HasMath a) => HasMath (Nodes a) where
+  inlineMath t = singleNode $ NodeInlineMath t
+  displayMath t = singleNode $ NodeDisplayMath t

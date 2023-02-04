@@ -4,6 +4,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Commonmark.Extensions.PipeTable
  ( HasPipeTable(..)
@@ -20,10 +22,12 @@ import Commonmark.TokParsers
 import Commonmark.Blocks
 import Commonmark.SourceMap
 import Commonmark.Html
+import Commonmark.Nodes hiding (Node (..))
 import Text.Parsec
 import Data.Dynamic
 import Data.Tree
 import Data.Data
+import qualified Data.Text as T
 
 data ColAlignment = LeftAlignedCol
                   | CenterAlignedCol
@@ -211,3 +215,26 @@ pipeTableBlockSpec = BlockSpec
                then Node ndata children
                else Node ndata{ blockSpec = paraSpec } children) parent
      }
+
+data NodeTypePipeTable a
+  = NodePipeTable [ColAlignment] [Nodes a] [[Nodes a]]
+  deriving (Show)
+
+instance (Typeable a, Monoid a, HasAttributes a, Rangeable a) => NodeType NodeTypePipeTable a where
+  type FromNodeType NodeTypePipeTable a = HasPipeTable a a
+  fromNodeType = \case
+    NodePipeTable aligns headers rows -> pipeTable aligns (map fromNodes headers) (map (map fromNodes) rows)
+
+instance ToPlainText (NodeTypePipeTable a) where
+  toPlainText = \case
+    NodePipeTable _ headers rows ->
+      T.unlines $
+        fromRow (map toPlainText headers) :
+          [ fromRow (map toPlainText row)
+          | row <- rows
+          ]
+    where
+      fromRow = T.unwords
+
+instance (Typeable a, HasPipeTable a a, Monoid a, HasAttributes a, Rangeable a) => HasPipeTable (Nodes a) (Nodes a) where
+  pipeTable aligns headers rows = singleNode $ NodePipeTable aligns headers rows

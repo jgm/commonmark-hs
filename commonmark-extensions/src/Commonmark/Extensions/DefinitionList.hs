@@ -91,6 +91,7 @@ definitionListDefinitionBlockSpec = BlockSpec
          gobbleUpToSpaces 3
          pos <- getPosition
          symbol ':' <|> symbol '~'
+         lookAhead whitespace
          try (gobbleUpToSpaces 4 <* notFollowedBy whitespace)
            <|> gobbleSpaces 1
            <|> 1 <$ lookAhead lineEnd

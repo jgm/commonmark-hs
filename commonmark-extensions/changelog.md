@@ -1,11 +1,15 @@
 # Changelog for commonmark-extensions
 
+## 0.2.3.4
+
+  - Require whitespace after definition list marker (#104).
+    Otherwise we can inadvertently clobber strikeout or subscript.
+
 ## 0.2.3.3
 
   - Fix definition_lists extension (#96). We were not properly consuming
     indentation in definitions, which caused problems when the definitions
     themselves contained lists.
-
 
 ## 0.2.3.2
 

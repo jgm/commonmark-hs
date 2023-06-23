@@ -11,7 +11,6 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Maybe (fromMaybe)
 import Text.Parsec (getPosition)
-import Text.Parsec.Pos (sourceName)
 import System.FilePath
 import qualified System.FilePath.Windows as Windows
 import qualified System.FilePath.Posix as Posix

@@ -12,12 +12,14 @@ module Commonmark.Types
   , IsInline(..)
   , IsBlock(..)
   , SourceRange(..)
-  , SourcePos
   , Rangeable(..)
   , Attribute
   , Attributes
   , HasAttributes(..)
   , ToPlainText(..)
+
+  -- * Re-exports
+  , module Text.Parsec.Pos
   )
 where
 import           Data.Data            (Data)

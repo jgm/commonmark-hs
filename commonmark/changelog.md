@@ -1,5 +1,10 @@
 # Changelog for commonmark
 
+## 0.2.3
+
+  * Re-export Text.Parsec.Pos from Commonmark.Types (Fraser
+    Tweedale, #106).
+
 ## 0.2.2
 
   * Blocks: export `getParentListType` [API change].

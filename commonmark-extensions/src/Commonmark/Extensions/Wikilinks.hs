@@ -9,6 +9,7 @@ module Commonmark.Extensions.Wikilinks
   , HasWikilinks(..)
   )
 where
+import Commonmark.Entity
 import Commonmark.Types
 import Commonmark.Tokens
 import Commonmark.Syntax
@@ -51,11 +52,11 @@ wikilinksSpec titlepos = mempty
          isPipe _ = False
      let (title, url) =
            case break isPipe toks of
-              (xs, [])   -> (untokenize xs, untokenize xs)
+              (xs, [])   -> (unEntity xs, unEntity xs)
               (xs, _:ys) ->
                 case titlepos of
-                  TitleBeforePipe -> (untokenize xs, untokenize ys)
-                  TitleAfterPipe  -> (untokenize ys, untokenize xs)
+                  TitleBeforePipe -> (unEntity xs, unEntity ys)
+                  TitleAfterPipe  -> (unEntity ys, unEntity xs)
      symbol ']'
      symbol ']'
      return $ wikilink (strip url) (str (strip title))

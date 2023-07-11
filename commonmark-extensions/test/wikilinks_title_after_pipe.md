@@ -31,3 +31,10 @@ With this version of wikilinks, the title comes after the pipe.
 <p><a href="Name%20of%20page" title="wikilink">Title</a></p>
 ````````````````````````````````
 
+HTML entities are recognized both in the name of page and in the link title.
+
+```````````````````````````````` example
+[[Gesch&uuml;tztes Leerzeichen|&#xDC;ber &amp;nbsp;]]
+.
+<p><a href="Gesch%C3%BCtztes%20Leerzeichen" title="wikilink">Über &amp;nbsp;</a></p>
+````````````````````````````````

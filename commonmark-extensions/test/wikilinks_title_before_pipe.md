@@ -39,4 +39,10 @@ Regular links should still work!
 <p><a href="Name%20of%20page">Title</a></p>
 ````````````````````````````````
 
+HTML entities are recognized both in the name of page and in the link title.
 
+```````````````````````````````` example
+[[&#xDC;ber &amp;nbsp;|Gesch&uuml;tztes Leerzeichen]]
+.
+<p><a href="Gesch%C3%BCtztes%20Leerzeichen" title="wikilink">Über &amp;nbsp;</a></p>
+````````````````````````````````

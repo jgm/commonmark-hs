@@ -1,5 +1,9 @@
 # Changelog for commonmark-extensions
 
+## 0.2.3.5
+
+  - Resolve entities inside wikilinks (#105, Michał Kukieła).
+
 ## 0.2.3.4
 
   - Require whitespace after definition list marker (#104).

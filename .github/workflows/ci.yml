@@ -10,26 +10,31 @@ jobs:
       fail-fast: false
       matrix:
         versions:
-          - ghc: '8.4.4'
-            cabal: '2.4'
-          - ghc: '8.6.5'
-            cabal: '2.4'
-          - ghc: '8.8.1'
-            cabal: '3.0'
-          - ghc: '8.10.1'
+          - ghc: '8.10'
             cabal: '3.2'
-          - ghc: '9.0.1'
+          - ghc: '9.0'
             cabal: '3.4'
-          - ghc: '9.2.1'
+          - ghc: '9.2'
             cabal: '3.4'
+          - ghc: '9.4'
+            cabal: '3.10'
+          - ghc: '9.6'
+            cabal: '3.10'
     steps:
     - uses: actions/checkout@v1
 
-    - name: Install recent cabal/ghc
-      uses: haskell/actions/setup@v1
+    - name: Install cabal/ghc
+      run: |
+        ghcup install ghc --set ${{ matrix.versions.ghc }}
+        ghcup install cabal --set ${{ matrix.versions.cabal }}
+
+    - name: Cache cabal global package db
+      id:   cabal-global
+      uses: actions/cache@v3
       with:
-        ghc-version: ${{ matrix.versions.ghc }}
-        cabal-version: ${{ matrix.versions.cabal }}
+        path: |
+          ~/.cabal
+        key: ${{ runner.os }}-${{ matrix.versions.ghc }}-${{ matrix.versions.cabal }}-cabal-global-${{ secrets.CACHE_VERSION }}
 
     - name: Install dependencies
       run: |

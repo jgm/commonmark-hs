@@ -41,9 +41,10 @@ parseMath = try $ do
   symbol '$'
   display <- (True <$ symbol '$') <|> (False <$ notFollowedBy whitespace)
   contents <- try $ untokenize <$> pDollarsMath 0
+  let isWs c = c == ' ' || c == '\t' || c == '\r' || c == '\n'
   if display
      then displayMath contents <$ symbol '$'
-     else if T.all (==' ') (T.takeEnd 1 contents)
+     else if T.null contents || isWs (T.last contents)
              -- don't allow math to end with SPACE + $
              then mzero
              else return $ inlineMath contents

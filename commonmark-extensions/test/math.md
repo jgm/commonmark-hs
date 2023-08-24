@@ -18,9 +18,13 @@ preceeded by whitespace.
 ```````````````````````````````` example
 This is not math: 2000$.
 And neither is this $ 4 $.
+Or this $4
+$.
 .
 <p>This is not math: 2000$.
-And neither is this $ 4 $.</p>
+And neither is this $ 4 $.
+Or this $4
+$.</p>
 ````````````````````````````````
 
 Display math delimiters can be surrounded by whitespace:

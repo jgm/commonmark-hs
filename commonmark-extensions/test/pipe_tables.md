@@ -264,3 +264,51 @@ A table may be indented up to three spaces:
 </code></pre>
 ````````````````````````````````
 
+
+Pipe tables have exactly one header row, and do not interrupt paragraphs.
+
+```````````````````````````````` example
+| Too much table | to be considered table |
+| Too much table | to be considered table |
+|----------------|------------------------|
+| Too much table | to be considered table |
+.
+<p>| Too much table | to be considered table |
+| Too much table | to be considered table |
+|----------------|------------------------|
+| Too much table | to be considered table |</p>
+````````````````````````````````
+
+
+Other block structures, like headers, have higher priority than tables.
+Tables can be nested in other elements, but don't benefit from laziness.
+
+```````````````````````````````` example
+# abc | def
+------|-----
+
+
+> abc | def
+> ----|-----
+
+
+> abc | def
+----|-----
+.
+<h1>abc | def</h1>
+<p>------|-----</p>
+<blockquote>
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+</table>
+</blockquote>
+<blockquote>
+<p>abc | def
+----|-----</p>
+</blockquote>
+````````````````````````````````

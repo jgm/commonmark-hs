@@ -12,7 +12,8 @@ module Commonmark.Extensions.PipeTable
  )
 where
 
-import Control.Monad (guard)
+import Control.Monad (guard, void, mzero)
+import Control.Monad.Trans.Class (lift)
 import Commonmark.Syntax
 import Commonmark.Types
 import Commonmark.Tokens
@@ -137,30 +138,55 @@ pipeTableSpec = mempty
   { syntaxBlockSpecs = [pipeTableBlockSpec]
   }
 
+-- This parser is structured as a system that parses the *second* line first,
+-- then parses the first line. That is, if it detects a delimiter row as the
+-- second line of a paragraph, it converts the paragraph into a table. This seems
+-- counterintuitive, but it works better than trying to convert a table into
+-- a paragraph, since it might need to be something else.
+--
+-- See GH-52 and GH-95
 pipeTableBlockSpec :: (Monad m, IsBlock il bl, IsInline il,
                        HasPipeTable il bl)
                    => BlockSpec m il bl
 pipeTableBlockSpec = BlockSpec
      { blockType           = "PipeTable" -- :: Text
      , blockStart          = try $ do -- :: BlockParser m il bl ()
-         interruptsParagraph >>= guard . not
-         nonindentSpaces
-         notFollowedBy whitespace
-         pos <- getPosition
-         (cells, toks) <- withRaw pCells
-         nl <- lookAhead lineEnd
-         let tabledata = PipeTableData
-              { pipeTableAlignments = []
-              , pipeTableHeaders    = cells
-              , pipeTableRows       = []
-              }
-         addNodeToStack $
-               Node (defBlockData pipeTableBlockSpec){
-                         blockStartPos = [pos]
-                       , blockData = toDyn tabledata
-                       , blockLines = [toks ++ [nl]]
-                       } []
-         return BlockStartMatch
+             (cur:rest) <- nodeStack <$> getState
+             guard $ blockParagraph (bspec cur)
+             nonindentSpaces
+             pos <- getPosition
+             aligns <- pDividers
+             skipWhile (hasType Spaces)
+             lookAhead (eof <|> void lineEnd)
+
+             st <- getState
+
+             let headerLine =
+                   case blockLines $ rootLabel cur of
+                      [onlyLine] -> onlyLine
+                      _ -> []
+
+             cellsR <- lift $ runParserT pCells st "" headerLine
+             case cellsR of
+                Right cells ->
+                   if length cells /= length aligns
+                      then mzero -- parse fail: not a table
+                      else do
+                         updateState $ \st' -> st'{ nodeStack = rest }
+                         let tabledata = PipeTableData
+                               { pipeTableAlignments = aligns
+                               , pipeTableHeaders    = cells
+                               , pipeTableRows       = []
+                               }
+                         addNodeToStack $
+                            Node (defBlockData pipeTableBlockSpec){
+                                    blockStartPos = blockStartPos (rootLabel cur) ++ [pos]
+                                  , blockData = toDyn tabledata
+                                  , blockAttributes = blockAttributes (rootLabel cur)
+                                  } []
+                _ ->
+                   mzero -- parse fail: not a table
+             return BlockStartMatch
      , blockCanContain     = \_ -> False -- :: BlockSpec m il bl -> Bool
      , blockContainsLines  = False -- :: Bool
      , blockParagraph      = False -- :: Bool
@@ -173,26 +199,11 @@ pipeTableBlockSpec = BlockSpec
                              , pipeTableHeaders = []
                              , pipeTableRows = [] }
          pos <- getPosition
-         if null (blockLines ndata)
-           then do
-             cells <- pCells
-             let tabledata' = tabledata{ pipeTableRows =
-                                 cells : pipeTableRows tabledata }
-             return $! (pos, Node ndata{ blockData =
-                                   toDyn tabledata' } children)
-           else
-             -- last line was first; check for separators
-             -- and if not found, convert to paragraph:
-             try (do aligns <- pDividers
-                     guard $ length aligns ==
-                             length (pipeTableHeaders tabledata)
-                     let tabledata' = tabledata{ pipeTableAlignments = aligns }
-                     return $! (pos, Node ndata{
-                                              blockLines = []
-                                            , blockData = toDyn tabledata'
-                                            } children))
-             <|> (return $! (pos, Node ndata{
-                                   blockSpec = paraSpec } children))
+         cells <- pCells
+         let tabledata' = tabledata{ pipeTableRows =
+                             cells : pipeTableRows tabledata }
+         return $! (pos, Node ndata{ blockData =
+                               toDyn tabledata' } children)
      , blockConstructor    = \(Node ndata _) -> do
          let tabledata = fromDyn
                 (blockData ndata)
@@ -206,8 +217,5 @@ pipeTableBlockSpec = BlockSpec
                     (reverse $ pipeTableRows tabledata)
          return $! (pipeTable aligns headers rows)
      , blockFinalize       = \(Node ndata children) parent ->
-         defaultFinalizer
-           (if null (blockLines ndata)
-               then Node ndata children
-               else Node ndata{ blockSpec = paraSpec } children) parent
+         defaultFinalizer (Node ndata children) parent
      }

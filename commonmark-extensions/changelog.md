@@ -1,5 +1,19 @@
 # Changelog for commonmark-extensions
 
+## 0.2.3.6
+
+  * Fix pipe table parser so that `|`s don't interfere with
+    other block structures (Michael Howell, #111, fixing #52 and
+    #95). This parser is structured as a system that parses the
+    *second* line first, then parses the first line. That is, if
+    it detects a delimiter row as the second line of a
+    paragraph, it converts the paragraph into a table. This
+    seems counterintuitive, but it works better than trying to
+    convert a table into a paragraph, since it might need to be
+    something else.
+
+  * Improve parsing of inline math (#110).
+
 ## 0.2.3.5
 
   - Resolve entities inside wikilinks (#105, Michał Kukieła).

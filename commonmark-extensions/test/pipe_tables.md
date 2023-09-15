@@ -320,8 +320,39 @@ with backslashes.
 The parsing rule for CommonMark is that block structures are parsed before
 inline structures are. Normally, this means backslashes aren't allowed to have
 any effect on block structures at all. Tables do consider backslashes, but
-not the same way inline syntax does: they have higher precedence than anything
-else, as-if they were parsed in a completely separate pass.
+not the same way inline syntax does.
+
+The table parser, which runs as part of the block structure parsing stage, splits rows into cells on unescaped `|` symbols, and it replaces `\|` with a literal `|`. Then it passes the contents of each cell separately to the inline parser. This means backslash escaping pipes works even in code spans (where backslashes are usually treated as literal text), but it can also result in some counterintuitive results.
+
+For example, consider these two rows, excerpted from the below test case:
+
+    | Wait, what? |          \|
+    | Wait, what? |         \\|
+
+The table parser only pays attention to the backslash that is immediately followed by a pipe. This means it sees the second row as this:
+
+    | Wait, what? |         \\|
+                            -^^ escaped pipe found here
+                            |
+                            literal backslash with no special block-level semantics
+
+And the inline parser is given the first backslash, followed by the pipe:
+
+    \|
+
+The inline parser then sees it as an backslash-escaped pipe, and writes the `|` on its own. Both rows result in exactly the same HTML.
+
+
+    <tr>
+    <td>Wait, what?</td>
+    <td>|</td>
+    </tr>
+    <tr>
+    <td>Wait, what?</td>
+    <td>|</td>
+    </tr>
+
+You need to write `\\\|` to actually get `\|` to show up in the output.
 
 This rule should be identical to GitHub's. See
 <https://gist.github.com/notriddle/c027512ee849f12098fec3a3256c89d3>

@@ -88,11 +88,9 @@ pCells = try $ do
 pCell :: Monad m => ParsecT [Tok] s m [Tok]
 pCell = mconcat <$> many1
   ( try
-      (do tok' <- symbol '\\'
-          tok@(Tok (Symbol c) _ _) <- anySymbol
-          if c == '|'
-             then return $! [tok]
-             else return $! [tok',tok])
+      (do symbol '\\'
+          tok <- symbol '|'
+          return $! [tok])
   <|> (do tok <- (satisfyTok $ \t -> not (hasType (Symbol '|') t ||
                                        hasType LineEnd t))
           return $! [tok])

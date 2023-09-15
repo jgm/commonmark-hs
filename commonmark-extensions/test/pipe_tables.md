@@ -312,3 +312,157 @@ Tables can be nested in other elements, but don't benefit from laziness.
 ----|-----</p>
 </blockquote>
 ````````````````````````````````
+
+
+As a special case, pipes in inline code in tables are escaped
+with backslashes.
+
+The parsing rule for CommonMark is that block structures are parsed before
+inline structures are. Normally, this means backslashes aren't allowed to have
+any effect on block structures at all. Tables do consider backslashes, but
+not the same way inline syntax does.
+
+The table parser, which runs as part of the block structure parsing stage, splits rows into cells on unescaped `|` symbols, and it replaces `\|` with a literal `|`. Then it passes the contents of each cell separately to the inline parser. This means backslash escaping pipes works even in code spans (where backslashes are usually treated as literal text), but it can also result in some counterintuitive results.
+
+For example, consider these two rows, excerpted from the below test case:
+
+    | Wait, what? |          \|
+    | Wait, what? |         \\|
+
+The table parser only pays attention to the backslash that is immediately followed by a pipe. This means it sees the second row as this:
+
+    | Wait, what? |         \\|
+                            -^^ escaped pipe found here
+                            |
+                            literal backslash with no special block-level semantics
+
+And the inline parser is given the first backslash, followed by the pipe:
+
+    \|
+
+The inline parser then sees it as an backslash-escaped pipe, and writes the `|` on its own. Both rows result in exactly the same HTML.
+
+
+    <tr>
+    <td>Wait, what?</td>
+    <td>|</td>
+    </tr>
+    <tr>
+    <td>Wait, what?</td>
+    <td>|</td>
+    </tr>
+
+You need to write `\\\|` to actually get `\|` to show up in the output.
+
+This rule should be identical to GitHub's. See
+<https://gist.github.com/notriddle/c027512ee849f12098fec3a3256c89d3>
+for what they do.
+
+This changes the behavior from what older versions of commonmark-extensions do,
+but it fixes some expressiveness holes that hit older versions.
+
+```````````````````````````````` example
+| Description | Test case |
+|-------------|-----------|
+| Single      | `\`       |
+| Double      | `\\`      |
+| Basic test  | `\|`      |
+| Basic test 2| `\|\|\`   |
+| Basic test 3| `x\|y\|z\`|
+| Not pipe    | `\.`      |
+| Combo       | `\.\|\`   |
+| Extra       | `\\\.`    |
+| Wait, what? | `\\|`     |
+| Wait, what? | `\\\|`    |
+| Wait, what? | `\\\\|`   |
+| Wait, what? | `\\\\\|`  |
+| Wait, what? |          \|
+| Wait, what? |         \\|
+| Wait, what? |        \\\|
+| Wait, what?x|          \|x
+| Wait, what?x|         \\|x
+| Wait, what?x|        \\\|x
+.
+<table>
+<thead>
+<tr>
+<th>Description</th>
+<th>Test case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Single</td>
+<td><code>\</code></td>
+</tr>
+<tr>
+<td>Double</td>
+<td><code>\\</code></td>
+</tr>
+<tr>
+<td>Basic test</td>
+<td><code>|</code></td>
+</tr>
+<tr>
+<td>Basic test 2</td>
+<td><code>||\</code></td>
+</tr>
+<tr>
+<td>Basic test 3</td>
+<td><code>x|y|z\</code></td>
+</tr>
+<tr>
+<td>Not pipe</td>
+<td><code>\.</code></td>
+</tr>
+<tr>
+<td>Combo</td>
+<td><code>\.|\</code></td>
+</tr>
+<tr>
+<td>Extra</td>
+<td><code>\\\.</code></td>
+</tr>
+<tr>
+<td>Wait, what?</td>
+<td><code>\|</code></td>
+</tr>
+<tr>
+<td>Wait, what?</td>
+<td><code>\\|</code></td>
+</tr>
+<tr>
+<td>Wait, what?</td>
+<td><code>\\\|</code></td>
+</tr>
+<tr>
+<td>Wait, what?</td>
+<td><code>\\\\|</code></td>
+</tr>
+<tr>
+<td>Wait, what?</td>
+<td>|</td>
+</tr>
+<tr>
+<td>Wait, what?</td>
+<td>|</td>
+</tr>
+<tr>
+<td>Wait, what?</td>
+<td>\|</td>
+</tr>
+<tr>
+<td>Wait, what?x</td>
+<td>|x</td>
+</tr>
+<tr>
+<td>Wait, what?x</td>
+<td>|x</td>
+</tr>
+<tr>
+<td>Wait, what?x</td>
+<td>\|x</td>
+</tr>
+</tbody>
+</table>
+````````````````````````````````

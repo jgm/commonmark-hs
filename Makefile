@@ -12,19 +12,8 @@ GHC_OPTS=-Wall -fno-warn-unused-do-bind -Wnoncanonical-monad-instances -Wincompl
 PROFTARGET?=b5.md
 
 all:
-	stack install --system-ghc --ghc-options="$(GHC_OPTS)" --test --test-arguments=--hide-successes --bench --no-run-benchmarks
-
-quick:
-	stack install --system-ghc --test --no-run-tests --fast
-
-test:
-	stack test --system-ghc --test-arguments=$(TESTARGS)
-
-haddock:
-	stack --system-ghc haddock
-
-stan:
-	for d in commonmark commonmark-extensions commonmark-pandoc commonmark-cli; do cd $$d; stan report --config-file=../.stan.toml; cd ..; done
+	cabal test --ghc-options="$(GHC_OPTS)" --test-option=--hide-successes all
+	cabal build --ghc-options="$(GHC_OPTS)" -fexecutable commonmark-cli
 
 prof:
 	cabal build --enable-profiling --ghc-options="${GHC_OPTS}" commonmark-cli
@@ -61,7 +50,7 @@ bench: $(LOGS)
 	    | tee $(LOGS)/benchmark-$(DATE).out
 
 ghci:
-	stack ghci --ghci-options "-XOverloadedStrings" commonmark
+	cabal repl commonmark
 #	stack ghci --ghci-options "-interactive-print=Text.Pretty.Simple.pPrint -XOverloadedStrings" --package pretty-simple
 
 reformat:
@@ -71,7 +60,7 @@ lint:
 	for f in $(SOURCEFILES); do echo $$f; hlint --verbose $$f; done
 
 clean:
-	stack clean
+	cabal clean
 
 pathologicaltest:
 	python3 test/pathological_tests.py --prog commonmark

@@ -10,7 +10,7 @@ module Commonmark.Tokens
   , untokenize
   ) where
 
-import           Unicode.Char    (isAlphaNum)
+import           Unicode.Char    (isAlphaNum, isMark)
 import           Unicode.Char.General.Compat  (isSpace)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
@@ -42,7 +42,9 @@ tokenize name =
     -- everything else gets in a token by itself.
     f '\r' '\n' = True
     f ' ' ' '   = True
-    f x   y     = isAlphaNum x && isAlphaNum y
+    f x   y     = isWordChar x && isWordChar y
+
+    isWordChar c  = isAlphaNum c || isMark c
 
     go !_pos [] = []
     go !pos (!t:ts) = -- note that t:ts are guaranteed to be nonempty
@@ -57,7 +59,7 @@ tokenize name =
          '\n' -> Tok LineEnd pos t :
                  go (incSourceLine (setSourceColumn pos 1) 1) ts
          thead
-           | isAlphaNum thead ->
+           | isWordChar thead ->
                  Tok WordChars pos t :
                  go (incSourceColumn pos (T.length t)) ts
            | isSpace thead ->

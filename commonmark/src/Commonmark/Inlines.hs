@@ -24,6 +24,7 @@ module Commonmark.Inlines
   , pLinkDestination
   , pLinkTitle
   , pEscaped
+  , pEscapedSymbol
   , processEmphasis
   , processBrackets
   , pBacktickSpan
@@ -936,6 +937,12 @@ pEscaped :: Monad m => ParsecT [Tok] s m Tok
 pEscaped = do
   bs <- symbol '\\'
   option bs $ satisfyTok asciiSymbol <|> lineEnd
+
+-- parses backslash + punctuation, but not backslashed newline
+pEscapedSymbol :: Monad m => ParsecT [Tok] s m Tok
+pEscapedSymbol = do
+  bs <- symbol '\\'
+  option bs $ satisfyTok asciiSymbol
 
 asciiSymbol :: Tok -> Bool
 asciiSymbol (Tok (Symbol c) _ _) = isAscii c

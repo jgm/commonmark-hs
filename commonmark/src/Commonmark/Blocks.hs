@@ -52,7 +52,7 @@ where
 import           Commonmark.Tag
 import           Commonmark.TokParsers
 import           Commonmark.ReferenceMap
-import           Commonmark.Inlines        (pEscaped, pLinkDestination,
+import           Commonmark.Inlines        (pEscapedSymbol, pLinkDestination,
                                             pLinkLabel, pLinkTitle)
 import           Commonmark.Entity         (unEntity)
 import           Commonmark.Tokens
@@ -1042,7 +1042,7 @@ fencedCodeSpec = BlockSpec
              guard $ fencelength >= 3
              skipWhile (hasType Spaces)
              let infoTok = noneOfToks (LineEnd : [Symbol '`' | c == '`'])
-             info <- T.strip . unEntity <$> many (pEscaped <|> infoTok)
+             info <- T.strip . unEntity <$> many (pEscapedSymbol <|> infoTok)
              lookAhead $ void lineEnd <|> eof
 
              let infotoks = tokenize "info string" info

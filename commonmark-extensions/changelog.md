@@ -1,5 +1,16 @@
 # Changelog for commonmark-extensions
 
+## 0.2.4
+
+  * Make `pipe_tables` extension treat backslash escapes like GH does (#112,
+    Michael Howell). This change essentially changes the way the text
+    `\\|` gets parsed inside a table. In the old version, the first backslash
+    escapes the second backslash, and then the pipe is treated as a cell
+    separator. In the new version, the pipe is still preceded by a backslash,
+    so it is still literal text. The escaping rule is documented in detail
+    in the spec for this extension. This change also aligns our escaping
+    of pipes with GitHub's.
+
 ## 0.2.3.6
 
   * Fix pipe table parser so that `|`s don't interfere with

@@ -1,5 +1,17 @@
 # Changelog for commonmark
 
+## 0.2.4
+
+  * Do not parse hard line breaks in fenced codeblock info (#116,
+    Michael Howell). This change makes commonmark-hs conform to the spec
+    and behave like other implementations when an info string in a code
+    block ends with a backslash.
+
+  * [API change] Commonmark.Inlines now exports `pEscapedSymbol`
+    (#116, Michael Howell).
+
+  * Tokenize combining marks as WordChars not Symbol (#114).
+
 ## 0.2.3
 
   * Re-export Text.Parsec.Pos from Commonmark.Types (Fraser

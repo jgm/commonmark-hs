@@ -134,3 +134,13 @@ Footnote containing a list[^list]
 </div>
 </section>
 ````````````````````````````````
+
+Footnote labels cannot be empty.
+
+```````````````````````````````` example
+Test [^] link
+
+[^]: https://haskell.org
+.
+<p>Test <a href="https://haskell.org">^</a> link</p>
+````````````````````````````````

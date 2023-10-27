@@ -25,7 +25,7 @@ import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Dynamic
 import Data.Tree
 import Text.Parsec
-import Data.Text (Text)
+import Data.Text (Text, empty)
 import qualified Data.Text as T
 import qualified Data.Map as M
 
@@ -103,7 +103,7 @@ pFootnoteLabel :: Monad m => ParsecT [Tok] u m Text
 pFootnoteLabel = try $ do
   lab <- pLinkLabel
   case T.uncons lab of
-        Just ('^', t') -> return $! t'
+        Just ('^', t') | t' /= Data.Text.empty -> return $! t'
         _ -> mzero
 
 pFootnoteRef :: (Monad m, Typeable m, Typeable a,

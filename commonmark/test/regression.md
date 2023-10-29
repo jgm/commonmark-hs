@@ -219,3 +219,19 @@ x
 <pre><code class="language-\">x
 </code></pre>
 ````````````````````````````````
+
+Issue #119
+```````````````````````````````` example
+[[]](https://haskell.org)
+
+[[][]](https://haskell.org)
+
+[[[][]](https://haskell.org)
+
+[[][][]](https://haskell.org)
+.
+<p><a href="https://haskell.org">[]</a></p>
+<p><a href="https://haskell.org">[][]</a></p>
+<p>[<a href="https://haskell.org">[][]</a></p>
+<p><a href="https://haskell.org">[][][]</a></p>
+````````````````````````````````

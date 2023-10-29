@@ -686,6 +686,14 @@ delimsMatch (Chunk open@Delim{} _ opents) (Chunk close@Delim{} _ closets) =
     opents /= closets
 delimsMatch _ _ = False
 
+-- check for balanced `[]` brackets
+bracketChunkToNumber :: Chunk a -> Int
+bracketChunkToNumber (Chunk Delim{ delimType = '[' } _ _) = 1
+bracketChunkToNumber (Chunk Delim{ delimType = ']' } _ _) = -1
+bracketChunkToNumber _ = 0
+bracketMatchedCount :: [Chunk a] -> Int
+bracketMatchedCount chunksinside = sum $ map bracketChunkToNumber chunksinside
+
 processBrackets :: IsInline a
                 => [BracketedSpec a] -> ReferenceMap -> [Chunk a] -> [Chunk a]
 processBrackets bracketedSpecs rm xs =
@@ -783,7 +791,7 @@ processBs bracketedSpecs st =
 
               suffixPos = incSourceColumn closePos 1
 
-          in case parse
+          in case (bracketMatchedCount chunksinside, parse
                  (withRaw
                    (do setPosition suffixPos
                        (spec, constructor) <- choice $
@@ -791,13 +799,13 @@ processBs bracketedSpecs st =
                            specs
                        pos <- getPosition
                        return (spec, constructor, pos)))
-                 "" suffixToks of
-                   Left _ -> -- match but no link/image
+                 "" suffixToks) of
+                   (0, Left _) -> -- match but no link/image
                          processBs bracketedSpecs
                             st{ leftCursor = moveLeft (leftCursor st)
                               , rightCursor = fixSingleQuote $
                                     moveRight (rightCursor st) }
-                   Right ((spec, constructor, newpos), desttoks) ->
+                   (0, Right ((spec, constructor, newpos), desttoks)) ->
                      let left' = case bracketedPrefix spec of
                                       Just _  -> moveLeft left
                                       Nothing -> left
@@ -854,6 +862,16 @@ processBs bracketedSpecs st =
                                             (chunkPos opener)
                                             $ stackBottoms st
                                 }
+                  -- Bracket matched count /= 0
+                  --
+                  -- Links § 6.3 ¶ 2 • 2
+                  -- Brackets are allowed in the link text only if (a) they are
+                  -- backslash-escaped or (b) they appear as a matched pair of
+                  -- brackets, with an open bracket [, a sequence of zero or more
+                  -- inlines, and a close bracket ].
+                   _ ->
+                         processBs bracketedSpecs
+                            st{ leftCursor = moveLeft left }
 
 
        (_, Just (Chunk Delim{ delimType = ']' } _ _))

@@ -135,12 +135,26 @@ Footnote containing a list[^list]
 </section>
 ````````````````````````````````
 
-Footnote labels cannot be empty.
+Footnote labels cannot be empty, or composed only of whitespace.
 
 ```````````````````````````````` example
-Test [^] link
+Test [^] link [^ ]
 
 [^]: https://haskell.org
 .
-<p>Test <a href="https://haskell.org">^</a> link</p>
+<p>Test <a href="https://haskell.org">^</a> link <a href="https://haskell.org">^ </a></p>
+````````````````````````````````
+
+```````````````````````````````` example
+[^]: not a footnote
+
+[^ ]: not a footnote
+
+[^
+]: not a footnote
+.
+<p>[^]: not a footnote</p>
+<p>[^ ]: not a footnote</p>
+<p>[^
+]: not a footnote</p>
 ````````````````````````````````

@@ -940,7 +940,11 @@ listSpec = BlockSpec
           blockBlanks' <- case childrenData of
                              c:_ | listItemBlanksAtEnd c -> do
                                  curline <- sourceLine <$> getPosition
-                                 return $! curline - 1 : blockBlanks cdata
+                                 return $! case blockBlanks cdata of
+                                    lb:b | lb == curline - 1 ->
+                                        lb:b
+                                    b ->
+                                       curline - 1 : b
                              _ -> return $! blockBlanks cdata
           let ldata' = toDyn (ListData lt ls)
           -- need to transform paragraphs on tight lists

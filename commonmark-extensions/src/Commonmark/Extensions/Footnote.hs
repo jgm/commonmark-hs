@@ -101,9 +101,12 @@ footnoteBlockSpec = BlockSpec
 
 pFootnoteLabel :: Monad m => ParsecT [Tok] u m Text
 pFootnoteLabel = try $ do
-  lab <- pLinkLabel
+  lab <- untokenize
+      <$> try (between (symbol '[') (symbol ']')
+            (snd <$> withRaw (many
+              (pEscaped <|> noneOfToks [Symbol ']', Symbol '[', LineEnd]))))
   case T.uncons lab of
-        Just ('^', t') | T.any (\x -> x /= ' ' && x /= '\t' && x /= '\r' && x /= '\n') t'
+        Just ('^', t') | T.any (\x -> x /= ' ' && x /= '\t') t' && T.all (\x -> x /= '\n' && x /= '\r') t'
             -> return $! t'
         _ -> mzero
 

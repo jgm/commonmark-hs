@@ -158,3 +158,41 @@ Test [^] link [^ ]
 <p>[^
 ]: not a footnote</p>
 ````````````````````````````````
+
+Footnote labels cannot contain line breaks, even where link labels can.
+
+```````````````````````````````` example
+[^foo\
+bar]: not a footnote definition
+
+[baz\
+quux]: https://haskell.org
+
+[first
+second]: https://haskell.org
+
+[^third
+fourth]: not a footnote definition
+
+[baz\
+quux]
+[^foo\
+bar]
+[first
+second]
+[^third
+fourth]
+.
+<p>[^foo<br />
+bar]: not a footnote definition</p>
+<p>[^third
+fourth]: not a footnote definition</p>
+<p><a href="https://haskell.org">baz<br />
+quux</a>
+[^foo<br />
+bar]
+<a href="https://haskell.org">first
+second</a>
+[^third
+fourth]</p>
+````````````````````````````````

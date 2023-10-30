@@ -235,3 +235,20 @@ Issue #119
 <p>[<a href="https://haskell.org">[][]</a></p>
 <p><a href="https://haskell.org">[][][]</a></p>
 ````````````````````````````````
+
+Issue #122
+```````````````````````````````` example
+* x
+* -
+
+
+Test
+.
+<ul>
+<li>x</li>
+<li><ul>
+<li></li>
+</ul></li>
+</ul>
+<p>Test</p>
+````````````````````````````````

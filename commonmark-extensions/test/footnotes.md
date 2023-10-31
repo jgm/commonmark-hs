@@ -196,3 +196,59 @@ second</a>
 [^third
 fourth]</p>
 ````````````````````````````````
+
+Only the first line of a footnote's following paragraph needs indented.
+
+```````````````````````````````` example
+[^foo]:bar
+baz
+
+    quux
+arst
+    qwfp
+
+[^foo]
+.
+<p><sup class="footnote-ref"><a href="#fn-foo" id="fnref-foo">1</a></sup></p>
+<section class="footnotes">
+<div class="footnote" id="fn-foo">
+<div class="footnote-number">
+<a href="#fnref-foo">1</a>
+</div>
+<div class="footnote-contents">
+<p>bar
+baz</p>
+<p>quux
+arst
+qwfp</p>
+</div>
+</div>
+</section>
+````````````````````````````````
+
+Lazy continuations require the first line to have text in it,
+and to lazily continue a paragraph after the first, it will need to
+start with an indented line also.
+
+```````````````````````````````` example
+[^foo]:
+baz
+
+    quux
+
+[^foo]
+.
+<p>baz</p>
+<pre><code>quux
+</code></pre>
+<p><sup class="footnote-ref"><a href="#fn-foo" id="fnref-foo">1</a></sup></p>
+<section class="footnotes">
+<div class="footnote" id="fn-foo">
+<div class="footnote-number">
+<a href="#fnref-foo">1</a>
+</div>
+<div class="footnote-contents">
+</div>
+</div>
+</section>
+````````````````````````````````

@@ -66,25 +66,31 @@ footnoteBlockSpec = BlockSpec
              updateState $ \s -> s{ counters =
                                      M.insert "footnote" (toDyn (num + 1))
                                       (counters s) }
+             isBlankLine <- option False $ try (skipWhile (hasType Spaces) >> True <$ lookAhead lineEnd)
              addNodeToStack $
                 Node (defBlockData footnoteBlockSpec){
-                            blockData = toDyn (num, lab')
+                            blockData = toDyn (num, lab', isBlankLine)
                           , blockStartPos = [pos] } []
              return BlockStartMatch
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = \n -> try $ do
-             () <$ (gobbleSpaces 4)
-               <|> (skipWhile (hasType Spaces) >> () <$ lookAhead lineEnd)
-             pos <- getPosition
-             return $! (pos, n)
+     , blockContinue       = \(Node root children) -> try $ do
+         let (num, lab', needsIndented) = fromDyn (blockData root) (1 :: Int, mempty :: Text, False)
+         isBlankLine <- option False $ try (skipWhile (hasType Spaces) >> True <$ lookAhead lineEnd)
+         if needsIndented && not isBlankLine then
+            gobbleSpaces 4
+         else
+            gobbleUpToSpaces 4
+         pos <- getPosition
+         let footnoteData = toDyn (num, lab', isBlankLine)
+         return $! (pos, Node root{ blockData = footnoteData} children)
      , blockConstructor    = \node ->
           mconcat <$> mapM (\n ->
               blockConstructor (blockSpec (rootLabel n)) n)
            (subForest (reverseSubforests node))
      , blockFinalize       = \(Node root children) parent -> do
-         let (num, lab') = fromDyn (blockData root) (1, mempty)
+         let (num, lab', _indented) = fromDyn (blockData root) (1, mempty, False)
          st <- getState
          let mkNoteContents refmap =
                runParserT

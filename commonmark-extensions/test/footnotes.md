@@ -196,3 +196,25 @@ second</a>
 [^third
 fourth]</p>
 ````````````````````````````````
+
+Paragraphs in footnotes can be lazily wrapped (#126).
+
+```````````````````````````````` example
+[^foo]:bar
+baz
+
+[^foo]
+.
+<p><sup class="footnote-ref"><a href="#fn-foo" id="fnref-foo">1</a></sup></p>
+<section class="footnotes">
+<div class="footnote" id="fn-foo">
+<div class="footnote-number">
+<a href="#fnref-foo">1</a>
+</div>
+<div class="footnote-contents">
+<p>bar
+baz</p>
+</div>
+</div>
+</section>
+````````````````````````````````

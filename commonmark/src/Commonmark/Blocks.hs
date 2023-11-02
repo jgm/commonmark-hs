@@ -135,6 +135,8 @@ processLine specs = do
           _   -> False }
 
   -- close unmatched blocks
+  -- but first save state so we can revert if we have a lazy line
+  revertState <- getState
   if null unmatched
     then updateState $ \st -> st{ nodeStack = matched }
          -- this update is needed or we lose startpos information
@@ -153,8 +155,9 @@ processLine specs = do
     (do getState >>= guard . maybeLazy
         -- lazy line
         sp <- getPosition
+        updateState $ const revertState
         updateState $ \st -> st{ nodeStack =
-             map (addStartPos sp) (unmatched ++ matched) })
+             map (addStartPos sp) (nodeStack st) })
       <|>
     void (try (blockStart paraSpec))
       <|>

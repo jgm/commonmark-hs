@@ -972,7 +972,7 @@ pLinkTitle = inbetween '"' '"' <|> inbetween '\'' '\'' <|> inbetween '(' ')'
 inbetween :: Monad m => Char -> Char -> ParsecT [Tok] s m [Tok]
 inbetween op cl =
   try $ between (symbol op) (symbol cl)
-     (many (pEscaped <|> noneOfToks [Symbol op, Symbol cl]))
+     (many (pEscapedSymbol <|> noneOfToks [Symbol op, Symbol cl]))
 
 pLinkLabel :: Monad m => ParsecT [Tok] s m Text
 pLinkLabel = try $ do

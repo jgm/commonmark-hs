@@ -252,3 +252,21 @@ Test
 </ul>
 <p>Test</p>
 ````````````````````````````````
+
+Issue #130
+```````````````````````````````` example
+[my-link]: https://example.com "\
+"
+[my-link]
+.
+<p><a href="https://example.com" title="\
+">my-link</a></p>
+````````````````````````````````
+
+```````````````````````````````` example
+[my-link](https://example.com "\
+")
+.
+<p><a href="https://example.com" title="\
+">my-link</a></p>
+````````````````````````````````

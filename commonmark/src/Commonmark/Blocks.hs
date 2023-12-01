@@ -70,6 +70,7 @@ import qualified Data.Text                 as T
 import qualified Data.Text.Read            as TR
 import           Data.Tree
 import           Text.Parsec
+import Data.List (sort)
 
 mkBlockParser
   :: (Monad m, IsBlock il bl)
@@ -865,7 +866,7 @@ listItemSpec parseListMarker = BlockSpec
           let lidata = fromDyn (blockData cdata)
                                  (ListItemData (BulletList '*')
                                    0 False False)
-          let allblanks = concat $ blockBlanks cdata :
+          let allblanks = reverse . sort . concat $ blockBlanks cdata :
                                   map (blockBlanks . rootLabel)
                                   (filter ((== "List") . blockType .
                                    blockSpec . rootLabel) children)

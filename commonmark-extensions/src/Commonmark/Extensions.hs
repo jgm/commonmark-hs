@@ -39,6 +39,7 @@ module Commonmark.Extensions
     , module Commonmark.Extensions.TaskList
     , module Commonmark.Extensions.ImplicitHeadingReferences
     , module Commonmark.Extensions.Wikilinks
+    , module Commonmark.Extensions.Alerts
     , module Commonmark.Extensions.RebaseRelativePaths
     , gfmExtensions
     ) where
@@ -60,6 +61,7 @@ import           Commonmark.Extensions.FancyList
 import           Commonmark.Extensions.TaskList
 import           Commonmark.Extensions.ImplicitHeadingReferences
 import           Commonmark.Extensions.Wikilinks
+import           Commonmark.Extensions.Alerts
 import           Commonmark.Extensions.RebaseRelativePaths
 import           Commonmark
 import           Data.Typeable
@@ -68,9 +70,9 @@ import           Data.Typeable
 gfmExtensions :: (Monad m, Typeable m, Typeable il, Typeable bl,
                   IsBlock il bl, IsInline il, HasFootnote il bl,
                   HasEmoji il, HasStrikethrough il, HasPipeTable il bl,
-                  HasTaskList il bl, ToPlainText il)
+                  HasTaskList il bl, ToPlainText il, HasAlerts il bl)
               => SyntaxSpec m il bl
 gfmExtensions =
   emojiSpec <> strikethroughSpec <> pipeTableSpec <> autolinkSpec <>
-    autoIdentifiersSpec <> taskListSpec <> footnoteSpec
+    autoIdentifiersSpec <> taskListSpec <> footnoteSpec <> alertSpec
 

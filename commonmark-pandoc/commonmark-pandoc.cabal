@@ -30,6 +30,7 @@ library
     , commonmark >= 0.2 && < 0.3
     , commonmark-extensions >= 0.2.1 && < 0.3
     , pandoc-types >= 1.21 && < 1.24
+    , network-uri
     , text
   if impl(ghc >= 8.10)
     ghc-options:      -Wunused-packages

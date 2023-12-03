@@ -49,6 +49,7 @@ main = do
                  autoIdentifiersSpec <> attributesSpec <> implicitHeadingReferencesSpec)
              , ("test/wikilinks_title_before_pipe.md", wikilinksSpec TitleBeforePipe)
              , ("test/wikilinks_title_after_pipe.md", wikilinksSpec TitleAfterPipe)
+             , ("test/alerts.md", alertSpec)
              ]
   defaultMain $ testGroup "Tests" (tests ++ [rebaseRelativePathTests])
 

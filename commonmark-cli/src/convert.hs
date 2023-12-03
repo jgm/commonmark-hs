@@ -137,6 +137,7 @@ extensions :: (Monad m, Typeable m,
                HasDefinitionList il bl,
                HasDiv bl,
                HasTaskList il bl,
+               HasAlerts il bl,
                HasFootnote il bl)
            => [(String, SyntaxSpec m il bl)]
 extensions =
@@ -163,6 +164,7 @@ extensions =
   ,("wikilinks_title_before_pipe", wikilinksSpec TitleBeforePipe)
   ,("wikilinks_title_after_pipe", wikilinksSpec TitleAfterPipe)
   ,("rebase_relative_paths", rebaseRelativePathsSpec)
+  ,("alerts", alertSpec)
   ,("gfm", gfmExtensions)
   ]
 
@@ -186,7 +188,9 @@ specFromExtensionNames ::
   HasSubscript il,
   HasDefinitionList il bl,
   HasDiv bl,
+  HasAlerts il bl,
   HasTaskList il bl,
+  HasAlerts il bl,
   HasFootnote il bl)
   => [String] -> IO (SyntaxSpec m il bl)
 specFromExtensionNames extnames = do

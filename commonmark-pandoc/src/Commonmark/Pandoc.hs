@@ -148,8 +148,8 @@ instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
 instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
   => HasAlerts (Cm a B.Inlines) (Cm a B.Blocks) where
   alert alertType bs =
-    Cm $ B.divWith ("",["alert", "alert-" <> alertClass alertType],[])
-       $ B.divWith ("",["alert-title"],[])
+    Cm $ B.divWith ("",[alertClass alertType],[])
+       $ B.divWith ("",["title"],[])
            (B.para (B.str (alertName alertType)))
          <> coerce bs
 

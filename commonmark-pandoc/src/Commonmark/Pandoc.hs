@@ -15,7 +15,6 @@ where
 import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import qualified Data.Text.Read as TR
-import Network.URI (escapeURIString, isUnescapedInURI)
 import Text.Pandoc.Definition
 import Text.Pandoc.Walk
 import qualified Text.Pandoc.Builder as B
@@ -151,19 +150,8 @@ instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
   alert alertType bs =
     Cm $ B.divWith ("",["alert", "alert-" <> alertClass alertType],[])
        $ B.divWith ("",["alert-title"],[])
-           (B.para (B.image ("data:image/svg+xml;utf8," <>
-                        (T.pack . escapeURIString isUnescapedInURI . T.unpack $
-                            insertXmlns $
-                            T.filter (/='\n') $ alertSvgText alertType))
-                            "" (B.text $ alertName alertType <> " icon")
-                    <> B.space <> B.str (alertName alertType)))
+           (B.para (B.str (alertName alertType)))
          <> coerce bs
-
-insertXmlns :: T.Text -> T.Text
-insertXmlns t =
-  case T.stripPrefix "<svg " t of
-    Just rest -> "<svg xmlns=\"http://www.w3.org/2000/svg\" " <> rest
-    Nothing -> t
 
 instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
   => HasTaskList (Cm a B.Inlines) (Cm a B.Blocks) where

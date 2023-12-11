@@ -1,5 +1,16 @@
 # Changelog for commonmark-extensions
 
+## 0.2.5
+
+  * Add support for alerts extension, supporting GitHub-style alerts (#132).
+    <https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts>
+    New module Commonmark.Extensions.Alerts [API change].
+
+  * Do not accept footnote labels with line breaks (Michael Howell).
+
+  * Parse `[^ ]` and `[^]` as links (Michael Howell). This is consistent with
+    most other CommonMark parsers, even when they have support for footnotes turned on.
+
 ## 0.2.4
 
   * Make `pipe_tables` extension treat backslash escapes like GH does (#112,

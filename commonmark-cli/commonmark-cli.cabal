@@ -1,5 +1,5 @@
 name:           commonmark-cli
-version:        0.2
+version:        0.2.1
 synopsis:       Command-line commonmark converter and highlighter.
 description:    This package provides a command-line tool, `commonmark`,
                 for converting and syntax-highlighting commonmark documents.
@@ -31,9 +31,9 @@ executable commonmark
     ghc-options:      -Wunused-packages
   ghc-options: -threaded -rtsopts
   build-depends: base >= 4.9 && <5
-               , commonmark >= 0.2 && < 0.3
-               , commonmark-extensions >= 0.2.1 && < 0.3
-               , commonmark-pandoc >= 0.2.1 && < 0.3
+               , commonmark >= 0.2.4.1 && < 0.3
+               , commonmark-extensions >= 0.2.5 && < 0.3
+               , commonmark-pandoc >= 0.2.2 && < 0.3
                , pandoc-types
                , aeson
                , bytestring

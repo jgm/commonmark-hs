@@ -1,5 +1,9 @@
 # Changelog for commonmark-pandoc
 
+## 0.2.2
+
+- Add support for alerts extension (#132).
+
 ## 0.2.1.3
 
 - Allow pandoc-types 1.23.

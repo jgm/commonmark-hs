@@ -1,5 +1,25 @@
 # Changelog for commonmark
 
+## 0.2.4.1
+
+  * Commonmark.Html: Add `aria-hidden`, `d`, and `viewBox` to allowed attributes list.
+
+  * Correctly merge list blanks with non-list blanks (#133, Michael Howell).
+
+  * Do not look for backslashed hard breaks in link titles (#130, Michael Howell).
+
+  * Work around ghc bug with `-K` RTS options, to set the stack space properly
+    for tests (#129). See https://gitlab.haskell.org/ghc/ghc/-/issues/10445.
+
+  * Revert block state completely if lazy line (#126). This fixes an issue with
+    lazily-wrapped footnotes.
+
+  * Avoid adding trailing newline to list block if it's already there
+    (Michael Howell). This fixes tight/loose classification in a few
+    cases.
+
+  * Fix incorrectly parsing links with nested `[]` (Michael Howell).
+
 ## 0.2.4
 
   * Do not parse hard line breaks in fenced codeblock info (#116,

@@ -1,5 +1,9 @@
 # Changelog for commonmark-extensions
 
+## 0.2.5.1
+
+  * Add `test/alerts.md` to extra-source-files in cabal file.
+
 ## 0.2.5
 
   * Add support for alerts extension, supporting GitHub-style alerts (#132).

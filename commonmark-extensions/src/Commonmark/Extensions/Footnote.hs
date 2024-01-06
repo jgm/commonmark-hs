@@ -1,9 +1,11 @@
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
 module Commonmark.Extensions.Footnote
   ( footnoteSpec
   , HasFootnote(..)
@@ -18,6 +20,7 @@ import Commonmark.Inlines
 import Commonmark.SourceMap
 import Commonmark.TokParsers
 import Commonmark.ReferenceMap
+import Commonmark.Nodes hiding (Node (..))
 import Control.Monad.Trans.Class (lift)
 import Control.Monad (mzero)
 import Data.List
@@ -173,3 +176,27 @@ instance (HasFootnote il bl, Semigroup bl, Semigroup il)
   footnote num lab' x = (footnote num lab' <$> x) <* addName "footnote"
   footnoteList items = footnoteList <$> sequence items
   footnoteRef x y z = (footnoteRef x y <$> z) <* addName "footnoteRef"
+
+data NodeTypeFootnote a
+  = NodeFootnote Int Text (Nodes a)
+  | NodeFootnoteList [Nodes a]
+  | NodeFootnoteRef Text Text (Nodes a)
+  deriving (Show)
+
+instance Typeable a => NodeType NodeTypeFootnote a where
+  type FromNodeType NodeTypeFootnote a = HasFootnote a a
+  fromNodeType = \case
+    NodeFootnote num lab x -> footnote num lab (fromNodes x)
+    NodeFootnoteList items -> footnoteList (map fromNodes items)
+    NodeFootnoteRef x lab nodes -> footnoteRef x lab (fromNodes nodes)
+
+instance ToPlainText (NodeTypeFootnote a) where
+  toPlainText = \case
+    NodeFootnote num _ x -> T.pack (show num) <> ": " <> toPlainText x
+    NodeFootnoteList items -> T.unlines $ map toPlainText items
+    NodeFootnoteRef x _ _ -> "[" <> x <> "]"
+
+instance (Typeable a, HasFootnote a a) => HasFootnote (Nodes a) (Nodes a) where
+  footnote num lab x = singleNode $ NodeFootnote num lab x
+  footnoteList items = singleNode $ NodeFootnoteList items
+  footnoteRef x lab nodes = singleNode $ NodeFootnoteRef x lab nodes

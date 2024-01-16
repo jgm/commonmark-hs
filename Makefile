@@ -13,7 +13,8 @@ PROFTARGET?=b5.md
 
 all:
 	cabal test --ghc-options="$(GHC_OPTS)" --test-option=--hide-successes all
-	cabal build --ghc-options="$(GHC_OPTS)" -fexecutable commonmark-cli
+	cabal build --ghc-options="$(GHC_OPTS)" -fexecutable all
+	cabal list-bin commonmark-cli
 
 prof:
 	cabal build --enable-profiling --ghc-options="${GHC_OPTS}" commonmark-cli

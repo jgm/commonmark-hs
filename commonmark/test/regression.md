@@ -336,3 +336,35 @@ Test <span> x <span>
 <p>Test <span> <span></p>
 <p>Test <span> x <span></p>
 ````````````````````````````````
+
+
+Issue #136
+```````````````````````````````` example
+[link](`) `x`
+.
+<p><a href="%60">link</a> <code>x</code></p>
+````````````````````````````````
+
+```````````````````````````````` example
+[link](`)[link](`) `x`
+.
+<p><a href="%60">link</a><a href="%60">link</a> <code>x</code></p>
+````````````````````````````````
+
+```````````````````````````````` example
+[link](<foo bar=">)">) `x`
+.
+<p><a href="foo%20bar=%22">link</a>&quot;&gt;) <code>x</code></p>
+````````````````````````````````
+
+```````````````````````````````` example
+[![image](<foo bar=">)">)![image](<foo bar=">)">)](v) `x`
+.
+<p><a href="v"><img src="foo%20bar=%22" alt="image" />&quot;&gt;)<img src="foo%20bar=%22" alt="image" />&quot;&gt;)</a> <code>x</code></p>
+````````````````````````````````
+
+```````````````````````````````` example
+[x](`) <a href="`">
+.
+<p><a href="%60">x</a> <a href="`"></p>
+````````````````````````````````

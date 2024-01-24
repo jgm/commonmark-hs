@@ -232,7 +232,7 @@ instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
      => HasFootnote (Cm a B.Inlines) (Cm a B.Blocks) where
   footnote _num _lab _x = mempty
   footnoteList _xs = mempty
-  footnoteRef _num _lab contents = B.note <$> contents
+  footnoteRef _num _lab contents = B.note . walk deNote <$> contents
 
 illegalCodePoint :: T.Text -> Bool
 illegalCodePoint t =

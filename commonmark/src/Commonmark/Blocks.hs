@@ -61,7 +61,7 @@ import           Control.Monad             (foldM, guard, mzero, void, unless,
                                             when)
 import           Control.Monad.Trans.Class (lift)
 import           Data.Foldable             (foldrM)
-import           Unicode.Char              (isAsciiUpper, isDigit)
+import           Unicode.Char              (isAsciiUpper, isAsciiLower, isDigit)
 import           Unicode.Char.General.Compat (isSpace)
 import           Data.Dynamic
 import           Data.Text                 (Text)
@@ -1165,7 +1165,7 @@ startCond 3 = void $ symbol '?'
 startCond 4 = void $ try $ do
   symbol '!'
   satisfyWord (\t -> case T.uncons t of
-                          Just (c, _) -> isAsciiUpper c
+                          Just (c, _) -> isAsciiLetter c
                           _           -> False)
 startCond 5 = void $ try $ do
   symbol '!'
@@ -1230,6 +1230,10 @@ removeConsecutive :: [Int] -> [Int]
 removeConsecutive (x:y:zs)
   | x == y + 1 = removeConsecutive (y:zs)
 removeConsecutive xs = xs
+
+isAsciiLetter :: Char -> Bool
+isAsciiLetter c =
+  isAsciiUpper c || isAsciiLower c
 
 -------------------------------------------------------------------------
 

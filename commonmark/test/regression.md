@@ -307,3 +307,32 @@ Issue #133
 <p>zz</p></li>
 </ul>
 ````````````````````````````````
+
+
+Issue #139
+```````````````````````````````` example
+Test <?xml?> <?xml?>
+
+Test <?xml?> x <?xml?>
+
+Test <![CDATA[ x ]]> <![CDATA[ x ]]>
+
+Test <![CDATA[ x ]]> x <![CDATA[ x ]]>
+
+Test <!DOCTYPE html> <!DOCTYPE html>
+
+Test <!DOCTYPE html> x <!DOCTYPE html>
+
+Test <span> <span>
+
+Test <span> x <span>
+.
+<p>Test <?xml?> <?xml?></p>
+<p>Test <?xml?> x <?xml?></p>
+<p>Test <![CDATA[ x ]]> <![CDATA[ x ]]></p>
+<p>Test <![CDATA[ x ]]> x <![CDATA[ x ]]></p>
+<p>Test <!DOCTYPE html> <!DOCTYPE html></p>
+<p>Test <!DOCTYPE html> x <!DOCTYPE html></p>
+<p>Test <span> <span></p>
+<p>Test <span> x <span></p>
+````````````````````````````````

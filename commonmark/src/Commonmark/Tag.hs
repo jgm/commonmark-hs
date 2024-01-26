@@ -170,9 +170,11 @@ htmlProcessingInstruction = try $ do
   contents <- many $ satisfyTok (not . hasType (Symbol '?'))
                  <|> try (questionmark <*
                            notFollowedBy (symbol '>'))
+  -- note: this is non-backtracking state
   lift $ modify $ \st -> st{ scannedForProcessingInstruction = True }
   cl <- sequence [ questionmark
                  , symbol '>' ]
+  lift $ modify $ \st -> st{ scannedForProcessingInstruction = False }
   return $ op : contents ++ cl
 
 -- A declaration consists of the string <!, a name consisting of one or
@@ -188,8 +190,10 @@ htmlDeclaration = try $ do
   name <- satisfyWord isDeclName
   ws <- whitespace
   contents <- many (satisfyTok (not . hasType (Symbol '>')))
+  -- note: this is non-backtracking state
   lift $ modify $ \st -> st{ scannedForDeclaration = True }
   cl <- symbol '>'
+  lift $ modify $ \st -> st{ scannedForDeclaration = False }
   return $ op : name : ws ++ contents ++ [cl]
 
 -- A CDATA section consists of the string <![CDATA[, a string of characters

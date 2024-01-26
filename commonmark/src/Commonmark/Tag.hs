@@ -20,15 +20,15 @@ import           Text.Parsec       hiding (State)
 
 data Enders =
   Enders
-  { scannedForCDATA                 :: !Bool
-  , scannedForProcessingInstruction :: !Bool
-  , scannedForDeclaration           :: !Bool
+  { scannedForCDATA                 :: !(Maybe SourcePos)
+  , scannedForProcessingInstruction :: !(Maybe SourcePos)
+  , scannedForDeclaration           :: !(Maybe SourcePos)
   } deriving Show
 
 defaultEnders :: Enders
-defaultEnders = Enders { scannedForCDATA = False
-                       , scannedForProcessingInstruction = False
-                       , scannedForDeclaration = False }
+defaultEnders = Enders { scannedForCDATA = Nothing
+                       , scannedForProcessingInstruction = Nothing
+                       , scannedForDeclaration = Nothing }
 
 (.&&.) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
 (.&&.) = liftM2 (&&)
@@ -165,12 +165,14 @@ htmlProcessingInstruction = try $ do
   -- assume < has already been parsed
   let questionmark = symbol '?'
   op <- questionmark
+  pos <- getPosition
   alreadyScanned <- lift $ gets scannedForProcessingInstruction
-  guard $ not alreadyScanned
+  guard $ maybe True (< pos) alreadyScanned
   contents <- many $ satisfyTok (not . hasType (Symbol '?'))
                  <|> try (questionmark <*
                            notFollowedBy (symbol '>'))
-  lift $ modify $ \st -> st{ scannedForProcessingInstruction = True }
+  pos' <- getPosition
+  lift $ modify $ \st -> st{ scannedForProcessingInstruction = Just pos' }
   cl <- sequence [ questionmark
                  , symbol '>' ]
   return $ op : contents ++ cl
@@ -182,13 +184,15 @@ htmlDeclaration :: Monad m => ParsecT [Tok] s (StateT Enders m) [Tok]
 htmlDeclaration = try $ do
   -- assume < has already been parsed
   op <- symbol '!'
+  pos <- getPosition
   alreadyScanned <- lift $ gets scannedForDeclaration
-  guard $ not alreadyScanned
+  guard $ maybe True (< pos) alreadyScanned
   let isDeclName t = not (T.null t) && T.all (isAscii .&&. isAlpha) t
   name <- satisfyWord isDeclName
   ws <- whitespace
   contents <- many (satisfyTok (not . hasType (Symbol '>')))
-  lift $ modify $ \st -> st{ scannedForDeclaration = True }
+  pos' <- getPosition
+  lift $ modify $ \st -> st{ scannedForDeclaration = Just pos' }
   cl <- symbol '>'
   return $ op : name : ws ++ contents ++ [cl]
 
@@ -201,15 +205,17 @@ htmlCDATASection = try $ do
                  , symbol '['
                  , satisfyWord (== "CDATA")
                  , symbol '[' ]
+  pos <- getPosition
   alreadyScanned <- lift $ gets scannedForCDATA
-  guard $ not alreadyScanned
+  guard $ maybe True (< pos) alreadyScanned
   let ender = try $ sequence [ symbol ']'
                              , symbol ']'
                              , symbol '>' ]
   contents <- many $ do
                 notFollowedBy ender
                 anyTok
-  lift $ modify $ \st -> st{ scannedForCDATA = True }
+  pos' <- getPosition
+  lift $ modify $ \st -> st{ scannedForCDATA = Just pos' }
   cl <- ender
   return $ op ++ contents ++ cl
 

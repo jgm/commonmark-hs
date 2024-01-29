@@ -1181,7 +1181,7 @@ startCond 6 = void $ try $ do
     "frameset", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header",
     "hr", "html", "iframe", "legend", "li", "link", "main", "menu",
     "menuitem", "nav", "noframes", "ol", "optgroup", "option",
-    "p", "param", "section", "source", "summary", "table", "tbody",
+    "p", "param", "search", "section", "summary", "table", "tbody",
     "td", "tfoot", "th", "thead", "title", "tr", "track", "ul"])
   spaceTok
     <|> lookAhead lineEnd

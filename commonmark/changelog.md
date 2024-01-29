@@ -1,5 +1,16 @@
 # Changelog for commonmark
 
+## 0.2.5
+
+  * Fix HTML comment parser to conform to 0.31.2 spec.
+
+  * Update spec.txt tests to commonmark-spec 0.31.2.
+
+  * Match HTML declaration blocks with lowercase letters
+    (Michael Howell).
+
+  * Specifically track the position where enders end (Michael Howell).
+
 ## 0.2.4.1
 
   * Commonmark.Html: Add `aria-hidden`, `d`, and `viewBox` to allowed attributes list.

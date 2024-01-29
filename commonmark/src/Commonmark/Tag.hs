@@ -138,8 +138,8 @@ htmlClosingTag = try $ do
   cl <- symbol '>'
   return $ op : n ++ sps ++ [cl]
 
--- An HTML comment consists of <!-- + text + -->, where text does not
--- start with > or ->, does not end with -, and does not contain --.
+-- An HTML comment consists of `<!-->`, `<!--->`, or  `<!--`, a string of
+-- characters not including the string `-->`, and `-->`.
 -- (See the HTML5 spec.)
 htmlComment :: Monad m => ParsecT [Tok] s m [Tok]
 htmlComment = try $ do
@@ -147,15 +147,16 @@ htmlComment = try $ do
   op <- sequence [ symbol '!'
                  , symbol '-'
                  , symbol '-' ]
-  notFollowedBy $ do
-    optional $ symbol '-'
-    symbol '>'
-  contents <- many $ satisfyTok (not . hasType (Symbol '-'))
-                 <|> try (symbol '-' <* notFollowedBy (symbol '-'))
-  cl <- sequence [ symbol '-'
-                 , symbol '-'
-                 , symbol '>' ]
-  return $ op ++ contents ++ cl
+  let getContent =
+            try (sequence [ symbol '-', symbol '-', symbol '>' ])
+        <|> try ((++) <$> many1 (satisfyTok (not . hasType (Symbol '-')))
+                      <*> getContent)
+        <|> try ((:) <$> symbol '-' <*> getContent)
+  (op ++) <$>
+    (   ((:[]) <$> symbol '>')
+    <|> try (sequence [ symbol '-', symbol '>' ])
+    <|> getContent
+    )
 
 -- A processing instruction consists of the string <?, a string of
 -- characters not including the string ?>, and the string ?>.

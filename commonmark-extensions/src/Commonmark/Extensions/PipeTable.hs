@@ -34,6 +34,9 @@ data ColAlignment = LeftAlignedCol
 
 data PipeTableData = PipeTableData
      { pipeTableAlignments :: [ColAlignment]
+     , pipeTableColCount   :: !Int
+     , pipeTableRowCount   :: !Int
+     , pipeTableCellCount  :: !Int
      , pipeTableHeaders    :: [[Tok]]
      , pipeTableRows       :: [[[Tok]]] -- in reverse order
      } deriving (Show, Eq, Data, Typeable)
@@ -136,6 +139,14 @@ pipeTableSpec = mempty
   { syntaxBlockSpecs = [pipeTableBlockSpec]
   }
 
+getAutoCompletedCellCount :: PipeTableData -> Int
+getAutoCompletedCellCount tabledata =
+  (numrows * numcols) - numcells
+  where
+    numrows = pipeTableRowCount tabledata
+    numcols = pipeTableColCount tabledata
+    numcells = pipeTableCellCount tabledata
+
 -- This parser is structured as a system that parses the *second* line first,
 -- then parses the first line. That is, if it detects a delimiter row as the
 -- second line of a paragraph, it converts the paragraph into a table. This seems
@@ -173,6 +184,9 @@ pipeTableBlockSpec = BlockSpec
                          updateState $ \st' -> st'{ nodeStack = rest }
                          let tabledata = PipeTableData
                                { pipeTableAlignments = aligns
+                               , pipeTableColCount   = length cells
+                               , pipeTableRowCount   = 0
+                               , pipeTableCellCount  = 0
                                , pipeTableHeaders    = cells
                                , pipeTableRows       = []
                                }
@@ -194,23 +208,45 @@ pipeTableBlockSpec = BlockSpec
          let tabledata = fromDyn
                 (blockData ndata)
                 PipeTableData{ pipeTableAlignments = []
+                             , pipeTableColCount = 0
+                             , pipeTableRowCount = 0
+                             , pipeTableCellCount = 0
                              , pipeTableHeaders = []
                              , pipeTableRows = [] }
          pos <- getPosition
          cells <- pCells
-         let tabledata' = tabledata{ pipeTableRows =
-                             cells : pipeTableRows tabledata }
+         let cells' = take (pipeTableColCount tabledata) cells
+         let tabledata' =
+                tabledata{ pipeTableRows = cells' : pipeTableRows tabledata
+                         , pipeTableRowCount = 1 + pipeTableRowCount tabledata
+                         , pipeTableCellCount = length cells' + pipeTableCellCount tabledata
+                         }
+         -- Protect against quadratic output size explosion.
+         --
+         -- Because the table extension fills in missing table cells,
+         -- you can, theoretically, force the output to grows as the
+         -- square of the input by adding one column and one row.
+         -- This is a side-effect of the extension as specified in GFM,
+         -- and follows from the geometric definition of "squaring."
+         --
+         -- To prevent this, we track the number of Real Cells,
+         -- and if the number of autocompleted cells exceeds 200,000,
+         -- stop parsing.
+         guard $ getAutoCompletedCellCount tabledata <= 200000
          return $! (pos, Node ndata{ blockData =
                                toDyn tabledata' } children)
      , blockConstructor    = \(Node ndata _) -> do
          let tabledata = fromDyn
                 (blockData ndata)
                 PipeTableData{ pipeTableAlignments = []
+                             , pipeTableColCount = 0
+                             , pipeTableRowCount = 0
+                             , pipeTableCellCount = 0
                              , pipeTableHeaders = []
                              , pipeTableRows = [] }
          let aligns = pipeTableAlignments tabledata
          headers <- mapM runInlineParser (pipeTableHeaders tabledata)
-         let numcols = length headers
+         let numcols = pipeTableColCount tabledata
          rows <- mapM (mapM runInlineParser . take numcols . (++ (repeat [])))
                     (reverse $ pipeTableRows tabledata)
          return $! (pipeTable aligns headers rows)

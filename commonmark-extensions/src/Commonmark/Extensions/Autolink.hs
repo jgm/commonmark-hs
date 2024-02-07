@@ -32,7 +32,7 @@ wwwAutolink :: Monad m => InlineParser m Text
 wwwAutolink = try $ do
   lookAhead $ satisfyWord (== "www")
   validDomain
-  linkSuffix
+  linkPath 0
   return "http://"
 
 validDomain :: Monad m => InlineParser m ()
@@ -47,29 +47,47 @@ validDomain = do
   domainPart
   skipMany1 $ try (symbol '.' >> domainPart)
 
-linkSuffix :: Monad m => InlineParser m ()
-linkSuffix = try $ do
-  toks <- getInput
-  let possibleSuffixTok (Tok (Symbol c) _ _) =
-        c `notElem` ['<','>','{','}','|','\\','^','[',']','`']
-      possibleSuffixTok (Tok WordChars _ _) = True
-      possibleSuffixTok _ = False
-  let isDroppable (Tok (Symbol c) _ _) =
-         c `elem` ['?','!','.',',',':','*','_','~']
-      isDroppable _ = False
-  let numToks = case dropWhile isDroppable $
-                    reverse (takeWhile possibleSuffixTok toks) of
-                     (Tok (Symbol ')') _ _ : xs)
-                       | length [t | t@(Tok (Symbol '(') _ _) <- xs] <=
-                         length [t | t@(Tok (Symbol ')') _ _) <- xs]
-                       -> length xs
-                     (Tok (Symbol ';') _ _
-                        : Tok WordChars _ _
-                        : Tok (Symbol '&') _ _
-                        : xs) -> length xs
-                     xs -> length xs
-  count numToks anyTok
-  return ()
+linkPath :: Monad m => Int -> InlineParser m ()
+linkPath openParens =
+      try (symbol '&' *>
+           notFollowedBy
+             (try (satisfyWord (const True) *> symbol ';' *> linkEnd)) *>
+           linkPath openParens)
+  <|> (pathPunctuation *> linkPath openParens)
+  <|> (symbol '(' *> linkPath (openParens + 1))
+  <|> (guard (openParens > 0) *> symbol ')' *> linkPath (openParens - 1))
+  -- the following clause is needed to implement the GFM spec, which allows
+  -- unbalanced ) except at link end. However, leaving this in causes
+  -- problematic interaction with explicit link syntax in certain odd cases (see #147).
+  -- <|> (notFollowedBy linkEnd *> symbol ')' *> linkPath (openParens - 1))
+  <|> (satisfyTok (\t -> case tokType t of
+                            LineEnd -> False
+                            Spaces -> False
+                            Symbol c -> not (isTrailingPunctuation c || c == '&' || c == ')')
+                            _ -> True) *> linkPath openParens)
+  <|> pure ()
+
+linkEnd :: Monad m => InlineParser m ()
+linkEnd = try $ skipMany trailingPunctuation *> (void whitespace <|> eof)
+
+trailingPunctuation :: Monad m => InlineParser m ()
+trailingPunctuation = void $
+  satisfyTok (\t -> case tokType t of
+                           Symbol c -> isTrailingPunctuation c
+                           _ -> False)
+
+isTrailingPunctuation :: Char -> Bool
+isTrailingPunctuation =
+  (`elem` ['!', '"', '\'', ')', '*', ',', '.', ':', ';', '?', '_', '~', '<'])
+
+pathPunctuation :: Monad m => InlineParser m ()
+pathPunctuation = try $ do
+  satisfyTok (\t -> case tokType t of
+                       Symbol c -> isTrailingPunctuation c && c /= ')' && c /= '<'
+                       _        -> False)
+  void $ lookAhead (satisfyTok (\t -> case tokType t of
+                                        WordChars -> True
+                                        _ -> False))
 
 urlAutolink :: Monad m => InlineParser m Text
 urlAutolink = try $ do
@@ -78,7 +96,7 @@ urlAutolink = try $ do
   symbol '/'
   symbol '/'
   validDomain
-  linkSuffix
+  linkPath 0
   return ""
 
 emailAutolink :: Monad m => InlineParser m Text

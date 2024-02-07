@@ -49,10 +49,37 @@ Visit www.commonmark.org/~jm/foo/bar.pdf.
 <p>Visit <a href="http://www.commonmark.org/~jm/foo/bar.pdf">www.commonmark.org/~jm/foo/bar.pdf</a>.</p>
 ````````````````````````````````
 
-When an autolink ends in `)`, we scan the entire autolink for the total number
-of parentheses.  If there is a greater number of closing parentheses than
-opening ones, we don't consider the last character part of the autolink, in
-order to facilitate including an autolink inside a parenthesis:
+((commonmark-hs: We depart from the GFM spec here. Alternative spec and tests
+can be found after these commented-out ones. For motivation for this departure from
+the GFM spec, see #147.))
+
+> When an autolink ends in `)`, we scan the entire autolink for the total number
+> of parentheses.  If there is a greater number of closing parentheses than
+> opening ones, we don't consider the last character part of the autolink, in
+> order to facilitate including an autolink inside a parenthesis:
+>
+> ```````````````````````````````` example
+> www.google.com/search?q=Markup+(business)
+>
+> (www.google.com/search?q=Markup+(business))
+> .
+> <p><a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a></p>
+> <p>(<a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a>)</p>
+> ````````````````````````````````
+>
+> This check is only done when the link ends in a closing parentheses `)`, so if
+> the only parentheses are in the interior of the autolink, no special rules are
+> applied:
+>
+> ```````````````````````````````` example
+> www.google.com/search?q=(business))+ok
+> .
+> <p><a href="http://www.google.com/search?q=(business))+ok">www.google.com/search?q=(business))+ok</a></p>
+> ````````````````````````````````
+
+Autolinks can contain balanced pairs of parentheses, or unbalanced `)`.
+We don't allow unbalanced `)`, in order to facilitate including
+an autolink inside a parenthesis:
 
 ```````````````````````````````` example
 www.google.com/search?q=Markup+(business)
@@ -63,15 +90,14 @@ www.google.com/search?q=Markup+(business)
 <p>(<a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a>)</p>
 ````````````````````````````````
 
-This check is only done when the link ends in a closing parentheses `)`, so if
-the only parentheses are in the interior of the autolink, no special rules are
-applied:
-
+Issue #147:
 ```````````````````````````````` example
-www.google.com/search?q=(business))+ok
+[link](https://baidu.com)aaa<span></span>bbb
 .
-<p><a href="http://www.google.com/search?q=(business))+ok">www.google.com/search?q=(business))+ok</a></p>
+<p><a href="https://baidu.com">link</a>aaa<span></span>bbb</p>
 ````````````````````````````````
+
+((End of diverging section.))
 
 If an autolink ends in a semicolon (`;`), we check to see if it appears to
 resemble an [entity reference][entity references]; if the preceding text is `&`

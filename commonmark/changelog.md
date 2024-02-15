@@ -1,5 +1,10 @@
 # Changelog for commonmark
 
+## 0.2.5.1
+
+  * Replace `source` with `search` in list of block tags.
+    This is a spec 0.31 change that was forgotten in the last release.
+
 ## 0.2.5
 
   * Fix HTML comment parser to conform to 0.31.2 spec.

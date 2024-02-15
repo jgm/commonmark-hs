@@ -1,5 +1,5 @@
 name:           commonmark-pandoc
-version:        0.2.2
+version:        0.2.2.1
 synopsis:       Bridge between commonmark and pandoc AST.
 description:    This library provides typeclasses for rendering
                 commonmark to Pandoc types.

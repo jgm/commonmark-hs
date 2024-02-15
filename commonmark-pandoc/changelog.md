@@ -1,5 +1,9 @@
 # Changelog for commonmark-pandoc
 
+## 0.2.2.1
+
+- Remove nested footnotes (#138).
+
 ## 0.2.2
 
 - Add support for alerts extension (#132).

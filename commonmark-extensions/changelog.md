@@ -1,5 +1,19 @@
 # Changelog for commonmark-extensions
 
+## 0.2.5.2
+
+  * Improve autolinks extension (#147).
+    The autolinks extension was interacting badly with explicit links,
+    To fix this we had to make autolink parsing a bit stricter than
+    the GFM spec does.  They allow unbalanced `)` except at the end
+    of a URL (which is defined as: followed by optional final punctuation
+    then whitespace or eof).  With this change, we don't allow unbalanced
+    `)` at all in raw URLs. This should not be a big problem in practice.
+
+  * Protect against quadratic generated table size explosion (Michael Howell).
+    This commit adds a limit to the number of auto-completed cells
+    around 200,000. The result is, in these original samples:
+
 ## 0.2.5.1
 
   * Add `test/alerts.md` to extra-source-files in cabal file.

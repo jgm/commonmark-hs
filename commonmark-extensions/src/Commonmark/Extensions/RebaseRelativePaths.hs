@@ -7,6 +7,7 @@ where
 import Commonmark.Types
 import Commonmark.Syntax
 import Commonmark.Inlines
+import Data.Char (isAscii)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Maybe (fromMaybe)
@@ -14,7 +15,7 @@ import Text.Parsec (getPosition)
 import System.FilePath
 import qualified System.FilePath.Windows as Windows
 import qualified System.FilePath.Posix as Posix
-import Network.URI (URI (uriScheme), parseURI)
+import Network.URI (URI (uriScheme), parseURI, escapeURIString)
 import qualified Data.Set as Set
 
 rebaseRelativePathsSpec
@@ -128,7 +129,7 @@ schemes = Set.fromList
 -- | Check if the string is a valid URL with a IANA or frequently used but
 -- unofficial scheme (see @schemes@).
 isURI :: T.Text -> Bool
-isURI = maybe False hasKnownScheme . parseURI . T.unpack
+isURI = maybe False hasKnownScheme . parseURI . escapeURIString isAscii . T.unpack
   where
     hasKnownScheme = (`Set.member` schemes) . T.toLower .
                      T.filter (/= ':') . T.pack . uriScheme

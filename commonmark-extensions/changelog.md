@@ -1,5 +1,11 @@
 # Changelog for commonmark-extensions
 
+## 0.2.5.3
+
+  * Fix rebase_relative_paths extension so it works with URLs with
+    non-ASCII characters (#148). Previously these would not be properly
+    detected as absolute URIs.
+
 ## 0.2.5.2
 
   * Improve autolinks extension (#147).

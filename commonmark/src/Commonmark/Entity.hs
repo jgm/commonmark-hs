@@ -6,11 +6,11 @@ module Commonmark.Entity
   ( lookupEntity
   , charEntity
   , numEntity
+  , pEntity
   , unEntity
   )
 where
 
-import Data.Functor.Identity (Identity)
 import qualified Data.Map.Strict as Map
 import Commonmark.TokParsers
 import Commonmark.Tokens
@@ -2335,14 +2335,15 @@ numEntity = do
 
 unEntity :: [Tok] -> Text
 unEntity ts = untokenize $
-  case parse (many (pEntity' <|> anyTok)) "" ts of
+  case parse (many (pEntity <|> anyTok)) "" ts of
         Left _    -> ts
         Right ts' -> ts'
-  where pEntity' :: ParsecT [Tok] () Identity Tok
-        pEntity' = try $ do
-          pos <- getPosition
-          symbol '&'
-          ent <- untokenize <$> (numEntity <|> charEntity)
-          case lookupEntity ent of
-                Just s  -> return $ Tok WordChars pos s
-                Nothing -> mzero
+
+pEntity :: Monad m => ParsecT [Tok] s m Tok
+pEntity = try $ do
+  pos <- getPosition
+  symbol '&'
+  ent <- untokenize <$> (numEntity <|> charEntity)
+  case lookupEntity ent of
+        Just s  -> return $ Tok WordChars pos s
+        Nothing -> mzero

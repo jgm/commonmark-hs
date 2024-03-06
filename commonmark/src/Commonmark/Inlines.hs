@@ -58,7 +58,8 @@ import           Data.Maybe                 (isJust, mapMaybe, listToMaybe)
 import qualified Data.Set                   as Set
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
-import           Commonmark.Entity          (unEntity, charEntity, numEntity)
+import           Commonmark.Entity          (unEntity, charEntity, numEntity,
+                                             pEntity)
 import           Text.Parsec                hiding (State, space)
 import           Text.Parsec.Pos
 
@@ -906,7 +907,7 @@ pInlineLink :: Monad m => ParsecT [Tok] s m LinkInfo
 pInlineLink = try $ do
   _ <- symbol '('
   optional whitespace
-  target <- unEntity <$> pLinkDestination
+  target <- untokenize <$> pLinkDestination
   optional whitespace
   title <- option "" $
              unEntity <$> (pLinkTitle <* optional whitespace)
@@ -922,7 +923,8 @@ pLinkDestination = pAngleDest <|> pNormalDest 0
     pAngleDest = do
       _ <- symbol '<'
       res <- many (noneOfToks [Symbol '<', Symbol '>', Symbol '\\',
-                                LineEnd] <|> pEscaped)
+                               Symbol '&', LineEnd]
+                    <|> pEscaped <|> pEntity <|> symbol '&')
       _ <- symbol '>'
       return res
 
@@ -935,7 +937,8 @@ pLinkDestination = pAngleDest <|> pNormalDest 0
     pNormalDest' numparens
      | numparens > 32 = mzero
      | otherwise = (do
-          t <- satisfyTok (\case
+          t <- pEntity <|>
+                satisfyTok (\case
                            Tok (Symbol '\\') _ _ -> True
                            Tok (Symbol ')') _ _  -> numparens >= 1
                            Tok Spaces _ _        -> False

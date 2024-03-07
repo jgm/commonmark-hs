@@ -856,10 +856,10 @@ listItemSpec parseListMarker = BlockSpec
              let lidata = fromDyn (blockData ndata)
                              (ListItemData (BulletList '*') 0 False False)
              -- a marker followed by two blanks is just an empty item:
-             guard $ null (blockBlanks ndata) ||
-                     not (null children)
              pos <- getPosition
-             gobbleSpaces (listItemIndent lidata) <|> 0 <$ lookAhead blankLine
+             case blockBlanks ndata of
+                  _:_ | null children -> lookAhead blankLine
+                  _ -> () <$ gobbleSpaces (listItemIndent lidata) <|> lookAhead blankLine
              return (pos, node)
      , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = \(Node cdata children) parent -> do

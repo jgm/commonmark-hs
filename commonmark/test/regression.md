@@ -361,3 +361,92 @@ Issue #149
 <p><a href="!">link</a></p>
 ````````````````````````````````
 
+Issue #144
+```````````````````````````````` example
++ Is this wrapping list tight, or loose?
+  * This nested list is definitely tight.
+  -
+
+
+  -
+.
+<ul>
+<li>Is this wrapping list tight, or loose?
+<ul>
+<li>This nested list is definitely tight.</li>
+</ul>
+<ul>
+<li></li>
+<li></li>
+</ul>
+</li>
+</ul>
+````````````````````````````````
+```````````````````````````````` example
++ Is this wrapping list tight, or loose?
+  * This nested list is definitely tight.
+  - First item
+
+
+  -
+.
+<ul>
+<li>Is this wrapping list tight, or loose?
+<ul>
+<li>This nested list is definitely tight.</li>
+</ul>
+<ul>
+<li>
+<p>First item</p>
+</li>
+<li></li>
+</ul>
+</li>
+</ul>
+````````````````````````````````
+```````````````````````````````` example
++ Is this wrapping list tight, or loose?
+  * This nested list is definitely tight.
+  -
+
+
+  - Second item
+.
+<ul>
+<li>Is this wrapping list tight, or loose?
+<ul>
+<li>This nested list is definitely tight.</li>
+</ul>
+<ul>
+<li></li>
+<li>
+<p>Second item</p>
+</li>
+</ul>
+</li>
+</ul>
+````````````````````````````````
+```````````````````````````````` example
++ Is this wrapping list tight, or loose?
+  * This nested list is definitely tight.
+  - First item
+
+
+  - Second item
+.
+<ul>
+<li>Is this wrapping list tight, or loose?
+<ul>
+<li>This nested list is definitely tight.</li>
+</ul>
+<ul>
+<li>
+<p>First item</p>
+</li>
+<li>
+<p>Second item</p>
+</li>
+</ul>
+</li>
+</ul>
+````````````````````````````````

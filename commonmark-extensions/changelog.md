@@ -1,5 +1,10 @@
 # Changelog for commonmark-extensions
 
+## 0.2.5.4
+
+  * Fix autolink parsing regression (#151). This affects autolinks with
+    doubled internal line-ending punctuation characters.
+
 ## 0.2.5.3
 
   * Fix rebase_relative_paths extension so it works with URLs with

@@ -194,3 +194,17 @@ The autolinks extension should not interfere with regular links
 .
 <p><a href="http://www.google.com/">a link</a>stuff?</p>
 ````````````````````````````````
+
+Autolinks with punctuation (#151):
+
+```````````````````````````````` example
+https://en.wikipedia.org/wiki/St._Petersburg_paradox
+
+https://en.wikipedia.org/wiki/Liaison_(French)
+
+https://en.wikipedia.org/wiki/Frederick_III,_German_Emperor
+.
+<p><a href="https://en.wikipedia.org/wiki/St._Petersburg_paradox">https://en.wikipedia.org/wiki/St._Petersburg_paradox</a></p>
+<p><a href="https://en.wikipedia.org/wiki/Liaison_(French)">https://en.wikipedia.org/wiki/Liaison_(French)</a></p>
+<p><a href="https://en.wikipedia.org/wiki/Frederick_III,_German_Emperor">https://en.wikipedia.org/wiki/Frederick_III,_German_Emperor</a></p>
+````````````````````````````````

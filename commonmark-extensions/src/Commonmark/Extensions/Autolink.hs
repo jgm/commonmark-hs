@@ -48,30 +48,32 @@ validDomain = do
   skipMany1 $ try (symbol '.' >> domainPart)
 
 linkPath :: Monad m => Int -> InlineParser m ()
-linkPath openParens =
+linkPath openParens = optional $ do
+   Tok tt _ _ <- lookAhead anyTok
+   case tt of
+     Symbol '&' -> optional $
       try (symbol '&' *>
            notFollowedBy
              (try (satisfyWord (const True) *> symbol ';' *> linkEnd)) *>
            linkPath openParens)
-  <|> (pathPunctuation *> linkPath openParens)
-  <|> (symbol '(' *> linkPath (openParens + 1))
-  <|> (guard (openParens > 0) *> symbol ')' *> linkPath (openParens - 1))
-  -- the following clause is needed to implement the GFM spec, which allows
-  -- unbalanced ) except at link end. However, leaving this in causes
-  -- problematic interaction with explicit link syntax in certain odd cases (see #147).
-  -- <|> (notFollowedBy linkEnd *> symbol ')' *> linkPath (openParens - 1))
-  <|> (satisfyTok (\t -> case tokType t of
-                            LineEnd -> False
-                            Spaces -> False
-                            Symbol c -> not (isTrailingPunctuation c || c == '&' || c == ')')
-                            _ -> True) *> linkPath openParens)
-  <|> pure ()
+     Symbol '(' -> symbol '(' *> linkPath (openParens + 1)
+     Symbol ')' -> optional $ guard (openParens > 0) *> symbol ')' *> linkPath (openParens - 1)
+     Symbol '<' -> pure ()
+     Symbol c | isTrailingPunctuation c -> optional $
+         try (do skipMany1 trailingPunctuation
+                 pos <- getPosition
+                 linkPath openParens
+                 pos' <- getPosition
+                 guard (pos' > pos)) *> linkPath openParens
+     LineEnd -> pure ()
+     Spaces -> pure ()
+     _ -> anyTok *> linkPath openParens
 
 linkEnd :: Monad m => InlineParser m ()
 linkEnd = try $ skipMany trailingPunctuation *> (void whitespace <|> eof)
 
-trailingPunctuation :: Monad m => InlineParser m ()
-trailingPunctuation = void $
+trailingPunctuation :: Monad m => InlineParser m Tok
+trailingPunctuation =
   satisfyTok (\t -> case tokType t of
                            Symbol c -> isTrailingPunctuation c
                            _ -> False)
@@ -79,15 +81,6 @@ trailingPunctuation = void $
 isTrailingPunctuation :: Char -> Bool
 isTrailingPunctuation =
   (`elem` ['!', '"', '\'', ')', '*', ',', '.', ':', ';', '?', '_', '~', '<'])
-
-pathPunctuation :: Monad m => InlineParser m ()
-pathPunctuation = try $ do
-  satisfyTok (\t -> case tokType t of
-                       Symbol c -> isTrailingPunctuation c && c /= ')' && c /= '<'
-                       _        -> False)
-  void $ lookAhead (satisfyTok (\t -> case tokType t of
-                                        WordChars -> True
-                                        _ -> False))
 
 urlAutolink :: Monad m => InlineParser m Text
 urlAutolink = try $ do

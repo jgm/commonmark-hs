@@ -1,5 +1,18 @@
 # Changelog for commonmark
 
+## 0.2.6
+
+  * Make list tightness match the reference implementation closer (#150,
+    Michael Howell). This solves the problem where blank lines in the middle
+    of a list are attributed to the list itself instead of the item, making its
+    parent list become spuriously loose.
+
+  * Fix bug with entities inside link destinations (#149).
+    The bug affects cases like this: `[link](\&#33;)`; the backslash
+    escape was being ignored here.
+
+  * Commonmark.Entity: export `pEntity` [API change].
+
 ## 0.2.5.1
 
   * Replace `source` with `search` in list of block tags.

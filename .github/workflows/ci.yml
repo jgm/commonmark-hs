@@ -20,8 +20,10 @@ jobs:
             cabal: '3.10'
           - ghc: '9.6'
             cabal: '3.10'
+          - ghc: '9.8'
+            cabal: '3.10'
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
 
     - name: Install cabal/ghc
       run: |
@@ -30,7 +32,7 @@ jobs:
 
     - name: Cache cabal global package db
       id:   cabal-global
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cabal
@@ -53,7 +55,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - name: Install stack
       shell: cmd
       run: |
@@ -73,7 +75,7 @@ jobs:
 #   runs-on: macOS-latest
 
 #   steps:
-#   - uses: actions/checkout@v1
+#   - uses: actions/checkout@v4
 #   - name: Install stack
 #     run: |
 #         curl -L https://get.haskellstack.org/stable/osx-x86_64.tar.gz -o stack.tar.gz

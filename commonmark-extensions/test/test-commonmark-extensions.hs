@@ -45,6 +45,7 @@ main = do
              , ("test/bracketed_spans.md", bracketedSpanSpec)
              , ("test/fenced_divs.md", fencedDivSpec)
              , ("test/auto_identifiers.md", autoIdentifiersSpec <> attributesSpec)
+             , ("test/auto_identifiers_ascii.md", autoIdentifiersAsciiSpec <> attributesSpec)
              , ("test/implicit_heading_references.md",
                  autoIdentifiersSpec <> attributesSpec <> implicitHeadingReferencesSpec)
              , ("test/wikilinks_title_before_pipe.md", wikilinksSpec TitleBeforePipe)

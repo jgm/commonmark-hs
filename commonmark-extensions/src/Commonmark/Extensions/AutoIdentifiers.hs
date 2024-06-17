@@ -82,9 +82,13 @@ makeIdentifier ascii = toIdent . T.toLower
                     = fromchar c
         | otherwise = mempty
     fromchar c
-      | ascii
-      , not (isAscii c) = maybe mempty T.singleton $ M.lookup c asciiMap
-      | otherwise       = T.singleton c
+      | ascii =
+        if isAscii c
+           then T.singleton c
+           else case M.lookup c asciiMap of
+                       Nothing -> mempty
+                       Just d -> T.singleton d
+      | otherwise = T.singleton c
 
 asciiMap :: M.Map Char Char
 asciiMap = M.fromList

@@ -82,3 +82,11 @@ Hi
 <h1 id="hi-2">Hi</h1>
 <h1 id="hi-3">Hi</h1>
 ````````````````````````````````
+
+Emojis should be replaced with aliases:
+
+```
+# Introduction ❤️💯
+.
+<h1 id="introduction-heart-100">Introduction ❤️💯</h1>
+```

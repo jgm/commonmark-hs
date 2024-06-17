@@ -16,6 +16,7 @@ import Data.Char (isSpace, isAlphaNum, isAscii, isMark,
 import Data.Dynamic
 import qualified Data.Map as M
 import qualified Data.Text as T
+import qualified Text.Emoji as Emoji
 import Text.Parsec
 
 autoIdentifiersSpec :: (Monad m, IsBlock il bl, IsInline il, ToPlainText il)
@@ -49,7 +50,8 @@ addId ascii bd
       Nothing  -> do
         contents <- runInlineParser
                     (removeIndent . mconcat . reverse . blockLines $ bd)
-        let ident = makeIdentifier ascii (toPlainText contents)
+        let ident = makeIdentifier ascii
+                     (Emoji.replaceEmojis emojiToAlias $ toPlainText contents)
         counterMap <- counters <$> getState
         let key = "identifier:" <> ident
         cnt <- case M.lookup key counterMap of
@@ -63,6 +65,10 @@ addId ascii bd
         return $! bd{ blockAttributes = ("id",ident') : blockAttributes bd }
       Just _ -> return $! bd
   | otherwise = return $! bd
+
+emojiToAlias :: T.Text -> [T.Text] -> T.Text
+emojiToAlias t [] = t
+emojiToAlias _ (a:_) = a
 
 makeIdentifier :: Bool -> T.Text -> T.Text
 makeIdentifier ascii = toIdent . T.toLower

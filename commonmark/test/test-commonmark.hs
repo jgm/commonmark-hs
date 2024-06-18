@@ -59,7 +59,7 @@ getSpecTestTree fp syntaxspec = do
   spectests <- getSpecTests fp
   let spectestgroups = groupBy (\t1 t2 -> section t1 == section t2)
                           spectests
-  let spectestsecs = [(section (head xs), xs) | xs <- spectestgroups]
+  let spectestsecs = [(section x, xs) | xs@(x:_) <- spectestgroups]
   let parser = runIdentity . parseCommonmarkWith
                    (syntaxspec <> defaultSyntaxSpec)
   return $ testGroup fp $

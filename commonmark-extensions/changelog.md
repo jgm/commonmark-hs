@@ -1,5 +1,12 @@
 # Changelog for commonmark-extensions
 
+## 0.2.5.5
+
+  * Fix auto_identifiers extension: it now replaces emojis with
+    their aliases, as documented.
+  * Fix auto_identifiers_ascii extension: it now ignores
+    non-ASCII characters with no ASCII equivalent.
+
 ## 0.2.5.4
 
   * Fix autolink parsing regression (#151). This affects autolinks with

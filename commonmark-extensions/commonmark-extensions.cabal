@@ -62,7 +62,7 @@ library
     , network-uri
     , commonmark >= 0.2.4.1 && < 0.3
     -- for extensions:
-    , emojis >= 0.1.4 && < 0.2
+    , emojis >= 0.1.4.1 && < 0.2
   exposed-modules:
       Commonmark.Extensions
       Commonmark.Extensions.Smart

@@ -1,6 +1,6 @@
-resolver: lts-18.10
+resolver: lts-22.25
 extra-deps:
-- unicode-data-0.3.0
+- emojis-0.1.4.1
 ghc-options:
    "$locals": -fhide-source-paths
 packages:

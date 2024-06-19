@@ -5,6 +5,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 module Commonmark.Extensions.Attributes
   ( attributesSpec
   , HasDiv(..)
@@ -25,6 +27,7 @@ import Commonmark.SourceMap
 import Commonmark.Blocks
 import Commonmark.Entity (unEntity)
 import Commonmark.Html
+import Commonmark.Nodes hiding (Node (..))
 import Data.Dynamic
 import Data.Tree
 import Control.Monad (mzero, guard, void)
@@ -285,3 +288,35 @@ pKeyValue = do
                Tok (Symbol '\'') _ _:_:_ -> mzero
                _ -> val
   return $! (untokenize name, unEntity val')
+
+data NodeTypeDiv a
+  = NodeDiv_ (Nodes a)
+  deriving (Show)
+
+instance (Typeable a, Monoid a, HasAttributes a, Rangeable a) => NodeType NodeTypeDiv a where
+  type FromNodeType NodeTypeDiv a = HasDiv a
+  fromNodeType = \case
+    NodeDiv_ x -> div_ (fromNodes x)
+
+instance ToPlainText (NodeTypeDiv a) where
+  toPlainText = \case
+    NodeDiv_ x -> toPlainText x
+
+instance (Typeable a, HasDiv a, Monoid a, HasAttributes a, Rangeable a) => HasDiv (Nodes a) where
+  div_ x = singleNode $ NodeDiv_ x
+
+data NodeTypeSpan a
+  = NodeSpanWith Attributes (Nodes a)
+  deriving (Show)
+
+instance Typeable a => NodeType NodeTypeSpan a where
+  type FromNodeType NodeTypeSpan a = HasSpan a
+  fromNodeType = \case
+    NodeSpanWith attrs x -> spanWith attrs (fromNodes x)
+
+instance ToPlainText (NodeTypeSpan a) where
+  toPlainText = \case
+    NodeSpanWith _ x -> toPlainText x
+
+instance (Typeable a, HasSpan a) => HasSpan (Nodes a) where
+  spanWith attrs x = singleNode $ NodeSpanWith attrs x

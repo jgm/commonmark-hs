@@ -74,17 +74,26 @@ mkInlineParser :: (Monad m, IsInline a)
 mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
   let attrParser = choice attrParsers
-  let go chunks toks' bottoms = do
+  let go chunksAlreadyParsed toks' bottoms = do
         chunks' <- {-# SCC parseChunks #-} evalStateT
                 (parseChunks bracketedSpecs formattingSpecs ilParsers
                  attrParser rm toks') defaultEnders
         case chunks' of
+           -- If parseChunks fails, it just fails
            Left err -> return $ Left err
            Right chunks'' ->
-              case (processBrackets bracketedSpecs rm (chunks ++ chunks'') bottoms) of
-                  Left st -> go ((reverse . befores . rightCursor) st) (mconcat (map chunkToks $ (maybeToList . center $ rightCursor st) ++ (afters $ rightCursor st))) (stackBottoms st)
+              case (processBrackets bracketedSpecs rm (chunksAlreadyParsed ++ chunks'') bottoms) of
+                  -- If processBrackets fails, it means a chunk straddled a link.
+                  -- To fix this, re-chunk everything after the link and parse again.
+                  Left st ->
+                      let
+                      chunksSuccessfullyParsed = (reverse . befores . rightCursor) st
+                      chunksRemainingToParse = (maybeToList . center $ rightCursor st) ++ (afters $ rightCursor st)
+                      toksRemainingToParse = (mconcat . map chunkToks) chunksRemainingToParse
+                      in go chunksSuccessfullyParsed toksRemainingToParse (stackBottoms st)
                   Right chunks''' -> return $ Right chunks'''
-  res <- go [] ((dropWhile iswhite . reverse . dropWhile iswhite . reverse) toks) mempty
+  let toksToParse = (dropWhile iswhite . reverse . dropWhile iswhite . reverse) toks
+  res <- go [] toksToParse mempty
   return $!
       case res of
          Left err     -> Left err
@@ -699,6 +708,22 @@ bracketChunkToNumber _ = 0
 bracketMatchedCount :: [Chunk a] -> Int
 bracketMatchedCount chunksinside = sum $ map bracketChunkToNumber chunksinside
 
+-- | Process square brackets: links, images, and the span extension.
+--
+-- DState tracks the current position and backtracking limits.
+--
+-- If this function succeeds, returning `Right`, it will return a list of
+-- chunks, now annotated with bracket information.
+--
+-- If this function fails, it will return `Left DState`. This can happen if a
+-- chunk straddles a link destination, like this
+--
+--     [link text](https://link/`) looks like code`
+--                              ^-----------------^
+--
+-- To recover, the caller must re-Chunk everything after the end paren.
+-- The `bottoms` parameter, in particular, is `DState`'s `stackBottoms`,
+-- and is used to prevent things before the paren from being re-parsed.
 processBrackets :: IsInline a
                 => [BracketedSpec a] -> ReferenceMap -> [Chunk a] -> M.Map Text SourcePos -> Either (DState a) [Chunk a]
 processBrackets bracketedSpecs rm xs bottoms =
@@ -737,6 +762,8 @@ moveRight (Cursor (Just x) zs [])     = Cursor Nothing  (x:zs) []
 moveRight (Cursor (Just x) zs (y:ys)) = Cursor (Just y) (x:zs) ys
 {-# INLINE moveRight #-}
 
+-- Internal helper function for processBrackets,
+-- See its comment for an explanation of what Left and Right mean.
 processBs :: IsInline a
           => [BracketedSpec a] -> DState a -> Either (DState a) [Chunk a]
 processBs bracketedSpecs st =

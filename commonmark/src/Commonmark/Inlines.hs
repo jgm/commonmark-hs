@@ -54,7 +54,7 @@ import           Data.List                  (foldl')
 import           Unicode.Char               (isAscii, isAlpha)
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map.Strict            as M
-import           Data.Maybe                 (isJust, mapMaybe, listToMaybe)
+import           Data.Maybe                 (isJust, mapMaybe, listToMaybe, maybeToList)
 import qualified Data.Set                   as Set
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
@@ -74,18 +74,31 @@ mkInlineParser :: (Monad m, IsInline a)
 mkInlineParser bracketedSpecs formattingSpecs ilParsers attrParsers rm toks = do
   let iswhite t = hasType Spaces t || hasType LineEnd t
   let attrParser = choice attrParsers
-  let toks' = dropWhile iswhite . reverse . dropWhile iswhite . reverse $ toks
-  res <- {-# SCC parseChunks #-} evalStateT
-          (parseChunks bracketedSpecs formattingSpecs ilParsers
-           attrParser rm toks') defaultEnders
+  let go chunksAlreadyParsed toks' bottoms = do
+        chunks' <- {-# SCC parseChunks #-} evalStateT
+                (parseChunks bracketedSpecs formattingSpecs ilParsers
+                 attrParser rm toks') defaultEnders
+        case chunks' of
+           -- If parseChunks fails, it just fails
+           Left err -> return $ Left err
+           Right chunks'' ->
+              case (processBrackets bracketedSpecs rm (chunksAlreadyParsed ++ chunks'') bottoms) of
+                  -- If processBrackets fails, it means a chunk straddled a link.
+                  -- To fix this, re-chunk everything after the link and parse again.
+                  Left st ->
+                      let
+                      chunksSuccessfullyParsed = (reverse . befores . rightCursor) st
+                      chunksRemainingToParse = (maybeToList . center $ rightCursor st) ++ (afters $ rightCursor st)
+                      toksRemainingToParse = (mconcat . map chunkToks) chunksRemainingToParse
+                      in go chunksSuccessfullyParsed toksRemainingToParse (stackBottoms st)
+                  Right chunks''' -> return $ Right chunks'''
+  let toksToParse = (dropWhile iswhite . reverse . dropWhile iswhite . reverse) toks
+  res <- go [] toksToParse mempty
   return $!
-    case res of
-       Left err     -> Left err
-       Right chunks ->
-         (Right .
-          unChunks .
-          processEmphasis .
-          processBrackets bracketedSpecs rm) chunks
+      case res of
+         Left err     -> Left err
+         Right chunks ->
+           (Right . unChunks . processEmphasis) chunks
 
 defaultInlineParser :: (Monad m, IsInline a) => InlineParser m a
 defaultInlineParser =
@@ -695,20 +708,36 @@ bracketChunkToNumber _ = 0
 bracketMatchedCount :: [Chunk a] -> Int
 bracketMatchedCount chunksinside = sum $ map bracketChunkToNumber chunksinside
 
+-- | Process square brackets: links, images, and the span extension.
+--
+-- DState tracks the current position and backtracking limits.
+--
+-- If this function succeeds, returning `Right`, it will return a list of
+-- chunks, now annotated with bracket information.
+--
+-- If this function fails, it will return `Left DState`. This can happen if a
+-- chunk straddles a link destination, like this
+--
+--     [link text](https://link/`) looks like code`
+--                              ^-----------------^
+--
+-- To recover, the caller must re-Chunk everything after the end paren.
+-- The `bottoms` parameter, in particular, is `DState`'s `stackBottoms`,
+-- and is used to prevent things before the paren from being re-parsed.
 processBrackets :: IsInline a
-                => [BracketedSpec a] -> ReferenceMap -> [Chunk a] -> [Chunk a]
-processBrackets bracketedSpecs rm xs =
+                => [BracketedSpec a] -> ReferenceMap -> [Chunk a] -> M.Map Text SourcePos -> Either (DState a) [Chunk a]
+processBrackets bracketedSpecs rm xs bottoms =
   case break (\case
                (Chunk Delim{ delimType = '[' } _ _) -> True
                _ -> False) xs of
-       (_,[]) -> xs
+       (_,[]) -> Right xs
        (ys,z:zs) ->
           let  startcursor = Cursor (Just z) (reverse ys) zs
           in   processBs bracketedSpecs
                  DState{ leftCursor = startcursor
                        , rightCursor = startcursor
                        , refmap = rm
-                       , stackBottoms = mempty
+                       , stackBottoms = bottoms
                        , absoluteBottom = chunkPos z
                        }
 
@@ -733,8 +762,10 @@ moveRight (Cursor (Just x) zs [])     = Cursor Nothing  (x:zs) []
 moveRight (Cursor (Just x) zs (y:ys)) = Cursor (Just y) (x:zs) ys
 {-# INLINE moveRight #-}
 
+-- Internal helper function for processBrackets,
+-- See its comment for an explanation of what Left and Right mean.
 processBs :: IsInline a
-          => [BracketedSpec a] -> DState a -> [Chunk a]
+          => [BracketedSpec a] -> DState a -> Either (DState a) [Chunk a]
 processBs bracketedSpecs st =
   let left = leftCursor st
       right = rightCursor st
@@ -742,7 +773,7 @@ processBs bracketedSpecs st =
       bottom = absoluteBottom st
   -- trace (prettyCursors left right) $ return $! ()
   in  {-# SCC processBs #-} case (center left, center right) of
-       (_, Nothing) -> reverse $
+       (_, Nothing) -> Right $ reverse $
                          case center (rightCursor st) of
                             Nothing -> befores (rightCursor st)
                             Just c  -> c : befores (rightCursor st)
@@ -829,8 +860,8 @@ processBs bracketedSpecs st =
                          firstAfterTokPos = tokPos <$> listToMaybe
                                         (concatMap chunkToks afterchunks)
                          -- in the event that newpos is not at the
-                         -- beginning of a chunk, we need to add
-                         -- some tokens from that chunk...
+                         -- beginning of a chunk, we need to re-chunk
+                         -- with those tokens and everything after them
                          missingtoks =
                            [t | t <- suffixToks
                               , tokPos t >= newpos
@@ -843,13 +874,12 @@ processBs bracketedSpecs st =
                                        (str (untokenize missingtoks))))
                                     newpos missingtoks :)
 
-                     in case addMissing afterchunks of
-                           []     -> processBs bracketedSpecs
-                                      st{ rightCursor = Cursor Nothing
+                         st' = case addMissing afterchunks of
+                           []     -> st{ rightCursor = Cursor Nothing
                                           (eltchunk : befores left') [] }
                            (y:ys) ->
                              let lbs = befores left'
-                             in processBs bracketedSpecs st{
+                             in st{
                                   leftCursor =
                                     Cursor (Just eltchunk) lbs (y:ys)
                                 , rightCursor = fixSingleQuote $
@@ -863,6 +893,9 @@ processBs bracketedSpecs st =
                                             (chunkPos opener)
                                             $ stackBottoms st
                                 }
+                     in if null missingtoks
+                        then processBs bracketedSpecs st'
+                        else Left st'
                   -- Bracket matched count /= 0
                   --
                   -- Links § 6.3 ¶ 2 • 2

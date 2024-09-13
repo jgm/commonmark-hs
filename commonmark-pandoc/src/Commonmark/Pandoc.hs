@@ -206,8 +206,8 @@ addBlockAttrs attrs (Table curattrs capt colspecs thead tbody tfoot) =
   Table (addToPandocAttr attrs curattrs) capt colspecs thead tbody tfoot
 addBlockAttrs attrs (Div curattrs bs) =
   Div (addToPandocAttr attrs curattrs) bs
-addBlockAttrs attrs x =
-  Div (addToPandocAttr attrs nullAttr) [x]
+addBlockAttrs attrs x = -- add wrapper="1" if we needed to add a Div
+  Div (addToPandocAttr (("wrapper","1"):attrs) nullAttr) [x]
 
 addInlineAttrs :: [(T.Text, T.Text)] -> Inline -> Inline
 addInlineAttrs attrs (Link curattrs ils target) =
@@ -218,8 +218,8 @@ addInlineAttrs attrs (Span curattrs ils) =
   Span (addToPandocAttr attrs curattrs) ils
 addInlineAttrs attrs (Code curattrs s) =
   Code (addToPandocAttr attrs curattrs) s
-addInlineAttrs attrs x =
-  Span (addToPandocAttr attrs nullAttr) [x]
+addInlineAttrs attrs x = -- add wrapper="1" if we needed to add a Span
+  Span (addToPandocAttr (("wrapper","1"):attrs) nullAttr) [x]
 
 addToPandocAttr :: Attributes -> Attr -> Attr
 addToPandocAttr attrs attr = foldr go attr attrs

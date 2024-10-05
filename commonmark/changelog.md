@@ -1,5 +1,11 @@
 # Changelog for commonmark
 
+## 0.2.6.1
+
+  * Fix parsing of link destinations that look like `code` or
+    HTML (#136, Michael Howell).  This affects parsing of things
+    like `` [link](`)`x` ``.
+
 ## 0.2.6
 
   * Make list tightness match the reference implementation closer (#150,

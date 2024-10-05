@@ -1,5 +1,12 @@
 # Changelog for commonmark-pandoc
 
+## 0.2.2.2
+
+- Add wrapper="1" when we need to add Div or Span. This is needed for
+  good round-tripping; a djot writer can see that this attribute
+  was added and remove the wrapping, adding the attributes directly
+  to the element.
+
 ## 0.2.2.1
 
 - Remove nested footnotes (#138).

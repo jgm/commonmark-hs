@@ -32,7 +32,7 @@ wwwAutolink :: Monad m => InlineParser m Text
 wwwAutolink = try $ do
   lookAhead $ satisfyWord (== "www")
   validDomain
-  linkPath 0
+  linkPath 0 0
   return "http://"
 
 validDomain :: Monad m => InlineParser m ()
@@ -47,27 +47,29 @@ validDomain = do
   domainPart
   skipMany1 $ try (symbol '.' >> domainPart)
 
-linkPath :: Monad m => Int -> InlineParser m ()
-linkPath openParens = optional $ do
+linkPath :: Monad m => Int -> Int -> InlineParser m ()
+linkPath openParens openBrackets = optional $ do
    Tok tt _ _ <- lookAhead anyTok
    case tt of
      Symbol '&' -> optional $
       try (symbol '&' *>
            notFollowedBy
              (try (satisfyWord (const True) *> symbol ';' *> linkEnd)) *>
-           linkPath openParens)
-     Symbol '(' -> symbol '(' *> linkPath (openParens + 1)
-     Symbol ')' -> optional $ guard (openParens > 0) *> symbol ')' *> linkPath (openParens - 1)
+           linkPath openParens openBrackets)
+     Symbol '(' -> symbol '(' *> linkPath (openParens + 1) openBrackets
+     Symbol ')' -> optional $ guard (openParens > 0) *> symbol ')' *> linkPath (openParens - 1) openBrackets
+     Symbol '[' -> symbol '[' *> linkPath openParens (openBrackets + 1)
+     Symbol ']' -> optional $ guard (openParens > 0) *> symbol ']' *> linkPath openParens (openBrackets - 1)
      Symbol '<' -> pure ()
      Symbol c | isTrailingPunctuation c -> optional $
          try (do skipMany1 trailingPunctuation
                  pos <- getPosition
-                 linkPath openParens
+                 linkPath openParens openBrackets
                  pos' <- getPosition
-                 guard (pos' > pos)) *> linkPath openParens
+                 guard (pos' > pos)) *> linkPath openParens openBrackets
      LineEnd -> pure ()
      Spaces -> pure ()
-     _ -> anyTok *> linkPath openParens
+     _ -> anyTok *> linkPath openParens openBrackets
 
 linkEnd :: Monad m => InlineParser m ()
 linkEnd = try $ skipMany trailingPunctuation *> (void whitespace <|> eof)
@@ -89,7 +91,7 @@ urlAutolink = try $ do
   symbol '/'
   symbol '/'
   validDomain
-  linkPath 0
+  linkPath 0 0
   return ""
 
 emailAutolink :: Monad m => InlineParser m Text

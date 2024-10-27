@@ -1,6 +1,8 @@
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE FlexibleContexts #-}
 import Test.Tasty.Bench
 import Data.Text (Text)
 import Data.Functor.Identity  -- base >= 4.8
@@ -19,6 +21,8 @@ main = do
       ]
     , bgroup "pathological"
       (map toPathBench pathtests)
+    , bgroup "name impact"
+      (map (toNameImpactBench sample) nameImpactTests)
     ]
 
 toPathBench :: (String, Int -> T.Text) -> Benchmark
@@ -88,11 +92,31 @@ pathtests =
     ("a" <> T.replicate num "<!A "))
   ]
 
+toNameImpactBench :: Text -> (String, String) -> Benchmark
+toNameImpactBench sample (testName, name) =
+  let benchArgs n = (show n, take (50 * n) (cycle name), sample)
+   in bgroup testName
+        (map (benchCommonmark' @SourceRange defaultSyntaxSpec . benchArgs)
+          [1, 5, 10, 20])
+
+nameImpactTests :: [(String, String)]
+nameImpactTests =
+  [ ("no special characters", "the quick brown fox jumps over the lazy dog")
+  , ("special characters", "\\-:-as;df-:d:%%-:\\;;;\\-:%%-:---:-sdf-:sa-\\;")
+  ]
+
 benchCommonmark :: SyntaxSpec Identity (Html ()) (Html ())
                 -> (String, Text)
                 -> Benchmark
 benchCommonmark spec (name, contents) =
-  bench name $
+  benchCommonmark' spec (name, name, contents)
+
+benchCommonmark' :: Rangeable (Html a)
+                => SyntaxSpec Identity (Html a) (Html a)
+                -> (String, String, Text)
+                -> Benchmark
+benchCommonmark' spec (testName, name, contents) =
+  bench testName $
     nf (either (error . show) renderHtml
         . runIdentity . parseCommonmarkWith spec . tokenize name)
     contents

@@ -1,7 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE LambdaCase           #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeFamilies         #-}
 module Commonmark.Extensions.Smart
   ( HasQuoted(..)
   , smartPunctuationSpec )
@@ -11,8 +14,10 @@ import Commonmark.Types
 import Commonmark.Syntax
 import Commonmark.Inlines
 import Commonmark.Html
+import Commonmark.Nodes
 import Commonmark.SourceMap
 import Commonmark.TokParsers (symbol)
+import Data.Typeable (Typeable)
 import Text.Parsec
 
 class IsInline il => HasQuoted il where
@@ -59,3 +64,23 @@ pDash = try $ do
   return $! mconcat $
     replicate emcount (str "—") <>
     replicate encount (str "–")
+
+data NodeTypeQuoted a
+  = NodeSingleQuoted (Nodes a)
+  | NodeDoubleQuoted (Nodes a)
+  deriving (Show)
+
+instance Typeable a => NodeType NodeTypeQuoted a where
+  type FromNodeType NodeTypeQuoted a = HasQuoted a
+  fromNodeType = \case
+    NodeSingleQuoted x -> singleQuoted (fromNodes x)
+    NodeDoubleQuoted x -> doubleQuoted (fromNodes x)
+
+instance ToPlainText (NodeTypeQuoted a) where
+  toPlainText = \case
+    NodeSingleQuoted x -> "‘" <> toPlainText x <> "’"
+    NodeDoubleQuoted x -> "“" <> toPlainText x <> "”"
+
+instance (Typeable a, HasQuoted a) => HasQuoted (Nodes a) where
+  singleQuoted x = singleNode $ NodeSingleQuoted x
+  doubleQuoted x = singleNode $ NodeDoubleQuoted x

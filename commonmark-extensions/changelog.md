@@ -1,5 +1,11 @@
 # Changelog for commonmark-extensions
 
+## 0.2.5.6
+
+  * Autolink parser: track balanced brackets in path (improves
+    on #156). We still get a link within a link, which isn't right, but at
+    least the link goes to the right place. Cf. jgm/pandoc#10333.
+
 ## 0.2.5.5
 
   * Fix auto_identifiers extension: it now replaces emojis with

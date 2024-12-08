@@ -1,5 +1,10 @@
 # Changelog for commonmark-pandoc
 
+## 0.2.2.3
+
+- Avoid adding spurious extra data-pos attribute to wrapper
+  Div (#159).
+
 ## 0.2.2.2
 
 - Add wrapper="1" when we need to add Div or Span. This is needed for

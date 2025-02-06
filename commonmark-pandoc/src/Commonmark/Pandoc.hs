@@ -120,7 +120,7 @@ instance HasEmoji (Cm b B.Inlines) where
                   $ B.text t
 
 instance HasWikilinks (Cm b B.Inlines) where
-  wikilink t il = Cm $ B.link t "wikilink" $ unCm il
+  wikilink t il = Cm $ B.linkWith (mempty, ["wikilink"], mempty) t "" $ unCm il
 
 instance HasPipeTable (Cm a B.Inlines) (Cm a B.Blocks) where
   pipeTable aligns headerCells rows =

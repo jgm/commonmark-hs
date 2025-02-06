@@ -23,7 +23,7 @@ class HasWikilinks il where
   wikilink :: Text -> il -> il
 
 instance Rangeable (Html a) => HasWikilinks (Html a) where
-  wikilink url il = link url "wikilink" il
+  wikilink url il =  addAttribute ("class", "wikilink") $ link url "" il
 
 instance (HasWikilinks il, Semigroup il, Monoid il)
         => HasWikilinks (WithSourceMap il) where

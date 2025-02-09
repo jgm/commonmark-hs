@@ -64,6 +64,23 @@ jobs:
       shell: cmd
       run: |
           choco install haskell-stack
+
+    - name: Cache cabal global package db
+      id:   cabal-global
+      uses: actions/cache@v4
+      with:
+        path: |
+          C:\cabal\store
+        key: ${{ runner.os }}-appdata-cabal-${{ hashFiles('cabal.project') }}-${{ secrets.CACHE_VERSION }}
+
+    - name: Cache cabal work
+      id: cabal-local
+      uses: actions/cache@v4
+      with:
+        path: |
+          dist-newstyle
+        key: ${{ runner.os }}-stack-work-${{ hashFiles('cabal.project') }}-${{ secrets.CACHE_VERSION }}
+
     - name: Install dependencies
       run: |
           stack update

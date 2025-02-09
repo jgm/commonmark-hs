@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE BangPatterns      #-}
@@ -50,7 +51,10 @@ import           Commonmark.ReferenceMap
 import           Commonmark.Types
 import           Control.Monad              (guard, mzero, mplus)
 import           Control.Monad.Trans.State.Strict
+#if MIN_VERSION_base(4,20,0)
+#else
 import           Data.List                  (foldl')
+#endif
 import           Unicode.Char               (isAscii, isAlpha)
 import qualified Data.IntMap.Strict         as IntMap
 import qualified Data.Map.Strict            as M

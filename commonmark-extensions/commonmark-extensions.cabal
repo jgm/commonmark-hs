@@ -1,5 +1,5 @@
 name:           commonmark-extensions
-version:        0.2.5.6
+version:        0.2.6
 synopsis:       Pure Haskell commonmark parser.
 description:
    This library provides some useful extensions to core commonmark

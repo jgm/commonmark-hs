@@ -1,5 +1,13 @@
 # Changelog for commonmark-extensions
 
+## 0.2.6
+
+  * Track wikilinks with a class instead of the title (Evan
+    Silberman). The use of title="wikilink" in HTML output traces
+    back to Pandoc's hijacking of the title attribute for this purpose
+    back when Pandoc links didn't have Attrs. A coordinated change in
+    Pandoc moves this more appropriately into a class.
+
 ## 0.2.5.6
 
   * Autolink parser: track balanced brackets in path (improves

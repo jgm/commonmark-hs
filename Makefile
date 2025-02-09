@@ -47,7 +47,7 @@ benchmark:
 
 bench: $(LOGS)
 	set -o pipefail && \
-	stack bench --benchmark-arguments=$(BENCHARGS) commonmark 2>&1 \
+	cabal bench --benchmark-options=$(BENCHARGS) commonmark 2>&1 \
 	    | tee $(LOGS)/benchmark-$(DATE).out
 
 ghci:

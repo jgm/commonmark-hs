@@ -184,11 +184,11 @@ itemStart = do
   pos <- getPosition
   ty <- bulletListMarker
   aftercol <- sourceColumn <$> getPosition
-  checked <- parseCheckbox
   lookAhead whitespace
   numspaces <- try (gobbleUpToSpaces 4 <* notFollowedBy whitespace)
            <|> gobbleSpaces 1
-           <|> 1 <$ lookAhead lineEnd
+  checked <- parseCheckbox
+  lookAhead whitespace
   return $! (pos, ListItemData{
             listItemType = ty
           , listItemChecked = checked

@@ -28,3 +28,23 @@ As in GitHub-flavored Markdown.
 </ul>
 ````````````````````````````````
 
+
+```````````````````````````````` example
+- [x]unreal
+.
+<ul>
+<li>[x]unreal</li>
+</ul>
+````````````````````````````````
+
+
+```````````````````````````````` example
+-  [x] real
+
+  not indented enough
+.
+<ul class="task-list">
+<li><input type="checkbox" disabled="" checked="" />real</li>
+</ul>
+<p>not indented enough</p>
+````````````````````````````````

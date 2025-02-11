@@ -133,6 +133,17 @@ taskListItemBlockSpec = BlockSpec
                                listItemType lidata
                     -> addNodeToStack linode
                   _ -> addNodeToStack listnode >> addNodeToStack linode
+             blankAfterMarker <- optionMaybe lineEnd
+             pos' <- getPosition
+             case blankAfterMarker of
+                  Just _ -> return ()
+                  Nothing -> do
+                    toks <- many (satisfyTok (not . hasType LineEnd))
+                    addNodeToStack $
+                        Node (defBlockData paraSpec){
+                              blockStartPos = [pos']
+                            , blockLines = [toks] }
+                        []
              return BlockStartMatch
      , blockCanContain     = const True
      , blockContainsLines  = False

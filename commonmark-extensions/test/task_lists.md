@@ -48,3 +48,24 @@ As in GitHub-flavored Markdown.
 </ul>
 <p>not indented enough</p>
 ````````````````````````````````
+
+
+```````````````````````````````` example
+- [x] * some text
+- [ ] > some text
+- [x]
+  * some text
+- [ ]
+  > some text
+.
+<ul class="task-list">
+<li><input type="checkbox" disabled="" checked="" />* some text</li>
+<li><input type="checkbox" disabled="" />&gt; some text</li>
+<li><input type="checkbox" disabled="" checked="" /><ul>
+<li>some text</li>
+</ul></li>
+<li><input type="checkbox" disabled="" /><blockquote>
+<p>some text</p>
+</blockquote></li>
+</ul>
+````````````````````````````````

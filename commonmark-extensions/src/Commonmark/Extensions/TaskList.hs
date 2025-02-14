@@ -133,7 +133,7 @@ taskListItemBlockSpec = BlockSpec
                                listItemType lidata
                     -> addNodeToStack linode
                   _ -> addNodeToStack listnode >> addNodeToStack linode
-             blankAfterMarker <- optionMaybe lineEnd
+             blankAfterMarker <- optionMaybe blankLine
              pos' <- getPosition
              case blankAfterMarker of
                   Just _ -> return ()

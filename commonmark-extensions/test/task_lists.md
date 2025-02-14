@@ -69,3 +69,25 @@ As in GitHub-flavored Markdown.
 </blockquote></li>
 </ul>
 ````````````````````````````````
+
+There is no empty paragraph after the `]`.
+
+```````````````````````````````` example
+- [x] * some text
+
+- [x]
+
+  some text
+
+- [x]→
+
+  some text
+.
+<ul class="task-list">
+<li><input type="checkbox" disabled="" checked="" /><p>* some text</p></li>
+<li><input type="checkbox" disabled="" checked="" /><p>some text</p>
+</li>
+<li><input type="checkbox" disabled="" checked="" /><p>some text</p>
+</li>
+</ul>
+````````````````````````````````

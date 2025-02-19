@@ -5,6 +5,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TypeFamilies #-}
 module Commonmark.Extensions.TaskList
   ( taskListSpec
   , HasTaskList (..)
@@ -17,11 +19,13 @@ import Commonmark.Blocks
 import Commonmark.SourceMap
 import Commonmark.TokParsers
 import Commonmark.Html
+import Commonmark.Nodes hiding (Node (..))
 import Control.Monad (mzero)
 import Control.Monad (when, guard)
 import Data.List (sort)
 import Data.Dynamic
 import Data.Tree
+import qualified Data.Text as T
 import Text.Parsec
 
 
@@ -239,3 +243,20 @@ instance (HasTaskList il bl, Semigroup bl, Semigroup il)
      (do let (checks, xs) = unzip items
          taskList lt spacing . zip checks <$> sequence xs
       ) <* addName "taskList"
+
+data NodeTypeTaskList a
+  = NodeTaskList ListType ListSpacing [(Bool, Nodes a)]
+  deriving (Show)
+
+instance Typeable a => NodeType NodeTypeTaskList a where
+  type FromNodeType NodeTypeTaskList a = HasTaskList a a
+  fromNodeType = \case
+    NodeTaskList lt spacing items -> taskList lt spacing (map (fmap fromNodes) items)
+
+instance ToPlainText (NodeTypeTaskList a) where
+  toPlainText = \case
+    NodeTaskList _ _ nodesList -> T.unlines $ map (toPlainText . snd) nodesList
+
+instance (Typeable a, HasTaskList a a) => HasTaskList (Nodes a) (Nodes a) where
+  taskList lt spacing items = singleNode $ NodeTaskList lt spacing items
+

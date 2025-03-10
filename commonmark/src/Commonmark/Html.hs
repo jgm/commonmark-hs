@@ -4,7 +4,9 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE UndecidableInstances       #-}
 module Commonmark.Html
-  ( Html
+  ( Html(..)
+  , ElementType(..)
+  , Attribute
   , htmlInline
   , htmlBlock
   , htmlText
@@ -13,6 +15,8 @@ module Commonmark.Html
   , renderHtml
   , escapeURI
   , escapeHtml
+  , transform
+  , transformM
   )
 where
 
@@ -466,3 +470,15 @@ escapeURIChar c
                                      '#','!','$','\'','(',')','*','+',',',
                                      ';','=']
 
+-- | Walk HTML nodes bottom-up, applying a function.
+transform :: (Html a -> Html a) -> Html a -> Html a
+transform f (HtmlElement et name attr (Just elt)) =
+  f $ HtmlElement et name attr (Just (transform f elt))
+transform f elt = f elt
+
+-- | Walk HTML nodes bottom-up, applying a function, in a monadic context.
+transformM :: Monad m => (Html a -> m (Html a)) -> Html a -> m (Html a)
+transformM f (HtmlElement et name attr (Just elt)) = do
+  elt' <- transformM f elt
+  f $ HtmlElement et name attr (Just elt')
+transformM f elt = f elt

@@ -9,3 +9,5 @@ log/
 *.hp
 *.ps
 prof.svg
+.hie/
+stack.yaml.lock

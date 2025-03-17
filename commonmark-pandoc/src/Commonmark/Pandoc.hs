@@ -5,6 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE MonoLocalBinds             #-}
 
 module Commonmark.Pandoc
   ( Cm(..)

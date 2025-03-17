@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE MonoLocalBinds             #-}
 module Commonmark.Html
   ( Html
   , htmlInline

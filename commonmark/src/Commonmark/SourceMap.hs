@@ -5,6 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE MonoLocalBinds             #-}
 module Commonmark.SourceMap
   ( SourceMap(..)
   , WithSourceMap(..)

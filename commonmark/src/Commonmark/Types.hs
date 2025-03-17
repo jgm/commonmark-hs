@@ -2,6 +2,8 @@
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE MonoLocalBinds             #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module Commonmark.Types
   ( Format(..)
@@ -79,6 +81,19 @@ class (Monoid a, Show a, Rangeable a, HasAttributes a) => IsInline a where
   code :: Text -> a
   rawInline :: Format -> Text -> a
 
+instance {-# OVERLAPPABLE #-} (Applicative f, IsInline a, Monoid (f a), Show (f a)) => IsInline (f a) where
+  lineBreak = pure lineBreak
+  softBreak = pure softBreak
+  str t = pure $ str t
+  entity t = pure $ entity t
+  escapedChar c = pure $ escapedChar c
+  emph = fmap emph
+  strong = fmap strong
+  link d t = fmap $ link d t
+  image s t = fmap $ image s t
+  code t = pure $ code t
+  rawInline f t = pure $ rawInline f t
+
 class (Monoid b, Show b, Rangeable b, IsInline il, HasAttributes b)
       => IsBlock il b | b -> il where
   paragraph :: il -> b
@@ -94,6 +109,17 @@ class (Monoid b, Show b, Rangeable b, IsInline il, HasAttributes b)
                           -> (Text, Text) -- ^ Destination, title
                           -> b
   list :: ListType -> ListSpacing -> [b] -> b
+
+instance {-# OVERLAPPABLE #-} (Applicative f, Monoid (f il), Show (f il), Monoid (f b), Show (f b), IsBlock il b) => IsBlock (f il) (f b) where
+  paragraph = fmap paragraph
+  plain = fmap plain
+  thematicBreak = pure thematicBreak
+  blockQuote = fmap blockQuote
+  codeBlock p q = pure $ codeBlock p q
+  heading l = fmap $ heading l
+  rawBlock f t = pure $ rawBlock f t
+  referenceLinkDefinition l dt = pure $ referenceLinkDefinition l dt
+  list lt ls fbs = fmap (list lt ls) $ sequenceA fbs
 
 newtype SourceRange = SourceRange
         { unSourceRange :: [(SourcePos, SourcePos)] }
@@ -122,6 +148,9 @@ instance Show SourceRange where
 class Rangeable a where
   ranged :: SourceRange -> a -> a
 
+instance {-# OVERLAPPABLE #-} (Functor f, Rangeable a) => Rangeable (f a) where
+  ranged sr = fmap $ ranged sr
+
 prettyRange :: SourceRange -> String
 prettyRange (SourceRange xs) = go "" xs
   where
@@ -147,6 +176,9 @@ type Attributes = [Attribute]
 
 class HasAttributes a where
   addAttributes :: Attributes -> a -> a
+
+instance {-# OVERLAPPABLE #-} (Functor f, HasAttributes a) => HasAttributes (f a) where
+  addAttributes attrs = fmap $ addAttributes attrs
 
 class ToPlainText a where
   toPlainText :: a -> Text

@@ -87,3 +87,27 @@ $b<a>c$
 .
 <p><span class="math inline">\(b&lt;a&gt;c\)</span></p>
 ````````````````````````````````
+
+The inline math closer cannot be immediately followed by a digit.
+The opener can be, though.
+Display math isn't subject to this rule.
+```````````````````````````````` example
+$1$2$3
+
+$1$2$3$
+
+$1{$2$}3$
+
+$$1$$2$$3
+
+$$1$$2$$3$$
+
+$$1{$$2$$}3$$
+.
+<p>$1$2$3</p>
+<p>$1$2<span class="math inline">\(3\)</span></p>
+<p><span class="math inline">\(1{$2$}3\)</span></p>
+<p><span class="math display">\[1\]</span>2$$3</p>
+<p><span class="math display">\[1\]</span>2<span class="math display">\[3\]</span></p>
+<p><span class="math display">\[1{$$2$$}3\]</span></p>
+````````````````````````````````

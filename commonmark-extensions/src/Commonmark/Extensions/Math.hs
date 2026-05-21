@@ -4,7 +4,7 @@ module Commonmark.Extensions.Math
   ( HasMath(..)
   , mathSpec )
 where
-import Control.Monad (mzero)
+import Control.Monad (guard, mzero)
 import Commonmark.Types
 import Commonmark.Tokens
 import Commonmark.Syntax
@@ -15,6 +15,7 @@ import Commonmark.Html
 import Text.Parsec
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Char (isDigit)
 
 mathSpec :: (Monad m, IsBlock il bl, IsInline il, HasMath il)
          => SyntaxSpec m il bl
@@ -44,10 +45,15 @@ parseMath = try $ do
   let isWs c = c == ' ' || c == '\t' || c == '\r' || c == '\n'
   if display
      then displayMath contents <$ symbol '$'
-     else if T.null contents || isWs (T.last contents)
-             -- don't allow math to end with SPACE + $
-             then mzero
-             else return $ inlineMath contents
+     else do
+             -- don't allow empty inline math
+             guard $ not $ T.null contents
+             -- don't allow inline math to end with SPACE + $
+             guard $ not $ isWs $ T.last contents
+             -- don't allow the closer followed by numbers ($5)
+             let startsWithDigit = maybe False (isDigit . fst) . T.uncons
+             notFollowedBy $ satisfyWord startsWithDigit
+             pure $ inlineMath contents
 
 -- Int is number of embedded groupings
 pDollarsMath :: Monad m => Int -> InlineParser m [Tok]

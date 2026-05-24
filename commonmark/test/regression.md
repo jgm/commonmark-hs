@@ -482,3 +482,28 @@ Issue #136
 .
 <p><a href="%60">x</a> <a href="`"></p>
 ````````````````````````````````
+
+https://github.com/pulldown-cmark/pulldown-cmark/issues/1099
+
+Link must be separated from title by at least one space
+
+```````````````````````````````` example
+[a](https://example.com"test")
+[a](<https://example.com>"test")
+[a](https://example.com(test))
+[a](<https://example.com>(test))
+
+[a](https://example.com "test")
+[a](<https://example.com> "test")
+[a](https://example.com (test))
+[a](<https://example.com> (test))
+.
+<p><a href="https://example.com%22test%22">a</a>
+[a](<a href="https://example.com">https://example.com</a>&quot;test&quot;)
+<a href="https://example.com(test)">a</a>
+[a](<a href="https://example.com">https://example.com</a>(test))</p>
+<p><a href="https://example.com" title="test">a</a>
+<a href="https://example.com" title="test">a</a>
+<a href="https://example.com" title="test">a</a>
+<a href="https://example.com" title="test">a</a></p>
+````````````````````````````````

@@ -61,6 +61,8 @@ And this is inline math:
 <span class="math inline">\(\text{Hello $x$ there!}\)</span></p>
 ````````````````````````````````
 
+The results become inaccurate at over 65,536 levels of nesting.
+
 
 To avoid treating currency signs as math delimiters,
 one may occasionally have to backslash-escape them:
@@ -75,9 +77,9 @@ Dollar signs must also be backslash-escaped if they
 occur within math:
 
 ```````````````````````````````` example
-$\text{\$}$
+$foo\$bar$
 .
-<p><span class="math inline">\(\text{\$}\)</span></p>
+<p><span class="math inline">\(foo\$bar\)</span></p>
 ````````````````````````````````
 
 Everthing inside the math construction is treated

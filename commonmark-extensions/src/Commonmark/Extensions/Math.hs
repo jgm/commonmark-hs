@@ -16,6 +16,7 @@ import Text.Parsec
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Char (isDigit)
+import Data.Word (Word16)
 
 mathSpec :: (Monad m, IsBlock il bl, IsInline il, HasMath il)
          => SyntaxSpec m il bl
@@ -55,8 +56,10 @@ parseMath = try $ do
              notFollowedBy $ satisfyWord startsWithDigit
              pure $ inlineMath contents
 
--- Int is number of embedded groupings
-pDollarsMath :: Monad m => Int -> InlineParser m [Tok]
+-- Word16 is number of embedded groupings
+-- We want wrapping semantics because that limits the amount of backtracking
+-- from adversarial input.
+pDollarsMath :: Monad m => Word16 -> InlineParser m [Tok]
 pDollarsMath n = do
   tk@(Tok toktype _ _) <- anyTok
   case toktype of

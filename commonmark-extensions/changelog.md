@@ -1,5 +1,25 @@
 # Changelog for commonmark-extensions
 
+## 0.2.7
+
+  * Math extension: bail out on pathological nestings.
+    This means we can't handle TeX math with more than 1000 levels of
+    `{..}` nesting, but no real formula will go this far.
+
+  * Math extension: do not allow math closer followed by digit (#167,
+    Michael Howell). With this change, closing `$` cannot be
+    followed by a decimal digit. For example, `$1$` is fine, but
+    `$1$2` is not. This avoids some false positives like `Current
+    conversion rate makes US$99 about A$137`.
+
+  * Fix the blank line scanner after the `]` (Michael Howell).
+
+  * Fix disagreement with GitHub about block nesting in tasklists
+    (Michael Howell). Text on the same line as the task marker can't
+    start a block. It has to be paragraph text.
+
+  * Fix incorrectly computed indent on `task_list` (Michael Howell).
+
 ## 0.2.6
 
   * Track wikilinks with a class instead of the title (Evan

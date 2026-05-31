@@ -1,5 +1,9 @@
 # Changelog for commonmark-cli
 
+## 0.2.1.1
+
+  * Raise version bounds for commonmark, commonmark-pandoc.
+
 ## 0.2.1
 
   * Add `alerts` as extension (#132).

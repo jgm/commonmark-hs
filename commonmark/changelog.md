@@ -1,5 +1,17 @@
 # Changelog for commonmark
 
+## 0.3
+
+  * Applicative instances of IsBlock, IsInline etc. (Ashley Yakeley).
+    [API change]
+
+  * Require separation between title quotes and URL (Michael Howell).
+    This commit brings commonmark-hs into alignment with commonmark.js.
+
+  * Don't warn about deriving typeable.
+
+  * Add CPP to avoid warning for ghc >= 9.10.
+
 ## 0.2.6.1
 
   * Fix parsing of link destinations that look like `code` or

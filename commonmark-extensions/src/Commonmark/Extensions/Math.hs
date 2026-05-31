@@ -58,6 +58,7 @@ parseMath = try $ do
 -- Int is number of embedded groupings
 pDollarsMath :: Monad m => Int -> InlineParser m [Tok]
 pDollarsMath n = do
+  guard (n <= 1000) -- bail on pathological inputs
   tk@(Tok toktype _ _) <- anyTok
   case toktype of
        Symbol '$'

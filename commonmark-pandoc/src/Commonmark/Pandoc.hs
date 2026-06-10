@@ -13,7 +13,7 @@ module Commonmark.Pandoc
 
 where
 
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, listToMaybe)
 import qualified Data.Text as T
 import qualified Data.Text.Read as TR
 import Text.Pandoc.Definition
@@ -124,8 +124,8 @@ instance HasWikilinks (Cm b B.Inlines) where
   wikilink t il = Cm $ B.linkWith (mempty, ["wikilink"], mempty) t "" $ unCm il
 
 instance HasPipeTable (Cm a B.Inlines) (Cm a B.Blocks) where
-  pipeTable aligns headerCells rows =
-    Cm $ B.table B.emptyCaption colspecs
+  pipeTable aligns headerCells rows captions =
+    Cm $ B.table (maybe B.emptyCaption toCaption $ listToMaybe captions) colspecs
            (TableHead nullAttr (toHeaderRow headerCells))
            [TableBody nullAttr 0 [] $ map toRow rows]
            (TableFoot nullAttr [])
@@ -134,6 +134,7 @@ instance HasPipeTable (Cm a B.Inlines) (Cm a B.Blocks) where
        | null cells  = []
        | otherwise   = [toRow cells]
      toRow = Row nullAttr . map (B.simpleCell . B.plain . unCm)
+     toCaption = B.simpleCaption . B.para . unCm
      toPandocAlignment LeftAlignedCol = AlignLeft
      toPandocAlignment CenterAlignedCol = AlignCenter
      toPandocAlignment RightAlignedCol = AlignRight

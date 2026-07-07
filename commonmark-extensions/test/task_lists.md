@@ -91,3 +91,13 @@ There is no empty paragraph after the `]`.
 </li>
 </ul>
 ````````````````````````````````
+
+```````````````````````````````` example
+- [ ]
+- [ ] b
+.
+<ul class="task-list">
+<li><input type="checkbox" disabled="" /></li>
+<li><input type="checkbox" disabled="" />b</li>
+</ul>
+````````````````````````````````

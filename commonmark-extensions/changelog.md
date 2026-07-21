@@ -1,5 +1,11 @@
 # Changelog for commonmark-extensions
 
+## 0.2.7.1
+
+  * Task list extension: andle empty task list items correctly (#174,
+    Chirag Dhamange). Prevent subsequent sibling task list items
+    from being parsed as nested children.
+
 ## 0.2.7
 
   * Math extension: bail out on pathological nestings.

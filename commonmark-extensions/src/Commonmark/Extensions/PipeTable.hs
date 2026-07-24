@@ -7,6 +7,7 @@
 
 module Commonmark.Extensions.PipeTable
  ( HasPipeTable(..)
+ , EnableCaption(..)
  , ColAlignment(..)
  , pipeTableSpec
  )
@@ -26,6 +27,10 @@ import Data.Dynamic
 import Data.Tree
 import Data.Data
 
+-- | Determine whether @: table caption@ is enabled
+data EnableCaption = CaptionEnabled | CaptionDisabled
+  deriving (Show, Eq)
+
 data ColAlignment = LeftAlignedCol
                   | CenterAlignedCol
                   | RightAlignedCol
@@ -39,14 +44,16 @@ data PipeTableData = PipeTableData
      , pipeTableCellCount  :: !Int
      , pipeTableHeaders    :: [[Tok]]
      , pipeTableRows       :: [[[Tok]]] -- in reverse order
+     , pipeTableCaptions   :: [[Tok]] -- in reverse order
      } deriving (Show, Eq, Data, Typeable)
 
 class HasPipeTable il bl where
-  pipeTable :: [ColAlignment] -> [il] -> [[il]] -> bl
+  pipeTable :: [ColAlignment] -> [il] -> [[il]] -> [il] -> bl
 
 instance HasPipeTable (Html a) (Html a) where
-  pipeTable aligns headerCells rows =
+  pipeTable aligns headerCells rows captions =
     htmlBlock "table" $ Just $ htmlRaw "\n" <>
+    mconcat (map (htmlBlock "caption" . Just) captions) <>
     (if null headerCells
         then mempty
         else htmlBlock "thead" $ Just $ htmlRaw "\n" <>
@@ -72,8 +79,8 @@ instance HasPipeTable (Html a) (Html a) where
 
 instance (HasPipeTable i b, Monoid b)
         => HasPipeTable (WithSourceMap i) (WithSourceMap b) where
-  pipeTable aligns headerCells rows = do
-    (pipeTable aligns <$> sequence headerCells <*> mapM sequence rows)
+  pipeTable aligns headerCells rows captions = do
+    (pipeTable aligns <$> sequence headerCells <*> mapM sequence rows <*> sequence captions)
      <* addName "pipeTable"
 
 pCells :: Monad m => ParsecT [Tok] s m [[Tok]]
@@ -134,9 +141,10 @@ pDivider = try $ do
 -- characters:  use @defaultSyntaxSpec <> pipeTableSpec@ rather
 -- than @pipeTableSpec <> defaultSyntaxSpec@.
 pipeTableSpec :: (Monad m, IsBlock il bl, IsInline il, HasPipeTable il bl)
-              => SyntaxSpec m il bl
-pipeTableSpec = mempty
-  { syntaxBlockSpecs = [pipeTableBlockSpec]
+              => EnableCaption
+              -> SyntaxSpec m il bl
+pipeTableSpec enableCaption = mempty
+  { syntaxBlockSpecs = [pipeTableBlockSpec enableCaption]
   }
 
 getAutoCompletedCellCount :: PipeTableData -> Int
@@ -156,8 +164,9 @@ getAutoCompletedCellCount tabledata =
 -- See GH-52 and GH-95
 pipeTableBlockSpec :: (Monad m, IsBlock il bl, IsInline il,
                        HasPipeTable il bl)
-                   => BlockSpec m il bl
-pipeTableBlockSpec = BlockSpec
+                   => EnableCaption
+                   -> BlockSpec m il bl
+pipeTableBlockSpec enableCaption = BlockSpec
      { blockType           = "PipeTable" -- :: Text
      , blockStart          = try $ do -- :: BlockParser m il bl ()
              (cur:rest) <- nodeStack <$> getState
@@ -189,9 +198,10 @@ pipeTableBlockSpec = BlockSpec
                                , pipeTableCellCount  = 0
                                , pipeTableHeaders    = cells
                                , pipeTableRows       = []
+                               , pipeTableCaptions   = []
                                }
                          addNodeToStack $
-                            Node (defBlockData pipeTableBlockSpec){
+                            Node (defBlockData $ pipeTableBlockSpec enableCaption){
                                     blockStartPos = blockStartPos (rootLabel cur) ++ [pos]
                                   , blockData = toDyn tabledata
                                   , blockAttributes = blockAttributes (rootLabel cur)
@@ -212,15 +222,23 @@ pipeTableBlockSpec = BlockSpec
                              , pipeTableRowCount = 0
                              , pipeTableCellCount = 0
                              , pipeTableHeaders = []
-                             , pipeTableRows = [] }
+                             , pipeTableRows = []
+                             , pipeTableCaptions = [] }
          pos <- getPosition
-         cells <- pCells
-         let cells' = take (pipeTableColCount tabledata) cells
-         let tabledata' =
-                tabledata{ pipeTableRows = cells' : pipeTableRows tabledata
-                         , pipeTableRowCount = 1 + pipeTableRowCount tabledata
-                         , pipeTableCellCount = length cells' + pipeTableCellCount tabledata
-                         }
+         let parseCaption = do
+              guard $ enableCaption == CaptionEnabled
+              symbol ':'
+              gobbleUpToSpaces 1
+              caption <- many $ satisfyTok $ not . hasType LineEnd
+              return tabledata{ pipeTableCaptions = caption : pipeTableCaptions tabledata }
+         let parseRow = do
+              cells <- pCells
+              let cells' = take (pipeTableColCount tabledata) cells
+              return tabledata{ pipeTableRows = cells' : pipeTableRows tabledata
+                        , pipeTableRowCount = 1 + pipeTableRowCount tabledata
+                        , pipeTableCellCount = length cells' + pipeTableCellCount tabledata
+                        }
+         tabledata' <- try parseCaption <|> try parseRow
          -- Protect against quadratic output size explosion.
          --
          -- Because the table extension fills in missing table cells,
@@ -243,13 +261,15 @@ pipeTableBlockSpec = BlockSpec
                              , pipeTableRowCount = 0
                              , pipeTableCellCount = 0
                              , pipeTableHeaders = []
-                             , pipeTableRows = [] }
+                             , pipeTableRows = []
+                             , pipeTableCaptions = [] }
          let aligns = pipeTableAlignments tabledata
          headers <- mapM runInlineParser (pipeTableHeaders tabledata)
          let numcols = pipeTableColCount tabledata
          rows <- mapM (mapM runInlineParser . take numcols . (++ (repeat [])))
                     (reverse $ pipeTableRows tabledata)
-         return $! (pipeTable aligns headers rows)
+         captions <- mapM runInlineParser (pipeTableCaptions tabledata)
+         return $! (pipeTable aligns headers rows captions)
      , blockFinalize       = \(Node ndata children) parent ->
          defaultFinalizer (Node ndata children) parent
      }

@@ -142,7 +142,8 @@ extensions :: (Monad m, Typeable m,
            => [(String, SyntaxSpec m il bl)]
 extensions =
   [ ("autolinks", autolinkSpec)
-  ,("pipe_tables", pipeTableSpec)
+  ,("pipe_tables", pipeTableSpec CaptionDisabled)
+  ,("pipe_tables_captions", pipeTableSpec CaptionEnabled)
   ,("hard_line_breaks", hardLineBreaksSpec)
   ,("strikethrough", strikethroughSpec)
   ,("superscript", superscriptSpec)

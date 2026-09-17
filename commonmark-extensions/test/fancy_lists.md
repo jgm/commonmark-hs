@@ -278,3 +278,21 @@ CI.  one
 <li>one</li>
 </ol>
 ````````````````````````````````
+
+A word made of Roman-numeral letters is a list marker only if the
+*whole* word is a valid Roman numeral; a valid prefix with leftover
+letters (`vv`) or a malformed subtractive form (`il`) is not:
+
+```````````````````````````````` example
+vv. not a list
+
+il. not a list
+
+iv. a list
+.
+<p>vv. not a list</p>
+<p>il. not a list</p>
+<ol start="4" type="i">
+<li>a list</li>
+</ol>
+````````````````````````````````

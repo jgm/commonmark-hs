@@ -103,7 +103,7 @@ fancyOrderedListMarker = do
       Tok WordChars _ ds <- satisfyWord (\t ->
                               T.length t < 10 &&
                               T.all isLowerRoman t)
-      case parse (romanNumeral False) "" ds of
+      case parse (romanNumeral False <* eof) "" ds of
         Left _     -> mzero
         Right x    -> return $! (x, LowerRoman)
 
@@ -111,7 +111,7 @@ fancyOrderedListMarker = do
       Tok WordChars _ ds <- satisfyWord (\t ->
                               T.length t < 10 &&
                               T.all isUpperRoman t)
-      case parse (romanNumeral True) "" ds of
+      case parse (romanNumeral True <* eof) "" ds of
         Left _     -> mzero
         Right x    -> return $! (x, UpperRoman)
 

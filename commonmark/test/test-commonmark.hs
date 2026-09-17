@@ -124,6 +124,9 @@ pathologicalCases =
     , ("alternate line endings",
        "- a\n- b\r- c\r\n- d",
        "<ul>\n<li>a</li>\n<li>b</li>\n<li>c</li>\n<li>d</li>\n</ul>\n")
+    , ("paragraph of 200000 words",
+       rep 200000 "lorem ",
+       "<p>" <> rep 199999 "lorem " <> "lorem</p>\n")
     ] ++
     concatMap forSize [1000, 10000] ++
     map backslashTitle [10, 100, 1000]

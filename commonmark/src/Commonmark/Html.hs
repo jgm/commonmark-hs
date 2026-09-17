@@ -49,9 +49,14 @@ instance Show (Html a) where
 instance Semigroup (Html a) where
   x <> HtmlNull                = x
   HtmlNull <> x                = x
-  HtmlText t1 <> HtmlText t2   = HtmlText (t1 <> t2)
-  HtmlRaw t1 <> HtmlRaw t2     = HtmlRaw (t1 <> t2)
   x <> y                       = HtmlConcat x y
+  -- Note: adjacent HtmlText (or HtmlRaw) nodes must NOT be merged
+  -- here with Text (<>): a paragraph is mconcat'ed from one node per
+  -- word, and pairwise Text appends would copy the growing text at
+  -- each step, making rendering quadratic in the paragraph size.
+  -- renderHtml goes through a Builder, and escapeHtml is
+  -- character-local, so keeping the nodes separate produces
+  -- identical output in linear time.
 
 instance Monoid (Html a) where
   mempty = HtmlNull

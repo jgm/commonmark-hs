@@ -27,7 +27,7 @@ import Commonmark.Entity (unEntity)
 import Commonmark.Html
 import Data.Dynamic
 import Data.Tree
-import Control.Monad (mzero, guard, void)
+import Control.Monad (guard, void)
 import Text.Parsec
 
 class HasDiv bl where
@@ -282,6 +282,5 @@ pKeyValue = do
                       Symbol '}'])
   let val' = case val of
                Tok (Symbol '"') _ _:_:_  -> drop 1 $ init $ val
-               Tok (Symbol '\'') _ _:_:_ -> mzero
                _ -> val
   return $! (untokenize name, unEntity val')

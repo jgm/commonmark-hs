@@ -34,6 +34,7 @@ main = do
              ]
   defaultMain $ testGroup "Tests"
      (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip
+      : pathologicalTests defaultParser
       : toSpecTest defaultParser
         SpecTest
           { section    = "Issue #24 (eof after HTML block)"
@@ -98,6 +99,86 @@ toSpecTest parser st =
                    fromRight mempty $
                      (parser (tokenize "" (markdown st))
                       :: Either ParseError (Html ()))
+
+-- Pathological tests, ported from commonmark.js's test/test.js.
+-- Each case must produce the expected output within the timeout;
+-- a timeout indicates nonlinear (typically quadratic) behavior.
+pathologicalTests :: ([Tok] -> Either ParseError (Html ()))
+                  -> TestTree
+pathologicalTests parser =
+  localOption (mkTimeout (5 * 1000000)) $  -- 5 seconds per case
+  testGroup "Pathological cases" $
+    map toPathTest pathologicalCases
+ where
+  toPathTest (name, inp, expected) =
+    testCase name $
+      (normalizeHtml . TL.toStrict . renderHtml . fromRight mempty)
+        (parser (tokenize "" inp))
+      @?= normalizeHtml expected
+
+pathologicalCases :: [(String, Text, Text)]
+pathologicalCases =
+    [ ("U+0000 in input",
+       "abc\0xyz\0\n",
+       "<p>abc\65533\&xyz\65533</p>\n")
+    , ("alternate line endings",
+       "- a\n- b\r- c\r\n- d",
+       "<ul>\n<li>a</li>\n<li>b</li>\n<li>c</li>\n<li>d</li>\n</ul>\n")
+    ] ++
+    concatMap forSize [1000, 10000] ++
+    map backslashTitle [10, 100, 1000]
+ where
+  rep = T.replicate
+  forSize :: Int -> [(String, Text, Text)]
+  forSize x =
+    let sx = show x
+        n = rep x
+    in
+    [ ("nested strong emph " <> sx <> " deep",
+       n "*a **a " <> "b" <> n " a** a*",
+       "<p>" <> n "<em>a <strong>a " <> "b" <>
+         n " a</strong> a</em>" <> "</p>\n")
+    , (sx <> " emph closers with no openers",
+       n "a_ ",
+       "<p>" <> rep (x - 1) "a_ " <> "a_</p>\n")
+    , (sx <> " emph openers with no closers",
+       n "_a ",
+       "<p>" <> rep (x - 1) "_a " <> "_a</p>\n")
+    , (sx <> " openers and closers multiple of 3",
+       "a**b" <> n "c* ",
+       "<p>a**b" <> rep (x - 1) "c* " <> "c*</p>\n")
+    , (sx <> " #172",
+       n "*_* _ ",
+       "<p>" <> rep (x - 1) "<em>_</em> _ " <> "<em>_</em> _</p>\n")
+    , (sx <> " link closers with no openers",
+       n "a] ",
+       "<p>" <> rep (x - 1) "a] " <> "a]</p>\n")
+    , (sx <> " link openers with no closers",
+       n "[a ",
+       "<p>" <> rep (x - 1) "[a " <> "[a</p>\n")
+    , (sx <> " link openers and emph closers",
+       n "[ a_ ",
+       "<p>" <> rep (x - 1) "[ a_ " <> "[ a_</p>\n")
+    , (sx <> " mismatched openers and closers",
+       n "*a_ ",
+       "<p>" <> rep (x - 1) "*a_ " <> "*a_</p>\n")
+    , (sx <> " pattern [ (](",
+       n "[ (](",
+       "<p>" <> n "[ (](" <> "</p>\n")
+    , ("nested brackets " <> sx <> " deep",
+       n "[" <> "a" <> n "]",
+       "<p>" <> n "[" <> "a" <> n "]" <> "</p>\n")
+    , ("nested block quote " <> sx <> " deep",
+       n "> " <> "a\n",
+       n "<blockquote>\n" <> "<p>a</p>\n" <> n "</blockquote>\n")
+    , ("[\\\\... " <> sx <> " deep",
+       "[" <> n "\\" <> "\n",
+       "<p>[" <> rep (x `div` 2) "\\" <> "</p>\n")
+    ]
+  backslashTitle x =
+    (show x <> " backslashes in unclosed link title",
+     "[test](\\url \"" <> rep x "\\" <> "\n",
+     "<p>[test](\\url &quot;" <> rep (x `div` 2) "\\" <> "</p>\n")
 
 normalizeHtml :: Text -> Text
 normalizeHtml = T.replace "\n</li>" "</li>" .

@@ -9,7 +9,10 @@ import           Commonmark.Pandoc
 import           Data.Maybe                 (isJust)
 import           Data.Aeson                 (encode)
 import qualified Data.Sequence              as Seq
+import qualified Data.ByteString            as BS
 import qualified Data.ByteString.Lazy       as BL
+import           Data.Text.Encoding         (decodeUtf8With)
+import           Data.Text.Encoding.Error   (lenientDecode)
 import qualified Text.Pandoc.Builder        as B
 import           Control.Monad
 import           Control.Monad.Identity
@@ -57,6 +60,11 @@ usageMessage programName = usageInfo (programName ++ " [OPTIONS] [FILES]")
 
 main :: IO ()
 main = catch (do
+  -- input is read as bytes and decoded as UTF-8 (leniently, with
+  -- U+FFFD for invalid sequences); make output UTF-8 as well, so
+  -- that behavior does not depend on the locale:
+  hSetEncoding stdout utf8
+  hSetEncoding stderr utf8
   (opts, files, errs) <- getOpt Permute options <$> getArgs
   unless (null errs) $ do
     mapM_ (hPutStrLn stderr) errs
@@ -71,9 +79,11 @@ main = catch (do
   when (Version `elem` opts) $ do
     putStrLn $ prg ++ " " ++ showVersion version
     exitSuccess
+  let readUtf8 f = decodeUtf8With lenientDecode <$> BS.readFile f
   toks <- if null files
-            then tokenize "stdin" <$> TIO.getContents
-            else mconcat <$> mapM (\f -> tokenize f <$> TIO.readFile f) files
+            then tokenize "stdin" . decodeUtf8With lenientDecode <$>
+                   BS.getContents
+            else mconcat <$> mapM (\f -> tokenize f <$> readUtf8 f) files
   when (Tokenize `elem` opts) $ do
     print toks
     exitSuccess

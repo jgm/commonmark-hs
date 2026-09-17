@@ -507,3 +507,12 @@ Link must be separated from title by at least one space
 <a href="https://example.com" title="test">a</a>
 <a href="https://example.com" title="test">a</a></p>
 ````````````````````````````````
+
+cmark#383
+
+```````````````````````````````` example
+*****Hello*world****
+.
+<p>**<em><strong>Hello<em>world</em></strong></em></p>
+````````````````````````````````
+

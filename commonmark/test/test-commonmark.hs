@@ -190,7 +190,7 @@ fromRight _ (Right x)       = x
 
 tokenize_roundtrip :: String -> Bool
 tokenize_roundtrip s = untokenize (tokenize "source" t) == t
-  where t = normalize NFC $ T.pack s
+  where t = T.replace "\0" "\xFFFD" . normalize NFC $ T.pack s
 
 --- parser for spec test cases
 

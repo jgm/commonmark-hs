@@ -33,10 +33,13 @@ data TokType =
      deriving (Show, Eq, Ord, Data, Typeable)
 
 -- | Convert a 'Text' into a list of 'Tok'. The first parameter
--- species the source name.
+-- species the source name.  The text is normalized to NFC, and
+-- U+0000 is replaced with U+FFFD, as required by the spec
+-- (section 2.3, Insecure characters).
 tokenize :: String -> Text -> [Tok]
 tokenize name =
-  {-# SCC tokenize #-} go (initialPos name) . T.groupBy f . normalize NFC
+  {-# SCC tokenize #-} go (initialPos name) . T.groupBy f .
+    T.replace "\x0" "\xFFFD" . normalize NFC
   where
     -- We group \r\n, consecutive spaces, and consecutive alphanums;
     -- everything else gets in a token by itself.
@@ -70,7 +73,8 @@ tokenize name =
                  go (incSourceColumn pos 1) ts
 
 -- | Reverses 'tokenize'.  @untokenize . tokenize@ should be
--- the identity.
+-- the identity on text that is NFC-normalized and does not
+-- contain U+0000.
 untokenize :: [Tok] -> Text
 untokenize = {-# SCC untokenize #-} mconcat . map tokContents
 

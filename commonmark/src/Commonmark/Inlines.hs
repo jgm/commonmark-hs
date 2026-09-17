@@ -566,6 +566,14 @@ data DState a = DState
      , refmap         :: ReferenceMap
      , stackBottoms   :: M.Map Text SourcePos
      , absoluteBottom :: SourcePos
+     , middleBalance  :: !Int
+       -- ^ Bracket balance of the chunks strictly between the two
+       -- cursors.  Maintained incrementally by processBs (unused in
+       -- processEm) so that checking for balanced brackets is O(1)
+       -- instead of a scan over the chunks between the cursors.
+     , middleHasBracket :: !Bool
+       -- ^ Whether any chunk strictly between the two cursors is a
+       -- bracket delimiter.  Maintained incrementally by processBs.
      }
 
 
@@ -581,7 +589,9 @@ processEmphasis xs =
                                , rightCursor = startcursor
                                , refmap = emptyReferenceMap
                                , stackBottoms = mempty
-                               , absoluteBottom = chunkPos z }
+                               , absoluteBottom = chunkPos z
+                               , middleBalance = 0
+                               , middleHasBracket = False }
 
 {- for debugging:
 prettyCursors :: (IsInline a) => Cursor (Chunk a) -> Cursor (Chunk a) -> String
@@ -710,8 +720,10 @@ bracketChunkToNumber :: Chunk a -> Int
 bracketChunkToNumber (Chunk Delim{ delimType = '[' } _ _) = 1
 bracketChunkToNumber (Chunk Delim{ delimType = ']' } _ _) = -1
 bracketChunkToNumber _ = 0
-bracketMatchedCount :: [Chunk a] -> Int
-bracketMatchedCount chunksinside = sum $ map bracketChunkToNumber chunksinside
+
+isBracketChunk :: Chunk a -> Bool
+isBracketChunk (Chunk Delim{ delimType = c } _ _) = c == '[' || c == ']'
+isBracketChunk _ = False
 
 -- | Process square brackets: links, images, and the span extension.
 --
@@ -744,6 +756,8 @@ processBrackets bracketedSpecs rm xs bottoms =
                        , refmap = rm
                        , stackBottoms = bottoms
                        , absoluteBottom = chunkPos z
+                       , middleBalance = 0
+                       , middleHasBracket = False
                        }
 
 data Cursor a = Cursor
@@ -788,6 +802,8 @@ processBs bracketedSpecs st =
                        st{ leftCursor = moveRight right
                          , rightCursor = moveRight right
                          , absoluteBottom = chunkPos chunk
+                         , middleBalance = 0
+                         , middleHasBracket = False
                          }
 
        (Just chunk, Just chunk')
@@ -796,16 +812,15 @@ processBs bracketedSpecs st =
                        st { leftCursor = moveRight right
                           , rightCursor = moveRight right
                           , absoluteBottom = chunkPos chunk'
+                          , middleBalance = 0
+                          , middleHasBracket = False
                           }
 
        (Just opener@(Chunk Delim{ delimType = '[' } _ _),
         Just closer@(Chunk Delim{ delimType = ']'} closePos _)) ->
           let chunksinside = takeWhile (\ch -> chunkPos ch /= closePos)
                                (afters left)
-              isBracket (Chunk Delim{ delimType = c' } _ _) =
-                 c' == '[' || c' == ']'
-              isBracket _ = False
-              key = if any isBracket chunksinside
+              key = if middleHasBracket st
                        then ""
                        else
                          case untokenize (concatMap chunkToks chunksinside) of
@@ -828,7 +843,7 @@ processBs bracketedSpecs st =
 
               suffixPos = incSourceColumn closePos 1
 
-          in case (bracketMatchedCount chunksinside, parse
+          in case (middleBalance st, parse
                  (withRaw
                    (do setPosition suffixPos
                        (spec, constructor) <- choice $
@@ -841,7 +856,10 @@ processBs bracketedSpecs st =
                          processBs bracketedSpecs
                             st{ leftCursor = moveLeft (leftCursor st)
                               , rightCursor = fixSingleQuote $
-                                    moveRight (rightCursor st) }
+                                    moveRight (rightCursor st)
+                              -- the middle absorbs the opener and closer,
+                              -- which cancel out (+1 - 1):
+                              , middleHasBracket = True }
                    (0, Right ((spec, constructor, newpos), desttoks)) ->
                      let left' = case bracketedPrefix spec of
                                       Just _  -> moveLeft left
@@ -881,7 +899,9 @@ processBs bracketedSpecs st =
 
                          st' = case addMissing afterchunks of
                            []     -> st{ rightCursor = Cursor Nothing
-                                          (eltchunk : befores left') [] }
+                                          (eltchunk : befores left') []
+                                       , middleBalance = 0
+                                       , middleHasBracket = False }
                            (y:ys) ->
                              let lbs = befores left'
                              in st{
@@ -889,6 +909,8 @@ processBs bracketedSpecs st =
                                     Cursor (Just eltchunk) lbs (y:ys)
                                 , rightCursor = fixSingleQuote $
                                     Cursor (Just y) (eltchunk:lbs) ys
+                                , middleBalance = 0
+                                , middleHasBracket = False
                                 , stackBottoms =
                                     -- if a link, we need to ensure that
                                     -- nothing matches as link containing it
@@ -910,19 +932,36 @@ processBs bracketedSpecs st =
                   -- inlines, and a close bracket ].
                    _ ->
                          processBs bracketedSpecs
-                            st{ leftCursor = moveLeft left }
+                            st{ leftCursor = moveLeft left
+                              -- the middle absorbs the opener:
+                              , middleBalance = middleBalance st +
+                                  bracketChunkToNumber opener
+                              , middleHasBracket = True }
 
 
-       (_, Just (Chunk Delim{ delimType = ']' } _ _))
-          -> processBs bracketedSpecs st{ leftCursor = moveLeft left }
+       (Just lchunk, Just (Chunk Delim{ delimType = ']' } _ _))
+          -> processBs bracketedSpecs
+                st{ leftCursor = moveLeft left
+                  -- the middle absorbs the old left center:
+                  , middleBalance = middleBalance st +
+                      bracketChunkToNumber lchunk
+                  , middleHasBracket = middleHasBracket st ||
+                      isBracketChunk lchunk }
 
        (Just _, Just (Chunk Delim{ delimType = '[' } _ _))
           -> processBs bracketedSpecs
                 st{ leftCursor = right
-                  , rightCursor = moveRight right }
+                  , rightCursor = moveRight right
+                  , middleBalance = 0
+                  , middleHasBracket = False }
 
        (_, _) -> processBs bracketedSpecs
-                st{ rightCursor = moveRight right }
+                st{ rightCursor = moveRight right
+                  -- the middle absorbs the old right center:
+                  , middleBalance = middleBalance st +
+                      maybe 0 bracketChunkToNumber (center right)
+                  , middleHasBracket = middleHasBracket st ||
+                      maybe False isBracketChunk (center right) }
 
 
 -- This just changes a single quote Delim that occurs

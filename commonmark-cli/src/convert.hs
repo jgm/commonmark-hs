@@ -224,18 +224,23 @@ specFromExtensionNames extnames = do
  return $ exts <> defaultSyntaxSpec
 
 highlightWith :: SourceMap -> [Tok] -> IO ()
-highlightWith sm ts = evalStateT (mapM_ (hlTok sm) ts) (mempty, [])
+highlightWith sm ts = do
+  -- only emit escape sequences when stdout is a capable terminal;
+  -- otherwise print the tokens verbatim:
+  ansi <- hSupportsANSI stdout
+  evalStateT (mapM_ (hlTok ansi sm) ts) (mempty, [])
+  when ansi $ setSGR [Reset]
 
-hlTok :: SourceMap -> Tok
+hlTok :: Bool -> SourceMap -> Tok
       -> StateT (Seq.Seq T.Text, [SGR]) IO ()
-hlTok (SourceMap !sm) (Tok toktype !pos !t) = do
+hlTok ansi (SourceMap !sm) (Tok toktype !pos !t) = do
   (xs, sgrs) <- get
   -- When we encounter a line end, we store it in mbLineEnd
   -- and output it after the formatting codes at the beginning
   -- of the next line.  Otherwise the wrong lines are affected.
   case M.lookup pos sm of
        Nothing -> liftIO $ do
-         when (toktype == LineEnd) $
+         when (ansi && toktype == LineEnd) $
            -- This escape sequence paints rest of line with current
            -- background color; otherwise we get bad results with scrolling.
            TIO.putStr "\27[K"
@@ -259,8 +264,8 @@ hlTok (SourceMap !sm) (Tok toktype !pos !t) = do
                              foldMap sgrFrom xs'
          put (xs', sgrs')
          liftIO $ do
-            when (sgrs /= sgrs') $ setSGR sgrs'
-            when (toktype == LineEnd) $
+            when (ansi && sgrs /= sgrs') $ setSGR sgrs'
+            when (ansi && toktype == LineEnd) $
               TIO.putStr "\27[K"
             TIO.putStr t
 

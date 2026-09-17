@@ -63,9 +63,6 @@ lint:
 clean:
 	cabal clean
 
-pathologicaltest:
-	python3 test/pathological_tests.py --prog commonmark
-
 check:
 	cd commonmark && cabal check && packdeps commonmark.cabal
 	cd commonmark-extensions && cabal check && packdeps commonmark-extensions.cabal

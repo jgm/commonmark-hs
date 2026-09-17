@@ -673,7 +673,8 @@ processEm st =
                 }
 
          | Just (chunkPos chunk) <=
-             M.lookup (T.pack (c: show (length ts `mod` 3))) bottoms ->
+             M.lookup (T.pack ([c, if canopen then '1' else '0']
+                                 ++ show (length ts `mod` 3))) bottoms ->
                   processEm
                   st{ leftCursor   = right
                     , rightCursor  = moveRight right

@@ -97,8 +97,8 @@ mkBlockParser specs finalParsers ilParser attrParsers ts =
                  , nextAttributes   = mempty
                  }
           "source" (length ts `seq` ts)
-          -- we evaluate length ts to make sure the list is
-          -- fully evaluated; this helps performance.  note that
+          -- we evaluate length ts to make sure the list spine is
+          -- evaluated; this helps performance.  note that
           -- we can't use deepseq because there's no instance for SourcePos.
 
 processLines :: (Monad m, IsBlock il bl)

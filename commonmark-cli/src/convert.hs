@@ -79,7 +79,14 @@ main = catch (do
   when (Version `elem` opts) $ do
     putStrLn $ prg ++ " " ++ showVersion version
     exitSuccess
-  let readUtf8 f = decodeUtf8With lenientDecode <$> BS.readFile f
+  -- ensure that a file that does not end in a newline cannot fuse
+  -- with the first line of the next file when inputs are concatenated:
+  let ensureFinalNewline t
+        | T.null t         = t
+        | T.last t == '\n' = t
+        | otherwise        = t <> "\n"
+  let readUtf8 f = ensureFinalNewline . decodeUtf8With lenientDecode <$>
+                     BS.readFile f
   toks <- if null files
             then tokenize "stdin" . decodeUtf8With lenientDecode <$>
                    BS.getContents

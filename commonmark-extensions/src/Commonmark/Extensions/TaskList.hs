@@ -78,7 +78,11 @@ taskListBlockSpec = BlockSpec
           blockBlanks' <- case childrenData of
                              c:_ | listItemBlanksAtEnd c -> do
                                  curline <- sourceLine <$> getPosition
-                                 return $! curline - 1 : blockBlanks cdata
+                                 return $! case blockBlanks cdata of
+                                    lb:b | lb == curline - 1 ->
+                                        lb:b
+                                    b ->
+                                       curline - 1 : b
                              _ -> return $! blockBlanks cdata
           let ldata' = toDyn (ListData lt ls)
           -- need to transform paragraphs on tight lists
@@ -165,16 +169,17 @@ taskListItemBlockSpec = BlockSpec
           let lidata = fromDyn (blockData cdata)
                                  (ListItemData (BulletList '*') False
                                    0 False False)
-          let blanks = removeConsecutive $ sort $
-                         concat $ blockBlanks cdata :
+          let allblanks = reverse . sort . concat $ blockBlanks cdata :
                                   map (blockBlanks . rootLabel)
-                                  (filter ((== "List") . blockType .
-                                   blockSpec . rootLabel) children)
+                                  (filter ((\t -> t == "List" ||
+                                                  t == "TaskList") .
+                                    blockType . blockSpec . rootLabel)
+                                    children)
           curline <- sourceLine <$> getPosition
-          let blanksAtEnd = case blanks of
+          let blanksAtEnd = case allblanks of
                                    (l:_) -> l >= curline - 1
                                    _     -> False
-          let blanksInside = case length blanks of
+          let blanksInside = case length (removeConsecutive allblanks) of
                                 n | n > 1     -> True
                                   | n == 1    -> not blanksAtEnd
                                   | otherwise -> False

@@ -101,3 +101,42 @@ There is no empty paragraph after the `]`.
 <li><input type="checkbox" disabled="" />b</li>
 </ul>
 ````````````````````````````````
+
+Tight/loose classification should match plain lists.  Blank lines
+after a list don't make it loose:
+
+```````````````````````````````` example
+- [ ] a
+- [ ] b
+
+
+x
+.
+<ul class="task-list">
+<li><input type="checkbox" disabled="" />a</li>
+<li><input type="checkbox" disabled="" />b</li>
+</ul>
+<p>x</p>
+````````````````````````````````
+
+A blank line after a nested task list makes the outer list loose,
+just as with plain lists:
+
+```````````````````````````````` example
+- [ ] a
+  - [ ] b
+
+- [ ] c
+.
+<ul class="task-list">
+<li>
+<input type="checkbox" disabled="" /><p>a</p>
+<ul class="task-list">
+<li><input type="checkbox" disabled="" />b</li>
+</ul>
+</li>
+<li>
+<input type="checkbox" disabled="" /><p>c</p>
+</li>
+</ul>
+````````````````````````````````

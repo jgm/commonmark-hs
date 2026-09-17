@@ -90,6 +90,25 @@ www.google.com/search?q=Markup+(business)
 <p>(<a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a>)</p>
 ````````````````````````````````
 
+The same applies to square brackets: balanced pairs may be included,
+but an unbalanced `]` ends the autolink (and open parentheses don't
+affect this):
+
+```````````````````````````````` example
+www.example.com/a[b]c
+
+www.example.com/a]b
+
+www.example.com/a(b]c
+
+[www.example.com/a]
+.
+<p><a href="http://www.example.com/a%5Bb%5Dc">www.example.com/a[b]c</a></p>
+<p><a href="http://www.example.com/a">www.example.com/a</a>]b</p>
+<p><a href="http://www.example.com/a(b">www.example.com/a(b</a>]c</p>
+<p>[<a href="http://www.example.com/a">www.example.com/a</a>]</p>
+````````````````````````````````
+
 Issue #147:
 ```````````````````````````````` example
 [link](https://baidu.com)aaa<span></span>bbb

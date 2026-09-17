@@ -59,7 +59,7 @@ linkPath openParens openBrackets = optional $ do
      Symbol '(' -> symbol '(' *> linkPath (openParens + 1) openBrackets
      Symbol ')' -> optional $ guard (openParens > 0) *> symbol ')' *> linkPath (openParens - 1) openBrackets
      Symbol '[' -> symbol '[' *> linkPath openParens (openBrackets + 1)
-     Symbol ']' -> optional $ guard (openParens > 0) *> symbol ']' *> linkPath openParens (openBrackets - 1)
+     Symbol ']' -> optional $ guard (openBrackets > 0) *> symbol ']' *> linkPath openParens (openBrackets - 1)
      Symbol '<' -> pure ()
      Symbol c | isTrailingPunctuation c -> optional $
          try (do skipMany1 trailingPunctuation

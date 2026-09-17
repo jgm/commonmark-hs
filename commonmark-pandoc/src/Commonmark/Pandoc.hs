@@ -172,8 +172,15 @@ toTaskListItem (checked, item) = B.fromList $
   case B.toList $ coerce item of
     (Plain ils : rest) -> Plain (checkbox : Space : ils) : rest
     (Para  ils : rest) -> Para  (checkbox : Space : ils) : rest
+    -- with source positions, the item's first block has been wrapped
+    -- in a Div by addBlockAttrs; insert the checkbox inside it:
+    (Div attr (Plain ils : ds) : rest) | isWrapperAttr attr
+      -> Div attr (Plain (checkbox : Space : ils) : ds) : rest
+    (Div attr (Para ils : ds) : rest) | isWrapperAttr attr
+      -> Div attr (Para (checkbox : Space : ils) : ds) : rest
     bs                 -> Plain [checkbox] : bs
     where checkbox = Str (if checked then "\9746" else "\9744")
+          isWrapperAttr (_,_,kvs) = lookup "wrapper" kvs == Just "1"
 
 instance Rangeable (Cm a B.Blocks)
   => HasDiv (Cm a B.Blocks) where

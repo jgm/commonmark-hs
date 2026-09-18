@@ -38,9 +38,9 @@ definitionListBlockSpec = BlockSpec
      , blockContinue       = \n -> (,n) <$> getPosition
      , blockConstructor    = \(Node bdata items) -> do
          let listType = fromDyn (blockData bdata) LooseList
-         let getItem item@(Node _ ds) = do
+         let getItem item = do
                term <- runInlineParser (getBlockText item)
-               defs <- mapM (\c -> blockConstructor (bspec c) c) ds
+               defs <- renderChildren item
                return $! (term, defs)
          definitionList listType <$> mapM getItem items
      , blockFinalize       = \(Node cdata children) parent -> do

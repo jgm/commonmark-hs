@@ -98,10 +98,7 @@ footnoteBlockSpec = BlockSpec
                <|> (skipWhile (hasType Spaces) >> () <$ lookAhead lineEnd)
              pos <- getPosition
              return $! (pos, n)
-     , blockConstructor    = \node ->
-          mconcat <$> mapM (\n ->
-              blockConstructor (blockSpec (rootLabel n)) n)
-           (subForest (reverseSubforests node))
+     , blockConstructor    = fmap mconcat . renderChildren . reverseSubforests
      , blockFinalize       = \(Node root children) parent -> do
          let (num, lab') = fromDyn (blockData root) (1, mempty)
          st <- getState

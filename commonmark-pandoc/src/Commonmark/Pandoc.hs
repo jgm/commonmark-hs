@@ -228,7 +228,8 @@ addInlineAttrs attrs x = -- add wrapper="1" if we needed to add a Span
 
 addToPandocAttr :: Attributes -> Attr -> Attr
 -- avoid adding spurious extra data-pos to wrapper div (#159):
-addToPandocAttr [("data-pos", _)] attrs@(_,_,("wrapper","1"):_)  = attrs
+addToPandocAttr [("data-pos", _)] attrs@(_, _, kvs)
+  | lookup "wrapper" kvs == Just "1" = attrs
 addToPandocAttr attrs attr = foldr go attr attrs
  where
   go ("id", v) (_, cls, kvs) = (v, cls, kvs)

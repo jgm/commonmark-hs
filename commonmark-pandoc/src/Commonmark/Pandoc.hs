@@ -15,7 +15,6 @@ where
 
 import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
-import qualified Data.Text.Read as TR
 import Text.Pandoc.Definition
 import Text.Pandoc.Walk
 import qualified Text.Pandoc.Builder as B
@@ -47,9 +46,7 @@ instance Rangeable (Cm b B.Inlines) => IsInline (Cm b B.Inlines) where
   lineBreak = Cm B.linebreak
   softBreak = Cm B.softbreak
   str t = Cm $ B.text t
-  entity t
-    | illegalCodePoint t = Cm $ B.str "\xFFFD"
-    | otherwise = Cm $ B.text $ fromMaybe t $ lookupEntity (T.drop 1 t)
+  entity t = Cm $ B.text $ fromMaybe t $ lookupEntity (T.drop 1 t)
   escapedChar c = Cm $ B.str $ T.singleton c
   emph ils = B.emph <$> ils
   strong ils = B.strong <$> ils
@@ -243,22 +240,6 @@ instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
   footnote _num _lab _x = mempty
   footnoteList _xs = mempty
   footnoteRef _num _lab contents = B.note . walk deNote <$> contents
-
-illegalCodePoint :: T.Text -> Bool
-illegalCodePoint t =
-  "&#" `T.isPrefixOf` t &&
-  let t' = T.drop 2 $ T.filter (/=';') t
-      badvalue (n, r) = not (T.null r) ||
-                        n < 1 ||
-                        n > (0x10FFFF :: Integer)
-  in
-  case T.uncons t' of
-       Nothing -> True
-       Just (x, rest)
-         | x == 'x' || x == 'X'
-           -> either (const True) badvalue (TR.hexadecimal rest)
-         | otherwise
-           -> either (const True) badvalue (TR.decimal t')
 
 stringify :: Walkable Inline a => a -> T.Text
 stringify = query go . walk (deNote . deQuote)

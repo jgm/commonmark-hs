@@ -28,8 +28,25 @@ parseAutolink = do
   (prefix, linktext) <- withRaw $ wwwAutolink <|> urlAutolink <|> emailAutolink
   return $! link (prefix <> untokenize linktext) "" (str . untokenize $ linktext)
 
+-- GFM: extended www and url autolinks are recognized only when
+-- preceded by the beginning of a line, whitespace, or one of the
+-- characters (, *, _, ~.  We additionally allow [, since
+-- commonmark-hs recognizes autolinks inside square brackets
+-- (see test/autolinks.md).
+guardPreceded :: Monad m => InlineParser m ()
+guardPreceded = do
+  mbty <- getPrecedingTokType
+  guard $ case mbty of
+    Nothing           -> True
+    Just Spaces       -> True
+    Just UnicodeSpace -> True
+    Just LineEnd      -> True
+    Just (Symbol c)   -> c `elem` ['(', '*', '_', '~', '[']
+    Just WordChars    -> False
+
 wwwAutolink :: Monad m => InlineParser m Text
 wwwAutolink = try $ do
+  guardPreceded
   lookAhead $ satisfyWord (== "www")
   validDomain
   linkPath 0 0
@@ -86,6 +103,7 @@ isTrailingPunctuation =
 
 urlAutolink :: Monad m => InlineParser m Text
 urlAutolink = try $ do
+  guardPreceded
   satisfyWord (`elem` ["http", "https", "ftp"])
   symbol ':'
   symbol '/'

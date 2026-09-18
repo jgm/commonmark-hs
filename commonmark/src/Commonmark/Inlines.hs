@@ -13,6 +13,7 @@ module Commonmark.Inlines
   , IPState
   , InlineParser
   , getReferenceMap
+  , getPrecedingTokType
   , FormattingSpec(..)
   , defaultFormattingSpecs
   , BracketedSpec(..)
@@ -204,8 +205,13 @@ parseChunks bspecs specs ilParsers attrParser rm ts =
    precedingTokTypeMap = {-# SCC precedingTokTypeMap #-}fst $! foldl' go  (mempty, LineEnd) ts
    go (!m, !prevTy) (Tok !ty !pos _) =
      case ty of
-       Symbol c | isDelimChar c -> (M.insert pos prevTy m, ty)
-       _                        -> (m, ty)
+       Symbol c | isDelimChar c   -> (M.insert pos prevTy m, ty)
+       -- record word tokens preceded by a symbol, so that extensions
+       -- (e.g. autolinks) can check what precedes them; a word token
+       -- not in the map is preceded by whitespace or begins the input
+       -- (adjacent word characters are merged by the tokenizer):
+       WordChars | Symbol _ <- prevTy -> (M.insert pos prevTy m, ty)
+       _                          -> (m, ty)
 
 data Chunk a = Chunk
      { chunkType :: ChunkType a
@@ -483,6 +489,16 @@ rangeFromToks (z:zs) !endpos
 
 getReferenceMap :: Monad m => InlineParser m ReferenceMap
 getReferenceMap = ipReferenceMap <$> getState
+
+-- | Type of the token immediately preceding the current position,
+-- if recorded.  Preceding token types are recorded for positions of
+-- delimiter characters, and for word tokens preceded by a symbol.
+-- 'Nothing' at the start of a word token means it begins the input
+-- or is preceded by whitespace.
+getPrecedingTokType :: Monad m => InlineParser m (Maybe TokType)
+getPrecedingTokType = do
+  pos <- getPosition
+  M.lookup pos . precedingTokTypes <$> getState
 
 pBacktickSpan :: Monad m
               => Tok -> InlineParser m (Either [Tok] [Tok])

@@ -23,6 +23,20 @@ www.commonmark.org
 <p><a href="http://www.commonmark.org">www.commonmark.org</a></p>
 ````````````````````````````````
 
+An autolink preceded by any other character is not recognized:
+
+```````````````````````````````` example
+a-www.foo.com
+
+foo(www.foo.com)
+
+see:http://example.com
+.
+<p>a-www.foo.com</p>
+<p>foo(<a href="http://www.foo.com">www.foo.com</a>)</p>
+<p>see:http://example.com</p>
+````````````````````````````````
+
 After a [valid domain], zero or more non-space non-`<` characters may follow:
 
 ```````````````````````````````` example

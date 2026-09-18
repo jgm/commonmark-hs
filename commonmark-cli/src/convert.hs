@@ -79,6 +79,10 @@ main = catch (do
   when (Version `elem` opts) $ do
     putStrLn $ prg ++ " " ++ showVersion version
     exitSuccess
+  when (Highlight `elem` opts &&
+        (PandocJSON `elem` opts || SourcePos `elem` opts)) $ do
+    hPutStrLn stderr "--highlight cannot be combined with --json or --sourcepos"
+    exitWith (ExitFailure 1)
   -- ensure that a file that does not end in a newline cannot fuse
   -- with the first line of the next file when inputs are concatenated:
   let ensureFinalNewline t

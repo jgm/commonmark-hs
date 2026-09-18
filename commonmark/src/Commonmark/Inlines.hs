@@ -1017,6 +1017,8 @@ pLinkDestination = pAngleDest <|> pNormalDest 0
                 satisfyTok (\case
                            Tok (Symbol '\\') _ _ -> True
                            Tok (Symbol ')') _ _  -> numparens >= 1
+                           -- spec: no ASCII control characters
+                           Tok (Symbol c) _ _    -> c >= ' ' && c /= '\x7F'
                            Tok Spaces _ _        -> False
                            Tok LineEnd _ _       -> False
                            _                     -> True)

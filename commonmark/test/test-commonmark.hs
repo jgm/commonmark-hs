@@ -51,6 +51,14 @@ main = do
           , end_line   = 2
           , start_line = 2
           , html       = "<!-- a -->" }
+      : toSpecTest defaultParser
+        SpecTest
+          { section    = "Control character in link destination"
+          , example    = 1
+          , markdown   = "[foo](de\x01st)\n"
+          , end_line   = 1
+          , start_line = 1
+          , html       = "<p>[foo](de\x01st)</p>\n" }
       : tests)
 
 getSpecTestTree :: FilePath

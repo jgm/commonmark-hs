@@ -62,6 +62,15 @@ And this is inline math:
 ````````````````````````````````
 
 
+Display math may contain an unbraced single `$`;
+only `$$` closes it:
+
+```````````````````````````````` example
+$$a $ b$$
+.
+<p><span class="math display">\[a $ b\]</span></p>
+````````````````````````````````
+
 To avoid treating currency signs as math delimiters,
 one may occasionally have to backslash-escape them:
 

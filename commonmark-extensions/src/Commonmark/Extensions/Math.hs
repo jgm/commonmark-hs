@@ -41,10 +41,10 @@ parseMath :: (Monad m, HasMath a) => InlineParser m a
 parseMath = try $ do
   symbol '$'
   display <- (True <$ symbol '$') <|> (False <$ notFollowedBy whitespace)
-  contents <- try $ untokenize <$> pDollarsMath 0
+  contents <- try $ untokenize <$> pDollarsMath display 0
   let isWs c = c == ' ' || c == '\t' || c == '\r' || c == '\n'
   if display
-     then displayMath contents <$ symbol '$'
+     then pure $ displayMath contents
      else do
              -- don't allow empty inline math
              guard $ not $ T.null contents
@@ -55,18 +55,25 @@ parseMath = try $ do
              notFollowedBy $ satisfyWord startsWithDigit
              pure $ inlineMath contents
 
--- Int is number of embedded groupings
-pDollarsMath :: Monad m => Int -> InlineParser m [Tok]
-pDollarsMath n = do
+-- Bool is display math (closed by $$); Int is number of embedded groupings.
+-- Consumes the closing $ (or $$) but does not include it in the result.
+pDollarsMath :: Monad m => Bool -> Int -> InlineParser m [Tok]
+pDollarsMath display n = do
   guard (n <= 1000) -- bail on pathological inputs
   tk@(Tok toktype _ _) <- anyTok
   case toktype of
        Symbol '$'
-              | n == 0 -> return []
+              | n == 0 ->
+                  if display
+                     -- an unbraced single $ is ordinary content in
+                     -- display math; only $$ closes it
+                     then ([] <$ symbol '$')
+                            <|> ((tk :) <$> pDollarsMath display n)
+                     else return []
        Symbol '\\' -> do
               tk' <- anyTok
-              (tk :) . (tk' :) <$> pDollarsMath n
-       Symbol '{' -> (tk :) <$> pDollarsMath (n+1)
-       Symbol '}' | n > 0 -> (tk :) <$> pDollarsMath (n-1)
+              (tk :) . (tk' :) <$> pDollarsMath display n
+       Symbol '{' -> (tk :) <$> pDollarsMath display (n+1)
+       Symbol '}' | n > 0 -> (tk :) <$> pDollarsMath display (n-1)
                   | otherwise -> mzero
-       _ -> (tk :) <$> pDollarsMath n
+       _ -> (tk :) <$> pDollarsMath display n

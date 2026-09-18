@@ -27,7 +27,6 @@ import           Data.Text.Lazy.Builder (Builder, fromText, toLazyText,
 import           Data.Text.Encoding   (encodeUtf8)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.Set as Set
-import           Text.Printf          (printf)
 import           Unicode.Char         (ord, isAlphaNum, isAscii)
 import           Unicode.Char.General.Compat (isSpace)
 import           Data.Maybe           (fromMaybe)
@@ -461,14 +460,24 @@ escapeHtmlChar '"' = "&quot;"
 escapeHtmlChar c   = singleton c
 
 escapeURI :: Text -> Text
-escapeURI = mconcat . map escapeURIChar . B.unpack . encodeUtf8
+escapeURI t
+  | B.all isAllowedURIChar bs = t
+  | otherwise = TL.toStrict $ toLazyText $
+                  B.foldr (\c b -> escapeURIChar c <> b) mempty bs
+  where bs = encodeUtf8 t
 
-escapeURIChar :: Char -> Text
+isAllowedURIChar :: Char -> Bool
+isAllowedURIChar c =
+  (isAscii c && isAlphaNum c) ||
+  c `elem` ("%/?:@-._~&#!$'()*+,;=" :: [Char])
+
+-- Note: c is a byte of the UTF-8 encoding, so ord c <= 255.
+escapeURIChar :: Char -> Builder
 escapeURIChar c
-  | isEscapable c = T.singleton '%' <> T.pack (printf "%02X" (ord c))
-  | otherwise     = T.singleton c
-  where isEscapable d = not (isAscii d && isAlphaNum d)
-                     && d `notElem` ['%','/','?',':','@','-','.','_','~','&',
-                                     '#','!','$','\'','(',')','*','+',',',
-                                     ';','=']
+  | isAllowedURIChar c = singleton c
+  | otherwise = singleton '%' <> singleton (hexDig hi) <> singleton (hexDig lo)
+  where
+    (hi, lo) = ord c `divMod` 16
+    hexDig i | i < 10    = toEnum (i + fromEnum '0')
+             | otherwise = toEnum (i - 10 + fromEnum 'A')
 

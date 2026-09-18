@@ -232,8 +232,12 @@ addToPandocAttr [("data-pos", _)] attrs@(_,_,("wrapper","1"):_)  = attrs
 addToPandocAttr attrs attr = foldr go attr attrs
  where
   go ("id", v) (_, cls, kvs) = (v, cls, kvs)
-  go ("class", v) (ident, cls, kvs) = (ident, v:cls, kvs)
-  go (k, v) (ident, cls, kvs) = (ident, cls, (k,v):kvs)
+  go ("class", v) (ident, cls, kvs)
+    | v `elem` cls           = (ident, cls, kvs)
+    | otherwise              = (ident, v:cls, kvs)
+  go (k, v) (ident, cls, kvs)
+    | k `elem` map fst kvs   = (ident, cls, kvs)
+    | otherwise              = (ident, cls, (k,v):kvs)
 
 instance (Rangeable (Cm a B.Inlines), Rangeable (Cm a B.Blocks))
      => HasFootnote (Cm a B.Inlines) (Cm a B.Blocks) where

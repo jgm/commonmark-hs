@@ -28,8 +28,6 @@ import           System.IO
 import           System.Console.GetOpt
 import           Paths_commonmark_cli (version)
 import           Data.Version (showVersion)
-import           Control.Exception          (AsyncException, catch, throwIO)
-import           GHC.Stack                  (currentCallStack)
 import           System.Console.ANSI
 
 data Opt =
@@ -59,7 +57,7 @@ usageMessage :: String -> [OptDescr Opt] -> String
 usageMessage programName = usageInfo (programName ++ " [OPTIONS] [FILES]")
 
 main :: IO ()
-main = catch (do
+main = do
   -- input is read as bytes and decoded as UTF-8 (leniently, with
   -- U+FFFD for invalid sequences); make output UTF-8 as well, so
   -- that behavior does not depend on the locale:
@@ -137,10 +135,7 @@ main = catch (do
         spec <- specFromExtensionNames [x | Extension x <- opts]
         case runIdentity (parseCommonmarkWith spec toks) of
              Left e -> errExit e
-             Right (r :: Html ()) -> TLIO.putStr . renderHtml $ r)
-   (\(e :: AsyncException) -> do
-             currentCallStack >>= mapM_ (hPutStrLn stderr)
-             throwIO e)
+             Right (r :: Html ()) -> TLIO.putStr . renderHtml $ r
 
 
 errExit :: ParseError -> IO a

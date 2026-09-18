@@ -209,7 +209,6 @@ specFromExtensionNames ::
   HasSubscript il,
   HasDefinitionList il bl,
   HasDiv bl,
-  HasAlerts il bl,
   HasTaskList il bl,
   HasAlerts il bl,
   HasFootnote il bl)

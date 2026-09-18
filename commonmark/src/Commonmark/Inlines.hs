@@ -498,7 +498,13 @@ pBacktickSpan tok = do
           updateState $ \st ->
             st{ backtickSpans = IntMap.insert numticks ps (backtickSpans st) }
           return $ Right codetoks
-     _ -> return $ Left ts
+     Just [] -> do
+          -- no closer ahead: remove the exhausted entry so that later
+          -- spans of this length don't rescan the stale positions
+          updateState $ \st ->
+            st{ backtickSpans = IntMap.delete numticks (backtickSpans st) }
+          return $ Left ts
+     Nothing -> return $ Left ts
 
 normalizeCodeSpan :: Text -> Text
 normalizeCodeSpan = removeSurroundingSpace . T.map nltosp

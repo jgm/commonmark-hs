@@ -49,7 +49,7 @@ instance Rangeable (Cm b B.Inlines) => IsInline (Cm b B.Inlines) where
   str t = Cm $ B.text t
   entity t
     | illegalCodePoint t = Cm $ B.str "\xFFFD"
-    | otherwise = Cm $ B.str $ fromMaybe t $ lookupEntity (T.drop 1 t)
+    | otherwise = Cm $ B.text $ fromMaybe t $ lookupEntity (T.drop 1 t)
   escapedChar c = Cm $ B.str $ T.singleton c
   emph ils = B.emph <$> ils
   strong ils = B.strong <$> ils

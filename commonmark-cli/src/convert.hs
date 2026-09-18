@@ -222,8 +222,14 @@ specFromExtensionNames extnames = do
            hPutStrLn stderr $ "Unknown extension " ++ name
            listExtensions
            exitWith (ExitFailure 1)
+ -- "all" excludes gfm, which is just a bundle of other extensions
+ -- (all of them already included), and one of the two mutually
+ -- exclusive wikilinks variants (we keep wikilinks_title_after_pipe,
+ -- the Wikipedia convention):
+ let inAll (name, _) = name /= "gfm" &&
+                       name /= "wikilinks_title_before_pipe"
  exts <- if "all" `elem` extnames
-            then return $ mconcat (map snd extensions)
+            then return $ mconcat (map snd (filter inAll extensions))
             else mconcat <$> mapM extFromName extnames
  return $ exts <> defaultSyntaxSpec
 

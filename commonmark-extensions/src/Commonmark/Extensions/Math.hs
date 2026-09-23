@@ -73,6 +73,11 @@ pDollarsMath display n = do
        Symbol '\\' -> do
               tk' <- anyTok
               (tk :) . (tk' :) <$> pDollarsMath display n
+       Symbol '%' -> do
+              -- Preserve comments, including the newline, without interpreting
+              -- their braces, dollars, or backslashes.
+              comment <- restOfLine
+              (tk :) . (comment ++) <$> pDollarsMath display n
        Symbol '{' -> (tk :) <$> pDollarsMath display (n+1)
        Symbol '}' | n > 0 -> (tk :) <$> pDollarsMath display (n-1)
                   | otherwise -> mzero

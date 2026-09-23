@@ -1,5 +1,28 @@
 # Changelog for commonmark-pandoc
 
+## 0.3.0.1
+
+  * keep task-list checkbox attached under source positions.
+    With sourcepos enabled, an item's first Plain/Para has already been
+    wrapped in a Div (wrapper="1") by addBlockAttrs before taskList runs,
+    so toTaskListItem's Plain/Para patterns never matched and the
+    checkbox was emitted as a separate Plain block preceding the item
+    contents. Recognize the wrapper Div and insert the checkbox into
+    the Plain/Para inside it.
+
+  * Use B.text for resolved entities. B.str put whitespace inside Str
+    nodes for entities like &#32; and &#10;, violating pandoc AST
+    conventions; B.text produces proper Space/SoftBreak elements.
+
+  * Remove redundant illegalCodePoint check.
+
+  * Don't duplicate classes and keys in `addToPandocAttr`.
+    Matches the HTML backend's incorporateAttribute, which never
+    produces duplicate classes or attribute keys.
+
+  * Make the wrapper `data-pos` suppression robust. Don't rely on the
+    wrapper marker being the first entry in the key-value list.
+
 ## 0.3
 
   * Define Applicative instances of IsBlock, IsInline etc.

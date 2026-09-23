@@ -40,9 +40,10 @@ license:        BSD-3-Clause
 license-file:   LICENSE
 build-type:     Simple
 
-extra-source-files:
+extra-doc-files:
     changelog.md
     README.md
+extra-source-files:
     test/spec.txt
     test/regression.md
 

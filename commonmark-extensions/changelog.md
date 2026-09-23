@@ -1,5 +1,28 @@
 # Changelog for commonmark-extensions
 
+## 0.2.7.2
+
+  * Footnotes: memoize note rendering and detect reference cycles.
+
+  * TaskList: re-sync forked list finalizers with the core versions.
+    Task lists now get the same tight/loose classification as
+    identically shaped plain lists.
+
+  * FancyList: require whole word to be a valid roman numeral.
+    Previously "vv. item" parsed as a roman list with start="5".
+
+  * Math: allow an unbraced `$` inside display math.
+
+  * Use `renderChildren` in definition list and footnote constructors.
+    Both called blockConstructor directly on child nodes, bypassing
+    renderChildren, so child blocks lost their attributes and source ranges.
+
+  * Autolink: implement GFM preceding-character restriction.
+    GFM recognizes extended www/url autolinks only when preceded by the
+    beginning of a line, whitespace, or one of `(`, `*`, `_`, `~`, `[`.
+
+  * Autolink: fix ']' guard to test bracket counter, not paren counter.
+
 ## 0.2.7.1
 
   * Task list extension: andle empty task list items correctly (#174,

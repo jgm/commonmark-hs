@@ -1,5 +1,37 @@
 # Changelog for commonmark
 
+
+## 0.3.0.1
+
+  * Add test for cmark#383 case that motivated f47801c.
+
+  * Add pathological tests from commonmark.js to the test suite.
+    Ports the 31 pathological cases from commonmark.js's test/test.js
+    (sizes 1000 and 10000) as a tasty test group with a 5-second
+    per-test timeout, so nonlinear parsing behavior shows up as a
+    test failure.
+
+  * Fix `stackBottoms` lookup key in `processEm`, restoring linear
+    behavior. (Regression since f47801c.)
+
+  * Track bracket balance incrementally in `processBs`. Avoids quadratic
+    performance in pathological cases.
+
+  * Replace U+0000 with U+FFFD in tokenize, in accordance with the
+    commonmark spec.
+
+  * Html: don't merge adjacent text nodes in (<>); fixes quadratic rendering.
+
+  * Disallow ASCII control characters in link destinations, per the
+    commonmark spec.
+
+  * Speed up `escapeURI`.
+
+  * Prune `backtickSpans` state when no closer is found.  Avoids
+    quadratic performance in pathological cases.
+
+  * Autolink: implement GFM preceding-character restriction.
+
 ## 0.3
 
   * Applicative instances of IsBlock, IsInline etc. (Ashley Yakeley).

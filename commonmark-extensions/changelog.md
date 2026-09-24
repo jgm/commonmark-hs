@@ -1,5 +1,9 @@
 # Changelog for commonmark-extensions
 
+## 0.2.7.3
+
+  * Depend on commonmark 0.3.1, for the `getPrecedingTokType` export.
+
 ## 0.2.7.2
 
   * Footnotes: memoize note rendering and detect reference cycles.

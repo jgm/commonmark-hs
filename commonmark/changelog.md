@@ -1,5 +1,10 @@
 # Changelog for commonmark
 
+## 0.3.1
+
+  * Export `getPrecedingTokType` from Commonmark.Inlines [API change].
+    (Actually this was already in the 0.3.0.1 release; this release
+    just makes the version number change required by the PVP.)
 
 ## 0.3.0.1
 

@@ -235,7 +235,7 @@ addToPandocAttr attrs attr = foldr go attr attrs
   go ("id", v) (_, cls, kvs) = (v, cls, kvs)
   go ("class", v) (ident, cls, kvs)
     | v `elem` cls           = (ident, cls, kvs)
-    | otherwise              = (ident, v:cls, kvs)
+    | otherwise              = (ident, T.words v <> cls, kvs)
   go (k, v) (ident, cls, kvs)
     | k `elem` map fst kvs   = (ident, cls, kvs)
     | otherwise              = (ident, cls, (k,v):kvs)

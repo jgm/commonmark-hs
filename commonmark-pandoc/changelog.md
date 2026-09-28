@@ -1,8 +1,13 @@
 # Changelog for commonmark-pandoc
 
+## 0.3.0.2
+
+  * Fix class attribute so that it is split on spaces and multiple
+    classes added to pandoc Attr.
+
 ## 0.3.0.1
 
-  * keep task-list checkbox attached under source positions.
+  * Keep task-list checkbox attached under source positions.
     With sourcepos enabled, an item's first Plain/Para has already been
     wrapped in a Div (wrapper="1") by addBlockAttrs before taskList runs,
     so toTaskListItem's Plain/Para patterns never matched and the

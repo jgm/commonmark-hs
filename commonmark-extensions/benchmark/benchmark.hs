@@ -19,7 +19,7 @@ main = do
         ("commonmark +autolink", sample)
     , benchCommonmark (attributesSpec <> defaultSyntaxSpec)
         ("commonmark +attributes", sample)
-    , benchCommonmark (defaultSyntaxSpec <> pipeTableSpec)
+    , benchCommonmark (defaultSyntaxSpec <> pipeTableSpec CaptionDisabled)
         ("commonmark +pipe_table", sample)
     ]
 

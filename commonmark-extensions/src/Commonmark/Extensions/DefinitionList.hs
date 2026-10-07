@@ -160,10 +160,13 @@ definitionListDefinitionBlockSpec = BlockSpec
      , blockCanContain     = const True
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = \node@(Node ndata _cs) -> do
-         pos <- getPosition
+     , blockContinue       = \node@(Node ndata children) -> do
          let definitionIndent = fromDyn (blockData ndata) 0
-         gobbleSpaces definitionIndent <|> 0 <$ lookAhead blankLine
+         -- a marker followed by two blanks is just an empty item:
+         pos <- getPosition
+         case blockBlanks ndata of
+              _:_ | null children -> lookAhead blankLine
+              _ -> () <$ gobbleSpaces definitionIndent <|> lookAhead blankLine
          return $! (pos, node)
      , blockConstructor    = fmap mconcat . renderChildren
      , blockFinalize       = defaultFinalizer

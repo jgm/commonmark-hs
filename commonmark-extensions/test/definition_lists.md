@@ -301,3 +301,34 @@ bim
 </dd>
 </dl>
 ````````````````````````````````
+
+<https://github.com/jgm/commonmark-hs/issues/165
+
+```````````````````````````````` example
+HTML In a Definition List
+:
+  <div>
+    <span>One space</span>
+  </div>
+
+
+HTML *Outside* a Definition List
+:
+
+  <div>
+    <span>Two Spaces</span>
+  </div>
+.
+<dl>
+<dt>HTML In a Definition List</dt>
+<dd> <div>
+   <span>One space</span>
+ </div>
+</dd>
+<dt>HTML <em>Outside</em> a Definition List</dt>
+<dd></dd>
+</dl>
+  <div>
+    <span>Two Spaces</span>
+  </div>
+````````````````````````````````

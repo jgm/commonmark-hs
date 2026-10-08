@@ -157,18 +157,29 @@ prettyRange (SourceRange xs) = go "" xs
     go _ [] = ""
     go curname ((p1,p2):rest)
       = (if sourceName p1 /= curname
-            then sourceName p1 ++ "@"
+            then escapeSourceName (sourceName p1) ++ "@"
             else "") ++
          show (sourceLine p1) ++ ":" ++
          show (sourceColumn p1) ++ "-" ++
          (if sourceName p2 /= sourceName p1
-             then sourceName p2 ++ "@"
+             then escapeSourceName (sourceName p2) ++ "@"
              else "") ++
          show (sourceLine p2) ++
          ":" ++ show (sourceColumn p2) ++
          if null rest
             then ""
             else ";" ++ go (sourceName p2) rest
+
+-- if the source name contains special characters it can lead to ambiguity when
+-- a filename exactly matches a fragment of syntax of the range
+escapeSourceName :: String -> String
+escapeSourceName = concatMap escapeChar
+  where
+    escapeChar '-' = "%2D"
+    escapeChar '%' = "%25"
+    escapeChar ':' = "%3A"
+    escapeChar ';' = "%3B"
+    escapeChar x = [x]
 
 type Attribute = (Text, Text)
 

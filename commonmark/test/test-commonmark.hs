@@ -34,6 +34,8 @@ main = do
              ]
   defaultMain $ testGroup "Tests"
      (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip
+      : testCase "tokenize always ends with LineEnd"
+           (map tokType (tokenize "input" "hi") @?= [WordChars, LineEnd])
       : pathologicalTests defaultParser
       : toSpecTest defaultParser
         SpecTest

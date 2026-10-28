@@ -49,7 +49,10 @@ tokenize name =
 
     isWordChar c  = isAlphaNum c || isMark c
 
-    go !_pos [] = []
+    go !pos []
+      | sourceColumn pos > 1 = [Tok LineEnd pos ""]
+        -- ensure we always have a completed line
+      | otherwise = []
     go !pos (!t:ts) = -- note that t:ts are guaranteed to be nonempty
       case T.head t of
          ' ' ->  Tok Spaces pos t :

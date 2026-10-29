@@ -120,3 +120,174 @@ $$1{$$2$$}3$$
 <p><span class="math display">\[1\]</span>2<span class="math display">\[3\]</span></p>
 <p><span class="math display">\[1{$$2$$}3\]</span></p>
 ````````````````````````````````
+
+## TeX comments
+
+Unescaped percent signs start comments through the next newline.
+Comment text is preserved, but its braces and dollars do not affect
+math boundaries. Escaped percent signs stay literal, and backslashes
+inside comments do not escape the newline.
+
+```````````````````````````````` example
+$a%$ ignored
++b$
+.
+<p><span class="math inline">\(a%$ ignored
++b\)</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+${a%} $
+b}$
+.
+<p><span class="math inline">\({a%} $
+b}\)</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+${a%{
+b}$
+.
+<p><span class="math inline">\({a%{
+b}\)</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$a\%$
+.
+<p><span class="math inline">\(a\%\)</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+${a\%}$
+.
+<p><span class="math inline">\({a\%}\)</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$a\%{b$c$}$
+.
+<p><span class="math inline">\(a\%{b$c$}\)</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$a\\%$
+b$
+.
+<p><span class="math inline">\(a\\%$
+b\)</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+${a\\%}
+b}$
+.
+<p><span class="math inline">\({a\\%}
+b}\)</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$a\\\%$
+.
+<p><span class="math inline">\(a\\\%\)</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$a%
+% } $ \
+b$
+.
+<p><span class="math inline">\(a%
+% } $ \
+b\)</span></p>
+````````````````````````````````
+
+A delimiter inside a final comment cannot close the equation.
+
+```````````````````````````````` example
+$a%$
+.
+<p>$a%$</p>
+````````````````````````````````
+
+```````````````````````````````` example
+$$a%$$ ignored
++b$$
+.
+<p><span class="math display">\[a%$$ ignored
++b\]</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$${a%} $$
+b}$$
+.
+<p><span class="math display">\[{a%} $$
+b}\]</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$${a%{
+b}$$
+.
+<p><span class="math display">\[{a%{
+b}\]</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$$a\%$$
+.
+<p><span class="math display">\[a\%\]</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$${a\%}$$
+.
+<p><span class="math display">\[{a\%}\]</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$$a\%{b$$c$$}$$
+.
+<p><span class="math display">\[a\%{b$$c$$}\]</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$$a\\%$$
+b$$
+.
+<p><span class="math display">\[a\\%$$
+b\]</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$${a\\%}
+b}$$
+.
+<p><span class="math display">\[{a\\%}
+b}\]</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$$a\\\%$$
+.
+<p><span class="math display">\[a\\\%\]</span></p>
+````````````````````````````````
+
+```````````````````````````````` example
+$$a%
+% } $$ \
+b$$
+.
+<p><span class="math display">\[a%
+% } $$ \
+b\]</span></p>
+````````````````````````````````
+
+A delimiter inside a final comment cannot close the equation.
+
+```````````````````````````````` example
+$$a%$$
+.
+<p>$$a%$$</p>
+````````````````````````````````

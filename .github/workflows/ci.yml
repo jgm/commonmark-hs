@@ -1,102 +1,127 @@
 name: CI tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   linux:
 
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         versions:
           - ghc: '9.6'
-            cabal: '3.10'
+            cabal: 'latest'
+            cabalopts: '--ghc-option=-Werror'
           - ghc: '9.8'
-            cabal: '3.10'
+            cabal: 'latest'
+            cabalopts: '--ghc-option=-Werror'
           - ghc: '9.10'
             cabal: 'latest'
+            cabalopts: '--ghc-option=-Werror'
           - ghc: '9.12'
             cabal: 'latest'
+            cabalopts: '--ghc-option=-Werror'
+          - ghc: '9.14'
+            cabal: 'latest'
+            cabalopts: '--ghc-option=-Werror'
+
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
+    - name: Resolve GHC version
+      id:   ghc
+      shell: bash
+      run: |
+          version=$(ghcup list -t ghc -c available -r | awk -v prefix="${{ matrix.versions.ghc }}." 'index($2, prefix) == 1 { print $2 }' | sort -V | tail -1)
+          test -n "$version"
+          dir="$(ghcup whereis basedir)/ghc/$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+          echo "preinstalled=$(test -d "$dir" && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "os=$(. /etc/os-release && echo "$ID-$VERSION_ID")" >> "$GITHUB_OUTPUT"
+
+    - name: Cache GHC installation
+      if:   steps.ghc.outputs.preinstalled != 'true'
+      uses: actions/cache@v6
+      with:
+        path: |
+          ${{ steps.ghc.outputs.dir }}
+        key: ${{ steps.ghc.outputs.os }}-ghc-install-${{ secrets.CACHE_VERSION }}-${{ steps.ghc.outputs.version }}
 
     - name: Install cabal/ghc
       run: |
-        ghcup install ghc --set ${{ matrix.versions.ghc }}
+        ghcup install ghc ${{ steps.ghc.outputs.version }}
+        ghcup set ghc ${{ steps.ghc.outputs.version }}
         ghcup install cabal --set ${{ matrix.versions.cabal }}
+
+    - name: Update cabal and get store path
+      id:   cabal-store
+      shell: bash
+      run: |
+          cabal update -z
+          echo "dir=$(cabal path -z --store-dir)" >> "$GITHUB_OUTPUT"
+
+    - name: Compute build plan
+      run: |
+          cabal build --enable-tests --disable-optimization -fexecutable ${{ matrix.versions.cabalopts }} --dry-run
 
     - name: Cache cabal global package db
       id:   cabal-global
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
-          ~/.cabal
-        key: ${{ runner.os }}-${{ matrix.versions.ghc }}-${{ matrix.versions.cabal }}-cabal-global-${{ secrets.CACHE_VERSION }}
+          ${{ steps.cabal-store.outputs.dir }}
+        key: ${{ runner.os }}-ghc-${{ matrix.versions.ghc }}-cabal-${{ secrets.CACHE_VERSION }}-${{ hashFiles('dist-newstyle/cache/plan.json') }}
+        restore-keys: |
+          ${{ runner.os }}-ghc-${{ matrix.versions.ghc }}-cabal-${{ secrets.CACHE_VERSION }}-
 
-    - name: Install dependencies
+    - name: Build
       run: |
-          cabal v2-update
-          cabal v2-build --dependencies-only --enable-tests --disable-optimization all
+          cabal build --enable-tests --disable-optimization -fexecutable ${{ matrix.versions.cabalopts }}
 
-    - name: Build and test
+    - name: Test
       run: |
-          cabal v2-build --enable-tests --disable-optimization all 2>&1 | tee build.log
-          # fail if warnings in local build
-          ! grep -q "Commonmark.*[Ww]arning:" build.log || exit 1
-          cabal v2-test --disable-optimization all
+          cabal test --disable-optimization ${{ matrix.versions.cabalopts }}
 
   windows:
 
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Install stack
-      shell: cmd
+    - uses: actions/checkout@v7
+
+    # Use the versions of cabal and ghc that are included in the runner image.
+    - name: Update cabal and get versions and store path
+      id:   cabal-store
+      shell: bash
       run: |
-          choco install haskell-stack
+          cabal update -z
+          echo "ghc=$(ghc --numeric-version)" >> "$GITHUB_OUTPUT"
+          echo "dir=$(cabal path -z --store-dir)" >> "$GITHUB_OUTPUT"
+
+    - name: Compute build plan
+      run: |
+          cabal build --enable-tests --disable-optimization -fexecutable --ghc-option=-Werror --dry-run
 
     - name: Cache cabal global package db
-      id:   cabal-global
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
-          C:\cabal\store
-        key: ${{ runner.os }}-appdata-cabal-${{ hashFiles('cabal.project') }}-${{ secrets.CACHE_VERSION }}
+          ${{ steps.cabal-store.outputs.dir }}
+        key: ${{ runner.os }}-ghc-${{ steps.cabal-store.outputs.ghc }}-cabal-${{ secrets.CACHE_VERSION }}-${{ hashFiles('dist-newstyle/cache/plan.json') }}
+        restore-keys: |
+          ${{ runner.os }}-ghc-${{ steps.cabal-store.outputs.ghc }}-cabal-${{ secrets.CACHE_VERSION }}-
 
-    - name: Cache cabal work
-      id: cabal-local
-      uses: actions/cache@v4
-      with:
-        path: |
-          dist-newstyle
-        key: ${{ runner.os }}-stack-work-${{ hashFiles('cabal.project') }}-${{ secrets.CACHE_VERSION }}
-
-    - name: Install dependencies
+    - name: Build
       run: |
-          stack update
-          stack test --dependencies-only --fast
-    - name: Build and test
-      shell: cmd
+          cabal build --enable-tests --disable-optimization -fexecutable --ghc-option=-Werror
+
+    - name: Test
       run: |
-          chcp 65001
-          stack install --ghc-options=-Werror --fast --test --haddock --no-haddock-deps --bench --no-run-benchmarks
+          cabal test --disable-optimization --ghc-option=-Werror
 
-# macos:
-
-#   runs-on: macOS-latest
-
-#   steps:
-#   - uses: actions/checkout@v4
-#   - name: Install stack
-#     run: |
-#         curl -L https://get.haskellstack.org/stable/osx-x86_64.tar.gz -o stack.tar.gz
-#         tar xzvf stack.tar.gz --strip-components=1 'stack*/stack'
-#   - name: Install dependencies
-#     run: |
-#         ./stack update
-#         ./stack test --dependencies-only --fast
-#   - name: Build and test
-#     run: |
-#         ./stack install --ghc-options=-Werror --test --haddock --no-haddock-deps --bench

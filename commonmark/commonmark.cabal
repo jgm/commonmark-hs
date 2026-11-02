@@ -97,6 +97,7 @@ test-suite test-commonmark
       base >= 4.9 && <5
     , commonmark
     , text
+    , bytestring
     , unicode-transforms
     , tasty
     , tasty-quickcheck

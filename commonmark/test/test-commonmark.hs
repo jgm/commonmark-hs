@@ -8,22 +8,19 @@ import           Data.Functor.Identity
 import           Data.List             (groupBy)
 import           Data.Text             (Text)
 import qualified Data.Text             as T
-import qualified Data.Text.IO          as T
-import           System.IO             (hSetEncoding, utf8, openFile,
-                                        IOMode(..))
 import qualified Data.Text.Lazy        as TL
+import           Data.Text.Encoding         (decodeUtf8With)
+import           Data.Text.Encoding.Error   (lenientDecode)
 import           Data.Text.Normalize   (normalize, NormalizationMode(NFC))
 import           Test.Tasty
 import           Test.Tasty.HUnit
 import           Test.Tasty.QuickCheck
 import           Text.Parsec
 import           Text.Parsec.Pos
+import qualified Data.ByteString as BS
 
 readTextFile :: FilePath -> IO Text
-readTextFile fp = do
-  h <- openFile fp ReadMode
-  hSetEncoding h utf8
-  T.hGetContents h
+readTextFile fp = decodeUtf8With lenientDecode <$> BS.readFile fp
 
 main :: IO ()
 main = do

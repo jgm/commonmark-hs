@@ -1,2 +1,4 @@
-packages: commonmark*/*.cabal
-
+packages: commonmark
+          commonmark-extensions
+          commonmark-pandoc
+          commonmark-cli

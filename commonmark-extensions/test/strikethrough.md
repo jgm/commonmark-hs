@@ -48,3 +48,18 @@ Here I strike out an exclamation point~~!~~.
 ````````````````````````````````
 
 
+
+Single tildes that can't produce strikethrough should not
+swallow intervening delimiters (#181):
+
+```````````````````````````````` example
+~4 **~75 GB.**
+.
+<p>~4 <strong>~75 GB.</strong></p>
+````````````````````````````````
+
+```````````````````````````````` example
+~~a~ ~b~~
+.
+<p><del>a~ ~b</del></p>
+````````````````````````````````

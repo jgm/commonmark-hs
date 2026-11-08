@@ -734,7 +734,19 @@ delimsMatch (Chunk open@Delim{} _ opents) (Chunk close@Delim{} _ closets) =
                 then delimLength close `mod` 3 == 0 ||
                      (delimLength open + delimLength close) `mod` 3 /= 0
                 else True) &&
+    hasConstructor &&
     opents /= closets
+ where
+  -- Don't match if the spec provides no constructor for delimiters
+  -- of these lengths (e.g. single ~ with a strikethrough spec that
+  -- only allows ~~), since otherwise we'd consume intervening
+  -- delimiters (#181).
+  hasConstructor =
+    case delimSpec close of
+      Just spec -> isJust (formattingSingleMatch spec) ||
+                   (isJust (formattingDoubleMatch spec) &&
+                    min (length opents) (length closets) >= 2)
+      Nothing -> True
 delimsMatch _ _ = False
 
 -- check for balanced `[]` brackets

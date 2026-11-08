@@ -46,6 +46,7 @@ extra-doc-files:
 extra-source-files:
     test/spec.txt
     test/regression.md
+    test/double_only.md
 
 source-repository head
   type: git

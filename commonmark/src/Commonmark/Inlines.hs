@@ -442,12 +442,21 @@ pDelimChunk specmap isDelimChar = do
            followedByPunctuation)
 
   let !len = length toks
-  return $! Chunk Delim{ delimType = c
+  return $! checkDelimWidth $ Chunk Delim{ delimType = c
                        , delimCanOpen = canOpen
                        , delimCanClose = canClose
                        , delimSpec = mbspec
                        , delimLength = len
                        } pos toks
+
+-- A single delimiter left by a double-only spec is literal. Keep it as
+-- its own chunk so that formatting on either side can still match.
+checkDelimWidth :: Chunk a -> Chunk a
+checkDelimWidth ch@(Chunk d@Delim{delimSpec = Just FormattingSpec{
+                          formattingSingleMatch = Nothing,
+                          formattingDoubleMatch = Just _}} _ [_]) =
+  ch{chunkType = d{delimCanOpen = False, delimCanClose = False}}
+checkDelimWidth ch = ch
 
 withAttributes :: (IsInline a, Monad m) => InlineParser m a -> InlineParser m a
 withAttributes p = do
@@ -683,10 +692,10 @@ processEm st =
                  splitAt numtoks (chunkToks closedelim)
                addnewopen = if null openrest
                                then id
-                               else (opendelim{ chunkToks = openrest } :)
+                               else (checkDelimWidth opendelim{ chunkToks = openrest } :)
                addnewclose = if null closerest
                                 then id
-                                else (closedelim{ chunkToks = closerest } :)
+                                else (checkDelimWidth closedelim{ chunkToks = closerest } :)
                emphtoks = opentoks ++ concatMap chunkToks contents ++ closetoks
                newelt = Chunk
                          (Parsed $

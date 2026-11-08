@@ -32,6 +32,8 @@ main = do
              , ("test/strikethrough.md", strikethroughSpec)
              , ("test/superscript.md", superscriptSpec)
              , ("test/subscript.md", subscriptSpec)
+             , ("test/strike_and_subscript.md", strikethroughSpec <> subscriptSpec)
+             , ("test/strike_and_subscript.md", subscriptSpec <> strikethroughSpec)
              , ("test/pipe_tables.md", pipeTableSpec)
              , ("test/footnotes.md", footnoteSpec)
              , ("test/math.md", mathSpec)

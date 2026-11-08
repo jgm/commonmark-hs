@@ -47,4 +47,45 @@ Here I strike out an exclamation point~~!~~.
 <p>Here I strike out an exclamation point<del>!</del>.</p>
 ````````````````````````````````
 
+Single tildes leave other formatting delimiters available:
+
+```````````````````````````````` example
+(~4 GB) and **~75% of the ~29.6 GB.**
+.
+<p>(~4 GB) and <strong>~75% of the ~29.6 GB.</strong></p>
+````````````````````````````````
+
+```````````````````````````````` example
+- **not** X (~4 GB) and **not** Y. **~75% of the ~29.6 GB.**
+.
+<ul>
+<li><strong>not</strong> X (~4 GB) and <strong>not</strong> Y. <strong>~75% of the ~29.6 GB.</strong></li>
+</ul>
+````````````````````````````````
+
+```````````````````````````````` example
+~~a~~~ **~b**
+.
+<p><del>a</del>~ <strong>~b</strong></p>
+````````````````````````````````
+
+Residual singleton and double-only delimiters:
+
+```````````````````````````````` example
+~a~ **b**
+.
+<p>~a~ <strong>b</strong></p>
+````````````````````````````````
+
+```````````````````````````````` example
+x ~~~a~~ **b~**
+.
+<p>x ~<del>a</del> <strong>b~</strong></p>
+````````````````````````````````
+
+```````````````````````````````` example
+~~a~~ **b**
+.
+<p><del>a</del> <strong>b</strong></p>
+````````````````````````````````
 

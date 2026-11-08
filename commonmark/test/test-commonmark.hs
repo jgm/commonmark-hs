@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import           Commonmark
+import           Commonmark.Inlines    (FormattingSpec(..))
 import           Control.Monad         (when)
 import           Data.Functor.Identity
 import           Data.List             (groupBy)
@@ -28,6 +29,9 @@ main = do
   tests <- mapM (uncurry getSpecTestTree)
              [ ("test/spec.txt", mempty)
              , ("test/regression.md", mempty)
+             , ("test/double_only.md", mempty
+                 { syntaxFormattingSpecs =
+                     [FormattingSpec '=' True True Nothing (Just strong) '='] })
              ]
   defaultMain $ testGroup "Tests"
      (testProperty "tokenize/untokenize roundtrip" tokenize_roundtrip

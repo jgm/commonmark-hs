@@ -2,6 +2,9 @@
 
 As in GitHub-flavored Markdown.
 
+With fancy ordered lists enabled, put task lists first. See the
+[combined examples](task_and_fancy_lists.md).
+
 ```````````````````````````````` example
 - [ ] an unchecked task list item
 - [x] checked item

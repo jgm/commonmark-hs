@@ -28,6 +28,12 @@ commonmark package:
 - [`wikilinks_title_before_pipe`] and
   [`wikilinks_title_after_pipe`] (wikilink syntax)
 
+When combining task lists with fancy ordered lists, put the task-list parser first:
+
+`taskListSpec <> fancyListSpec <> defaultSyntaxSpec`. On the command line, use
+`commonmark -x task_lists -x fancy_lists`. The fancy-list parser also accepts
+ordinary bullet lists, so putting it first can leave checkboxes as plain text.
+
 [`pipe_tables`]: test/pipe_tables.md
 [`hard_line_breaks`]: test/hard_line_breaks.md
 [`smart`]: test/smart.md

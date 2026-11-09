@@ -172,6 +172,24 @@ addFootnoteList :: forall m il bl.
                    (Monad m, Typeable m, Typeable bl, HasFootnote il bl,
                     IsBlock il bl) => BlockParser m il bl bl
 addFootnoteList = do
+  -- If footnoteSpec is included more than once in a SyntaxSpec,
+  -- this final parser will run more than once; only the first run
+  -- should produce a footnote list.
+  alreadyAdded <- M.member footnoteListKey . counters <$> getState
+  if alreadyAdded
+     then return mempty
+     else do
+       updateState $ \s -> s{ counters = M.insert footnoteListKey
+                                           (toDyn ()) (counters s) }
+       addFootnoteList'
+
+footnoteListKey :: Text
+footnoteListKey = "footnote:listAdded"
+
+addFootnoteList' :: forall m il bl.
+                    (Monad m, Typeable m, Typeable bl, HasFootnote il bl,
+                     IsBlock il bl) => BlockParser m il bl bl
+addFootnoteList' = do
   rm <- referenceMap <$> getState
   let keys = M.keys . unReferenceMap $ rm
   let getNote key = lookupReference key rm :: Maybe (FootnoteDef bl m)

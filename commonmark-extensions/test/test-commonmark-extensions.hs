@@ -34,6 +34,8 @@ main = do
              , ("test/subscript.md", subscriptSpec)
              , ("test/pipe_tables.md", pipeTableSpec)
              , ("test/footnotes.md", footnoteSpec)
+             -- including the extension twice should be harmless:
+             , ("test/footnotes.md", footnoteSpec <> footnoteSpec)
              , ("test/math.md", mathSpec)
              , ("test/emoji.md", emojiSpec)
              , ("test/autolinks.md", autolinkSpec)

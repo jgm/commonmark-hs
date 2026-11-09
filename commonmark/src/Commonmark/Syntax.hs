@@ -39,10 +39,16 @@ instance Monoid (SyntaxSpec m il bl) where
   mempty = SyntaxSpec mempty mempty mempty mempty mempty mempty
   mappend = (<>)
 
+-- | When several specs have the same 'blockType', keep the first
+-- one, but put it in the position of the last one.  This way an
+-- extension's spec replaces a default spec in place, rather than
+-- moving ahead of other extensions' specs (#180).
 removeDuplicateBlockSpecs :: [BlockSpec m il bl] -> [BlockSpec m il bl]
 removeDuplicateBlockSpecs []     = []
 removeDuplicateBlockSpecs (b:bs) =
-  b : removeDuplicateBlockSpecs (filter ((/= blockType b) . blockType) bs)
+  case break ((== blockType b) . blockType) bs of
+    (_, [])      -> b : removeDuplicateBlockSpecs bs
+    (xs, _:ys)   -> removeDuplicateBlockSpecs (xs ++ b : ys)
 
 -- | Standard commonmark syntax.
 defaultSyntaxSpec :: (Monad m, IsBlock il bl, IsInline il)

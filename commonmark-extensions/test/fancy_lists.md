@@ -296,3 +296,15 @@ iv. a list
 <li>a list</li>
 </ol>
 ````````````````````````````````
+
+Thematic breaks take precedence over list items, as in
+standard commonmark (#180):
+
+```````````````````````````````` example
+* * *
+
+- - -
+.
+<hr />
+<hr />
+````````````````````````````````

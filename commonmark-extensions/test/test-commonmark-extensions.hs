@@ -40,6 +40,8 @@ main = do
              , ("test/definition_lists.md", definitionListSpec)
              , ("test/fancy_lists.md", fancyListSpec)
              , ("test/task_lists.md", taskListSpec)
+             -- order should not matter (#180):
+             , ("test/task_lists.md", fancyListSpec <> taskListSpec)
              , ("test/attributes.md", attributesSpec)
              , ("test/raw_attribute.md", rawAttributeSpec)
              , ("test/bracketed_spans.md", bracketedSpanSpec)

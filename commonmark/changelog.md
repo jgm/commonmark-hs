@@ -1,5 +1,28 @@
 # Changelog for commonmark
 
+## 0.3.2
+
+  * Replace duplicate block specs in place (#180). When several
+    block specs have the same blockType,
+    `removeDuplicateBlockSpecs` still keeps the first, but now
+    puts it in the position of the last. So an extension that
+    overrides a default spec (e.g. `fancy_lists`' ListItem) takes
+    the default's slot, instead of moving ahead of other
+    extensions' specs and of the remaining default specs. This
+    makes task_lists work regardless of whether it is combined
+    before or after fancy_lists, and it fixes thematic breaks
+    like `* * *` being parsed as nested lists when fancy_lists is
+    enabled.
+
+  * delimsMatch: disallow match for 1-length delims when there is no
+    single-delim contsructor defined (e.g., with strikeout) (#181).
+
+  * Test: read test file as bytestring, then convert.
+
+  * Ensure that token stream always ends with a LineEnd (#179).
+    If the input does not end with a line ending, we still add
+    a LineEnd token at the end (with null text content).
+
 ## 0.3.1
 
   * Export `getPrecedingTokType` from Commonmark.Inlines [API change].

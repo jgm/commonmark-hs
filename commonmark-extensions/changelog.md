@@ -1,5 +1,32 @@
 # Changelog for commonmark-extensions
 
+## 0.2.8
+
+  * Footnotes: don't add footnote list twice.
+    If footnoteSpec was included more than once in a SyntaxSpec
+    (e.g. `gfmExtensions <> footnoteSpec`, or `-x gfm -x footnotes`
+    on the command line), the addFootnoteList final parser ran more
+    than once, re-rendering every note and emitting a second
+    footnotes section.  We now record in `counters` that the list has
+    been added and make subsequent runs no-ops.
+
+  * Replace duplicate block specs in place (#180). When several
+    block specs have the same blockType,
+    removeDuplicateBlockSpecs still keeps the first, but now puts
+    it in the position of the last. So an extension that
+    overrides a default spec (e.g. fancy_lists' ListItem) takes
+    the default's slot, instead of moving ahead of other
+    extensions' specs and of the remaining default specs. This
+    makes task_lists work regardless of whether it is combined
+    before or after fancy_lists, and it fixes thematic breaks
+    like `* * *` being parsed as nested lists when fancy_lists is
+    enabled.
+
+  * `delimsMatch`: disallow match for 1-length delims when there is
+    no single-delim contsructor defined (e.g., with strikeout) (#181).
+
+  * Math: respect TeX percent comments (Erik Demaine).
+
 ## 0.2.7.3
 
   * Depend on commonmark 0.3.1, for the `getPrecedingTokType` export.

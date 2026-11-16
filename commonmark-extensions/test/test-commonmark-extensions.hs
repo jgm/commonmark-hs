@@ -32,7 +32,8 @@ main = do
              , ("test/strikethrough.md", strikethroughSpec)
              , ("test/superscript.md", superscriptSpec)
              , ("test/subscript.md", subscriptSpec)
-             , ("test/pipe_tables.md", pipeTableSpec)
+             , ("test/pipe_tables.md", pipeTableSpec CaptionDisabled)
+             , ("test/pipe_tables_captions.md", pipeTableSpec CaptionEnabled)
              , ("test/footnotes.md", footnoteSpec)
              -- including the extension twice should be harmless:
              , ("test/footnotes.md", footnoteSpec <> footnoteSpec)

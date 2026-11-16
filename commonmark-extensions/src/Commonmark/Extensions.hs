@@ -73,6 +73,6 @@ gfmExtensions :: (Monad m, Typeable m, Typeable il, Typeable bl,
                   HasTaskList il bl, ToPlainText il, HasAlerts il bl)
               => SyntaxSpec m il bl
 gfmExtensions =
-  emojiSpec <> strikethroughSpec <> pipeTableSpec <> autolinkSpec <>
+  emojiSpec <> strikethroughSpec <> pipeTableSpec CaptionDisabled <> autolinkSpec <>
     autoIdentifiersSpec <> taskListSpec <> footnoteSpec <> alertSpec
 

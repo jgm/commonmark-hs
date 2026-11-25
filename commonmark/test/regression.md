@@ -528,3 +528,24 @@ b
 <p>b</p>
 ````````````````````````````````
 
+Whitespace between the link destination and `)`, without a title
+
+```````````````````````````````` example
+[a](/u )
+
+[b]( /u )
+
+[c](</u v> )
+
+[d](/u
+)
+
+![e](/u )
+.
+<p><a href="/u">a</a></p>
+<p><a href="/u">b</a></p>
+<p><a href="/u%20v">c</a></p>
+<p><a href="/u">d</a></p>
+<p><img src="/u" alt="e" /></p>
+````````````````````````````````
+

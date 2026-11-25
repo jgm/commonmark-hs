@@ -1019,7 +1019,8 @@ pInlineLink = try $ do
   _ <- symbol '('
   optional whitespace
   target <- untokenize <$> pLinkDestination
-  title <- option "" $ unEntity <$> (whitespace *> pLinkTitle)
+  -- try: the whitespace may be followed by ')' rather than a title
+  title <- option "" $ try $ unEntity <$> (whitespace *> pLinkTitle)
   optional whitespace
   _ <- symbol ')'
   return $! LinkInfo { linkDestination = target

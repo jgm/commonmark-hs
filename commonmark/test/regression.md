@@ -516,3 +516,15 @@ cmark#383
 <p>**<em><strong>Hello<em>world</em></strong></em></p>
 ````````````````````````````````
 
+CRLF followed by LF is two line endings
+(Important: the first line ends with CR + LF, the second with LF)
+
+```````````````````````````````` example
+a
+
+b
+.
+<p>a</p>
+<p>b</p>
+````````````````````````````````
+

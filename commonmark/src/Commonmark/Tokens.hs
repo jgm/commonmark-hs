@@ -60,8 +60,12 @@ tokenize name =
          '\t' -> Tok Spaces pos t :
                  go (incSourceColumn pos
                        (4 - (sourceColumn pos - 1) `mod` 4)) ts
-         '\r' -> Tok LineEnd pos t :
-                 go (incSourceLine (setSourceColumn pos 1) 1) ts
+         -- groupBy compares with the first character of the group, so
+         -- \r\n\n is one group: split off any \n after the \r\n.
+         '\r' -> let (le, rest) = T.splitAt 2 t
+                 in Tok LineEnd pos le :
+                    go (incSourceLine (setSourceColumn pos 1) 1)
+                       (map T.singleton (T.unpack rest) ++ ts)
          '\n' -> Tok LineEnd pos t :
                  go (incSourceLine (setSourceColumn pos 1) 1) ts
          thead

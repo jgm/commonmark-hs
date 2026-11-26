@@ -264,3 +264,13 @@ either for blocks or for inlines.**
 .
 <h1 data-key="value">Heading</h1>
 ````````````````````````````````
+
+**A line with only spaces after block attributes is a blank line.**
+
+```````````````````````````````` example
+{.c}
+  
+para
+.
+<p class="c">para</p>
+````````````````````````````````

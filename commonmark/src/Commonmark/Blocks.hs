@@ -562,7 +562,7 @@ attributeSpec = BlockSpec
      , blockCanContain     = const False
      , blockContainsLines  = False
      , blockParagraph      = False
-     , blockContinue       = \n -> do
+     , blockContinue       = \n -> try $ do
          attrParsers <- attributeParsers <$> getState
          guard $ not (null attrParsers)
          nonindentSpaces
